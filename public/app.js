@@ -612,7 +612,7 @@
     var s = ONBOARD_SLIDES[i];
     var isDraft = i > 0;
     return (
-      '<div class="onboard-wrap"><div class="onboard-top"><div class="onboard-logo">✦ Orbit</div>' +
+      '<div class="onboard-wrap"><div class="onboard-left"><div class="onboard-top"><div class="onboard-logo">✦ Orbit</div>' +
       '<div class="onboard-art">' + s.art + '</div><h1 class="onboard-title">' + s.title + '</h1>' +
       '<p class="onboard-sub">' + s.sub + '</p>' +
       (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;">Nội dung slide này là bản nháp — chưa có mockup gốc, cần bạn duyệt lại.</div>' : '') +
@@ -620,7 +620,10 @@
       '<button class="btn btn-primary btn-block" data-action="' + (i < ONBOARD_SLIDES.length - 1 ? 'onboard-next' : 'onboard-finish') + '">' + s.primary + ' →</button>' +
       (s.showSkip ? '<button class="onboard-skip" data-action="contacts-import">Nhập danh bạ</button>' : '') +
       '<div class="onboard-dots">' + ONBOARD_SLIDES.map(function (_, idx) { return '<span class="d ' + (idx === i ? 'on' : '') + '" data-action="onboard-dot" data-i="' + idx + '"></span>'; }).join('') + '</div>' +
-      '</div></div>'
+      '</div></div>' +
+      '<div class="onboard-right"><div class="big-art">' + s.art + '</div>' +
+      '<div class="illustration-note">⚠️ Vị trí minh hoạ thật (tranh cô gái + mèo theo phong cách mockup) — chưa có asset, đang hiện placeholder</div></div>' +
+      '</div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
