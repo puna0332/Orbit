@@ -130,7 +130,14 @@
   function loadState() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        // Luôn quay về Lớp 0 (onboarding) mỗi lần mở lại app — dữ liệu người/sự
+        // kiện/ghi chú vẫn giữ nguyên, chỉ riêng tiến trình onboarding reset mỗi phiên.
+        parsed.onboardingDone = false;
+        parsed.onboardingSlide = 0;
+        return parsed;
+      }
     } catch (e) { /* ignore corrupt storage */ }
     var s = seedState();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
