@@ -116,7 +116,7 @@
       onboardingSlide: 0,
       people: people,
       events: events,
-      settings: { theme: 'system', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
+      settings: { theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
     };
   }
   function emptyState(keepSettings) {
@@ -221,8 +221,6 @@
           '<div class="slogan">&quot;Lưu những điều quan trọng với bạn ✨&quot;</div></div>' +
       '</aside>' +
       '<div class="shell-main">' +
-        '<div class="topbar"><div class="logo">✦ Orbit</div>' +
-          '<button class="bell" data-action="toast" data-msg="Chưa có thông báo mới">🔔</button></div>' +
         '<div class="view-root"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
           bottomItem('home', '🏠', 'Home', active) +
@@ -249,7 +247,7 @@
     state.events.forEach(function (ev) {
       if (ev.type === 'memory' && ev.annMMDD) {
         if (ev.annMMDD === todayMMDD) {
-          list.push({ id: ev.id, title: ev.title, icon: ICONS.memory, tone: TONE.memory, daysAway: 0, special: 'ngày này năm ngoái', kind: 'memory', personId: ev.personId });
+          list.push({ id: ev.id, title: ev.title, icon: ICONS.memory, tone: TONE.memory, daysAway: 0, special: 'Ngày này năm ngoái', kind: 'memory', personId: ev.personId });
         }
         return;
       }
@@ -289,43 +287,55 @@
     var windowNote = '';
     if (!occasions.length) {
       occasions = getOccasions(180);
-      if (occasions.length) windowNote = '(trong 180 ngày tới)';
+      if (occasions.length) windowNote = ' (trong 180 ngày tới)';
     }
     var hasOccasions = occasions.length > 0;
     var withoutBday = state.people.filter(function (p) { return !p.birthday; });
 
-    var occBlock;
+    var occBody;
     if (hasOccasions) {
-      occBlock =
-        '<div class="section-head"><h2>60 ngày tới</h2><button class="link-more" data-action="open-all-upcoming">Xem tất cả ›</button></div>' +
-        '<div class="hscroll">' +
-        occasions.slice(0, 3).map(function (o) {
-          return '<a class="occasion-card ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
-            '<div class="ic">' + o.icon + '</div><div><div class="t">' + esc(o.title) + '</div><div class="s">' + occasionSubtitle(o) + ' ' + windowNote + '</div></div></a>';
-        }).join('') + '</div>';
+      occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
+        return '<a class="occasion-card ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
+          '<div class="ic">' + o.icon + '</div><div class="t">' + esc(o.title) + '</div>' +
+          '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
+      }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
-      occBlock =
-        '<h2 style="margin:var(--space-5) 0 4px;">60 ngày tới</h2>' +
-        '<p class="muted">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
-        '<div class="hscroll">' + withoutBday.slice(0, 5).map(function (p) {
-          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">🎂</div><div><div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></div></a>';
+      occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
+        '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
+          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">🎂</div>' +
+            '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
-      occBlock =
-        '<h2 style="margin:var(--space-5) 0 4px;">60 ngày tới</h2>' +
-        '<p class="muted">' + (state.people.length === 0 ? 'Thêm người đầu tiên để bắt đầu.' : 'Không có dịp nào sắp tới trong 180 ngày.') + '</p>';
+      occBody = '<p class="muted" style="margin:0;font-size:13px;">' +
+        (state.people.length === 0 ? 'Thêm người đầu tiên để bắt đầu.' : 'Không có dịp nào sắp tới trong 180 ngày.') + '</p>';
     }
 
     var suggestion = buildSuggestion();
+    var initial = (state.settings.profileName || 'B').trim().charAt(0).toUpperCase();
 
     return (
-      '<div class="hero"><div class="hero-text"><div class="date">' + dateLabel + '</div><h1>Chào bạn ⭐</h1>' +
-      '<p>Những người bạn yêu thương luôn ở gần đây ✨</p></div><div class="hero-illustration">🌙🐾</div></div>' +
-      occBlock +
+      '<div class="home-topright">' +
+      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">🔔<span class="badge-dot"></span></button>' +
+      '<div class="avatar">' + esc(initial) + '</div></div>' +
+
+      '<div class="home-hero">' +
+      '<div class="home-hero-head"><div class="logo-mark">Orbit<span class="spark">✦</span></div>' +
+      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">🔔<span class="badge-dot"></span></button></div>' +
+      '<div class="home-hero-text"><div class="date">' + dateLabel + '</div>' +
+      '<h1>Chào bạn <span>⭐</span></h1>' +
+      '<p class="sub">Những người bạn yêu thương luôn ở gần đây ✨</p></div>' +
+      '<div class="home-hero-art"></div>' +
+      '</div>' +
+
+      '<section class="home-section">' +
+      '<div class="home-section-head"><h2>60 ngày tới</h2>' +
+      '<button class="link-more" data-action="open-all-upcoming">Xem tất cả ›</button></div>' +
+      occBody + '</section>' +
+
       (suggestion ?
-        '<div class="section-head"><h2>Gợi ý hôm nay</h2></div>' +
-        '<a class="card suggest-card" href="' + suggestion.href + '"><div class="ic-wrap">' + suggestion.icon + '</div>' +
-        '<div class="txt">' + esc(suggestion.text) + '</div><div class="chev">›</div></a>' : '')
+        '<section class="home-section"><div class="home-section-head"><h2>Gợi ý hôm nay</h2></div>' +
+        '<a class="suggest-card" href="' + suggestion.href + '"><div class="ic-wrap">' + suggestion.icon + '</div>' +
+        '<div class="txt">' + esc(suggestion.text) + '</div><div class="chev">›</div></a></section>' : '')
     );
   }
 

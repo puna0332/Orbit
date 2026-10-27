@@ -107,9 +107,13 @@ a { color: inherit; text-decoration: none; }
   width: 240px;
   flex-shrink: 0;
   flex-direction: column;
-  padding: var(--space-5);
+  padding: var(--space-5) var(--space-5) var(--space-6);
   border-right: 1px solid var(--border);
   background: var(--card);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
 }
 .sidebar-logo {
   display: flex;
@@ -215,44 +219,100 @@ a { color: inherit; text-decoration: none; }
 
 .card { background: var(--card); border-radius: var(--radius-m); box-shadow: var(--shadow-card); }
 
-.hero {
-  background: linear-gradient(135deg, var(--purple), var(--blue));
-  border-radius: var(--radius-l);
-  padding: var(--space-5);
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
-  margin-top: var(--space-3);
-  position: relative; overflow: hidden;
+/* ===== Home (bám mockup Lớp 1.1) =====
+   Mobile: hero full-bleed gradient kem→hồng, chữ trên / tranh dưới, 3 thẻ dọc 3:4 trên 1 hàng.
+   Desktop: hero 2 cột (chữ trái / tranh phải), mỗi section bọc card trắng r24, thẻ ngang 3:2. */
+.home-hero {
+  position:relative;
+  margin: 0 calc(var(--space-4) * -1);
+  padding: var(--space-4) var(--space-4) 0;
+  min-height: 390px;
+  background: linear-gradient(180deg, #FDF2E9 0%, #FBEBE4 42%, #FDF8F3 78%, var(--cream) 100%);
+  overflow:hidden;
 }
-.hero .hero-text .date { font-size: var(--text-xs); color: var(--navy-soft); opacity:.8; }
-.hero .hero-text h1 { font-size: var(--text-xl); margin: 2px 0 2px; color: var(--navy); }
-.hero .hero-text p { margin:0; font-size: var(--text-sm); color: var(--navy-soft); }
-.hero-illustration { font-size: 56px; line-height:1; filter: drop-shadow(0 6px 10px rgba(0,0,0,.15)); }
+.home-hero::before {
+  content:""; position:absolute; inset:0; z-index:0;
+  background: url('assets/home-art-mobile.png') left bottom / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 82%, transparent 100%);
+}
+.home-hero::after { display:none; }
+.home-hero-head { display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; }
+.home-hero-head .logo-mark { display:flex; align-items:center; gap:4px; font-weight:800; font-size: var(--text-lg); color:#2B3240; }
+.home-hero-head .logo-mark .spark { color: var(--gold); font-size:13px; }
+.home-bell { position:relative; width:38px; height:38px; border-radius:50%; border:none; background:transparent; font-size:18px; color:#2B3240; }
+.home-bell .badge-dot { position:absolute; top:7px; right:8px; width:7px; height:7px; border-radius:50%; background:#E0636E; }
+.home-hero-text { margin-top: var(--space-3); position:relative; z-index:1; }
+.home-hero-text .date { font-size: var(--text-xs); color:#9A9A9A; }
+.home-hero-text h1 { font-size: 27px; font-weight:700; color:#2B3240; margin:2px 0 0; display:flex; align-items:center; gap:8px; }
+.home-hero-text .sub { display:none; }
+.home-hero-art { display:none; }
 
-.hscroll { display: flex; gap: var(--space-3); overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-.hscroll::-webkit-scrollbar { display:none; }
-@media (min-width: 900px) { .hscroll { overflow: visible; flex-wrap: wrap; } }
+.home-section { margin-top: var(--space-5); }
+.home-section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom: var(--space-3); }
+.home-section-head h2 { font-size: var(--text-lg); font-weight:700; margin:0; color: var(--ink); }
+.home-section-head .link-more { font-size: var(--text-xs); color: var(--ink-muted); background:none; border:none; }
 
+.occasion-row { display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
 .occasion-card {
-  flex: 0 0 150px; border-radius: var(--radius-m); padding: var(--space-3);
-  display:flex; flex-direction:column; gap: 10px; min-height: 92px;
+  border-radius: 16px; padding: var(--space-3) 10px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px;
+  aspect-ratio: 112 / 148; text-align:center; text-decoration:none;
 }
-@media (min-width:900px){ .occasion-card { flex: 1 1 180px; } }
-.occasion-card .ic { font-size: 20px; }
-.occasion-card .t { font-weight: 700; font-size: var(--text-sm); }
-.occasion-card .s { font-size: var(--text-xs); opacity: .75; }
-.tone-pink { background: var(--pink); color: var(--pink-ink); }
-.tone-blue { background: var(--blue); color: var(--blue-ink); }
-.tone-green { background: var(--green); color: var(--green-ink); }
-.tone-purple { background: var(--purple); color: var(--purple-ink); }
-.tone-orange { background: var(--orange); color: var(--orange-ink); }
+.occasion-card .ic { font-size: 24px; line-height:1; height:30px; display:flex; align-items:center; }
+.occasion-card .t { font-weight:600; font-size: 12.5px; color:#2B3240; line-height:1.25; text-wrap: balance; min-height: 32px; display:flex; align-items:flex-start; justify-content:center; }
+.occasion-card .s { font-size: 11px; color:#8A8A92; line-height:1.25; margin-top:auto; text-wrap: balance; }
+.tone-pink { background:#FCE4E6; }
+.tone-blue { background:#E7E9FB; }
+.tone-green { background:#E4F0E5; }
+.tone-purple { background:#ECE6FA; }
+.tone-orange { background:#FBE9D8; }
 
 .suggest-card {
-  display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-4); border-radius: var(--radius-m);
+  display:flex; align-items:center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4); border-radius: 16px;
+  background: var(--card); border:1px solid #F1EAE3; text-decoration:none;
 }
-.suggest-card .ic-wrap { width: 40px; height:40px; border-radius:50%; background: var(--orange); color: var(--orange-ink); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
-.suggest-card .txt { flex:1; font-size: var(--text-sm); font-weight: 600; }
-.suggest-card .chev { color: var(--ink-muted); }
+.suggest-card .ic-wrap { width:40px; height:40px; border-radius:12px; background:#FDE8E6; color:#E0636E; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.suggest-card .txt { flex:1; font-size: 13.5px; font-weight:500; color: var(--ink); line-height:1.35; }
+.suggest-card .chev { color: var(--ink-muted); font-size:16px; }
+
+@media (min-width:900px) {
+  .home-hero {
+    margin: 0; padding: var(--space-8); border-radius: var(--radius-l);
+    display:flex; align-items:center; min-height: 320px;
+    background: linear-gradient(120deg, #FDF4EC 0%, #FBEFE8 55%, #FAE8E3 100%);
+  }
+  .home-hero::before {
+    inset: 0 0 0 auto; width: 58%;
+    background: url('assets/home-art-desktop.png') right center / cover no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 24%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 24%, #000 100%);
+  }
+  .home-hero::after { display:none; }
+  .home-hero-head { display:none; }
+  .home-hero-text { flex: 0 0 44%; margin-top:0; }
+  .home-hero-text h1 { font-size: 32px; }
+  .home-hero-text .sub { display:block; margin-top: var(--space-2); font-size: var(--text-sm); color:#6B6F7D; }
+  .home-section { background: var(--card); border-radius: 24px; padding: var(--space-6); margin-top: var(--space-6); }
+  .home-section-head { margin-bottom: var(--space-4); }
+  .home-section-head .link-more { font-size: var(--text-sm); }
+  .occasion-row { gap: var(--space-6); }
+  .occasion-card { aspect-ratio: 330 / 214; border-radius: 20px; gap: 10px; justify-content:center; }
+  .occasion-card .ic { font-size: 32px; height:38px; }
+  .occasion-card .t { font-size: 16px; min-height:0; align-items:center; }
+  .occasion-card .s { font-size: 13.5px; margin-top:0; color:#7A7A85; }
+  .suggest-card { border:none; background:#FDFBF7; padding: var(--space-4) var(--space-5); }
+  .suggest-card .ic-wrap { width:48px; height:48px; border-radius:14px; font-size:20px; }
+  .suggest-card .txt { font-size: 15px; }
+  /* sidebar theo mockup: nền hồng-kem, item active là pill trắng có bóng nhẹ */
+  .sidebar { background:#FBF2EE; border-right:none; width:240px; }
+  .sidebar-link.active { background:#fff; box-shadow: 0 2px 8px rgba(43,50,64,.08); }
+  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .home-topright .avatar { width:36px; height:36px; border-radius:50%; background:#E8A6B4; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+}
+.home-topright { display:none; }
+@media (min-width:900px) { .home-topright { display:flex; } }
 
 .empty-state { text-align:center; padding: var(--space-8) var(--space-4); color: var(--ink-muted); }
 .empty-state .big { font-size: 40px; margin-bottom: var(--space-2); }
@@ -403,8 +463,12 @@ a { color: inherit; text-decoration: none; }
   mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
 }
 .onboard-bottom { max-width: 360px; margin: 0 auto; width:100%; text-align:center; }
-.onboard-logo-badge { margin: 0 0 -14px; }
-.onboard-logo-badge img { height: 120px; display:block; margin:0 auto; }
+/* Logo: chữ "Orbit" nằm ở 25–44% chiều cao file PNG, 56% dưới là khoảng trống.
+   Ảnh tỉ lệ 2000:1341 => height = 0.67 × width. Kéo chữ lên bằng margin âm
+   -36% (margin % tính theo WIDTH của cột) ≈ 54% chiều cao ảnh, để tiêu đề nằm
+   gọn trong khoảng trống ngay dưới chữ Orbit, tự co giãn theo mọi bề rộng cột. */
+.onboard-logo-badge { margin: 0 0 -33%; }
+.onboard-logo-badge img { width: 100%; height: auto; display:block; }
 .onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color: var(--brand); margin: 0 auto var(--space-2); max-width: 340px; text-wrap: balance; }
 .onboard-sub { text-align:center; color: #5B5F6E; font-size: var(--text-base); max-width:320px; margin: 0 auto; text-wrap: balance; }
 .onboard-dots { display:flex; justify-content:center; gap:6px; margin-top: var(--space-4); }
@@ -415,9 +479,7 @@ a { color: inherit; text-decoration: none; }
   .onboard-wrap { background: url('assets/onboard-bg-desktop.png') center/cover no-repeat; }
   .onboard-art-band { display:none; }
   .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-6); padding: var(--space-8) var(--space-6); }
-  .onboard-top, .onboard-bottom { width:100%; max-width:400px; margin:0; padding-top:0; }
-  .onboard-logo-badge img { height: 150px; }
-  .onboard-logo-badge { margin: 0 0 -18px; }
+  .onboard-top, .onboard-bottom { width:100%; max-width:430px; margin:0; padding-top:0; }
 }
 
 /* ===== Modal ===== */
