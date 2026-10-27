@@ -380,38 +380,44 @@ a { color: inherit; text-decoration: none; }
 .quickinfo-row .ic { width:28px; text-align:center; }
 .quickinfo-row b { margin-left:auto; }
 
-/* ===== Onboarding ===== */
+/* ===== Onboarding =====
+   Bám đúng mockup gốc: KHÔNG panel/blur/scrim — chữ đặt thẳng lên nền.
+   Mobile: nền kem trơn + dải tranh ở giữa fade mềm 2 đầu (chữ trên, CTA dưới).
+   Desktop: tranh full-bleed, chữ nằm cột trái nơi bầu trời sáng & trống chi tiết.
+   Màu nền/chữ CỐ ĐỊNH, không theo theme (panel luôn sáng theo thiết kế gốc). */
 .onboard-wrap {
   width:100%; min-height:100vh; position:relative; overflow:hidden;
-  background: url('assets/onboard-bg-mobile.png') center/cover no-repeat;
-  display:flex; flex-direction:column; justify-content:space-between;
+  background: #FDFBF7;
+  display:flex; flex-direction:column;
 }
 .onboard-content {
   position:relative; z-index:1; width:100%; min-height:100vh;
-  display:flex; flex-direction:column; justify-content:space-between;
+  display:flex; flex-direction:column;
   padding: var(--space-6) var(--space-5);
 }
-.onboard-top, .onboard-bottom {
-  background: rgba(253,251,247,.74);
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-  border-radius: var(--radius-l);
-  padding: var(--space-5);
-  text-align:center;
+.onboard-top { text-align:center; padding-top: var(--space-4); }
+.onboard-art-band {
+  flex:1; min-height: 230px; margin: var(--space-4) calc(var(--space-5) * -1);
+  background: url('assets/onboard-bg-mobile.png') center 72% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
 }
-.onboard-top { margin-top: var(--space-4); }
-.onboard-bottom { max-width: 360px; margin: var(--space-4) auto 0; width:100%; }
-.onboard-logo-badge { margin: 0 0 var(--space-4); }
-.onboard-logo-badge img { height: 34px; display:block; margin:0 auto; }
-.onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color: var(--brand); margin-bottom: var(--space-2); }
-.onboard-sub { text-align:center; color: #5B5F6E; font-size: var(--text-base); max-width:340px; margin: 0 auto; }
+.onboard-bottom { max-width: 360px; margin: 0 auto; width:100%; text-align:center; }
+.onboard-logo-badge { margin: 0 0 -14px; }
+.onboard-logo-badge img { height: 120px; display:block; margin:0 auto; }
+.onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color: var(--brand); margin: 0 auto var(--space-2); max-width: 340px; text-wrap: balance; }
+.onboard-sub { text-align:center; color: #5B5F6E; font-size: var(--text-base); max-width:320px; margin: 0 auto; text-wrap: balance; }
 .onboard-dots { display:flex; justify-content:center; gap:6px; margin-top: var(--space-4); }
 .onboard-dots .d { width:7px; height:7px; border-radius:50%; background: #D8D4C9; }
 .onboard-dots .d.on { background: var(--brand); width:18px; border-radius: var(--radius-pill); }
 .onboard-skip { margin-top: var(--space-3); font-size: var(--text-sm); color: #5B5F6E; background:none; border:none; }
 @media (min-width:900px) {
-  .onboard-wrap { background-image: url('assets/onboard-bg-desktop.png'); }
-  .onboard-content { align-items:flex-start; justify-content:center; max-width:440px; padding: var(--space-8) 0 var(--space-8) 72px; gap: var(--space-5); }
-  .onboard-top, .onboard-bottom { width:100%; max-width:420px; margin:0; }
+  .onboard-wrap { background: url('assets/onboard-bg-desktop.png') center/cover no-repeat; }
+  .onboard-art-band { display:none; }
+  .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-6); padding: var(--space-8) var(--space-6); }
+  .onboard-top, .onboard-bottom { width:100%; max-width:400px; margin:0; padding-top:0; }
+  .onboard-logo-badge img { height: 150px; }
+  .onboard-logo-badge { margin: 0 0 -18px; }
 }
 
 /* ===== Modal ===== */

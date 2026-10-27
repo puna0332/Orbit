@@ -618,7 +618,7 @@
       '<h1 class="onboard-title">' + s.title + '</h1>' +
       '<p class="onboard-sub">' + s.sub + '</p>' +
       (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;background:rgba(255,255,255,.9);">Nội dung slide này là bản nháp — chưa có mockup/material riêng, cần bạn duyệt lại.</div>' : '') +
-      '</div><div class="onboard-bottom">' +
+      '</div><div class="onboard-art-band"></div><div class="onboard-bottom">' +
       '<button class="btn btn-primary btn-block" data-action="' + (i < ONBOARD_SLIDES.length - 1 ? 'onboard-next' : 'onboard-finish') + '">' + s.primary + ' →</button>' +
       (s.showSkip ? '<button class="onboard-skip" data-action="contacts-import">Nhập danh bạ</button>' : '') +
       '<div class="onboard-dots">' + ONBOARD_SLIDES.map(function (_, idx) { return '<span class="d ' + (idx === i ? 'on' : '') + '" data-action="onboard-dot" data-i="' + idx + '"></span>'; }).join('') + '</div>' +
