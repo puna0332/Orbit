@@ -15,12 +15,12 @@
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
 
   var ONBOARD_SLIDES = [
-    { art: '🌙🐾✨', title: 'Lưu những điều quan trọng', sub: 'Cho những người và khoảnh khắc bạn không muốn quên', primary: 'Bắt đầu', showSkip: true },
-    { art: '📅💫', title: 'Không bỏ lỡ dịp nào', sub: 'Orbit nhắc bạn trước những ngày sinh nhật, kỷ niệm quan trọng', primary: 'Tiếp tục' },
-    { art: '🌌👥', title: 'Giữ kết nối qua Orbit', sub: 'Sắp xếp người thân, bạn bè theo mức độ gắn bó của riêng bạn', primary: 'Tiếp tục' },
-    { art: '✨🚀', title: 'Sẵn sàng bắt đầu?', sub: 'Thêm người đầu tiên của bạn và để Orbit lo phần còn lại', primary: 'Vào ứng dụng' }
+    { title: 'Lưu giữ những điều ta trân trọng', sub: 'Cho những khoảnh khắc không muốn phải quên đi', primary: 'Bắt đầu', showSkip: true },
+    { title: 'Không bỏ lỡ dịp nào', sub: 'Orbit nhắc bạn trước những ngày sinh nhật, kỷ niệm quan trọng', primary: 'Tiếp tục' },
+    { title: 'Giữ kết nối qua Orbit', sub: 'Sắp xếp người thân, bạn bè theo mức độ gắn bó của riêng bạn', primary: 'Tiếp tục' },
+    { title: 'Sẵn sàng bắt đầu?', sub: 'Thêm người đầu tiên của bạn và để Orbit lo phần còn lại', primary: 'Vào ứng dụng' }
   ];
-  // NOTE: nội dung slide 2–4 là bản nháp (chưa có mockup gốc) — cần người dùng duyệt lại/thay thế.
+  // NOTE: slide 1 dùng đúng nội dung + material đã cấp; slide 2–4 vẫn là bản nháp (chưa có mockup/material riêng) — cần duyệt lại.
 
   /* ---------------------------- utils ---------------------------- */
   function uid(prefix) { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
@@ -612,18 +612,17 @@
     var s = ONBOARD_SLIDES[i];
     var isDraft = i > 0;
     return (
-      '<div class="onboard-wrap"><div class="onboard-left"><div class="onboard-top"><div class="onboard-logo">✦ Orbit</div>' +
-      '<div class="onboard-art">' + s.art + '</div><h1 class="onboard-title">' + s.title + '</h1>' +
+      '<div class="onboard-wrap"><div class="onboard-scrim"></div><div class="onboard-content">' +
+      '<div class="onboard-top">' +
+      '<div class="onboard-logo-badge"><img src="assets/logo-orbit.png" alt="Orbit"></div>' +
+      '<h1 class="onboard-title">' + s.title + '</h1>' +
       '<p class="onboard-sub">' + s.sub + '</p>' +
-      (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;">Nội dung slide này là bản nháp — chưa có mockup gốc, cần bạn duyệt lại.</div>' : '') +
+      (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;background:rgba(255,255,255,.9);">Nội dung slide này là bản nháp — chưa có mockup/material riêng, cần bạn duyệt lại.</div>' : '') +
       '</div><div class="onboard-bottom">' +
       '<button class="btn btn-primary btn-block" data-action="' + (i < ONBOARD_SLIDES.length - 1 ? 'onboard-next' : 'onboard-finish') + '">' + s.primary + ' →</button>' +
       (s.showSkip ? '<button class="onboard-skip" data-action="contacts-import">Nhập danh bạ</button>' : '') +
       '<div class="onboard-dots">' + ONBOARD_SLIDES.map(function (_, idx) { return '<span class="d ' + (idx === i ? 'on' : '') + '" data-action="onboard-dot" data-i="' + idx + '"></span>'; }).join('') + '</div>' +
-      '</div></div>' +
-      '<div class="onboard-right"><div class="big-art">' + s.art + '</div>' +
-      '<div class="illustration-note">⚠️ Vị trí minh hoạ thật (tranh cô gái + mèo theo phong cách mockup) — chưa có asset, đang hiện placeholder</div></div>' +
-      '</div>'
+      '</div></div></div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
