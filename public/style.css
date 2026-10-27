@@ -384,38 +384,34 @@ a { color: inherit; text-decoration: none; }
 .onboard-wrap {
   width:100%; min-height:100vh; position:relative; overflow:hidden;
   background: url('assets/onboard-bg-mobile.png') center/cover no-repeat;
-}
-.onboard-scrim {
-  position:absolute; inset:0;
-  background: linear-gradient(180deg, rgba(10,12,22,.58) 0%, rgba(10,12,22,.08) 34%, rgba(10,12,22,.05) 55%, rgba(10,12,22,.62) 100%);
+  display:flex; flex-direction:column; justify-content:space-between;
 }
 .onboard-content {
-  position:relative; z-index:1; min-height:100vh;
+  position:relative; z-index:1; width:100%; min-height:100vh;
   display:flex; flex-direction:column; justify-content:space-between;
   padding: var(--space-6) var(--space-5);
 }
-.onboard-logo-badge {
-  display:inline-flex; align-items:center; justify-content:center;
-  background:#fff; border-radius: var(--radius-pill); padding:9px 20px;
-  box-shadow: var(--shadow-pop); margin: 0 auto var(--space-5);
+.onboard-top, .onboard-bottom {
+  background: rgba(253,251,247,.74);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-radius: var(--radius-l);
+  padding: var(--space-5);
+  text-align:center;
 }
-.onboard-logo-badge img { height:24px; display:block; }
-.onboard-top { text-align:center; margin-top: var(--space-6); }
-.onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color:#fff; margin-bottom: var(--space-2); text-shadow: 0 2px 14px rgba(0,0,0,.4); }
-.onboard-sub { text-align:center; color: rgba(255,255,255,.88); font-size: var(--text-base); max-width:340px; margin: 0 auto; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
-.onboard-bottom { max-width: 360px; margin: 0 auto; width:100%; text-align:center; }
+.onboard-top { margin-top: var(--space-4); }
+.onboard-bottom { max-width: 360px; margin: var(--space-4) auto 0; width:100%; }
+.onboard-logo-badge { margin: 0 0 var(--space-4); }
+.onboard-logo-badge img { height: 34px; display:block; margin:0 auto; }
+.onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color: var(--brand); margin-bottom: var(--space-2); }
+.onboard-sub { text-align:center; color: #5B5F6E; font-size: var(--text-base); max-width:340px; margin: 0 auto; }
 .onboard-dots { display:flex; justify-content:center; gap:6px; margin-top: var(--space-4); }
-.onboard-dots .d { width:7px; height:7px; border-radius:50%; background: rgba(255,255,255,.45); }
-.onboard-dots .d.on { background: #fff; width:18px; border-radius: var(--radius-pill); }
-.onboard-skip { margin-top: var(--space-3); font-size: var(--text-sm); color: rgba(255,255,255,.85); background:none; border:none; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+.onboard-dots .d { width:7px; height:7px; border-radius:50%; background: #D8D4C9; }
+.onboard-dots .d.on { background: var(--brand); width:18px; border-radius: var(--radius-pill); }
+.onboard-skip { margin-top: var(--space-3); font-size: var(--text-sm); color: #5B5F6E; background:none; border:none; }
 @media (min-width:900px) {
   .onboard-wrap { background-image: url('assets/onboard-bg-desktop.png'); }
-  .onboard-content { justify-content:center; gap: var(--space-6); padding: var(--space-8) var(--space-8) var(--space-8) 72px; }
-  .onboard-top, .onboard-bottom { max-width: 420px; margin:0; text-align:left; }
-  .onboard-logo-badge { margin: 0 0 var(--space-5); }
-  .onboard-title, .onboard-sub { text-align:left; margin-left:0; margin-right:0; }
-  .onboard-dots, .onboard-skip { text-align:left; }
-  .onboard-dots { justify-content:flex-start; }
+  .onboard-content { align-items:flex-start; justify-content:center; max-width:440px; padding: var(--space-8) 0 var(--space-8) 72px; gap: var(--space-5); }
+  .onboard-top, .onboard-bottom { width:100%; max-width:420px; margin:0; }
 }
 
 /* ===== Modal ===== */

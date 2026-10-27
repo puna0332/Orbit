@@ -612,7 +612,7 @@
     var s = ONBOARD_SLIDES[i];
     var isDraft = i > 0;
     return (
-      '<div class="onboard-wrap"><div class="onboard-scrim"></div><div class="onboard-content">' +
+      '<div class="onboard-wrap"><div class="onboard-content">' +
       '<div class="onboard-top">' +
       '<div class="onboard-logo-badge"><img src="assets/logo-orbit.png" alt="Orbit"></div>' +
       '<h1 class="onboard-title">' + s.title + '</h1>' +
