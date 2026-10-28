@@ -107,6 +107,11 @@
       mkPerson('Quân', 'coworker', 3, false, mmddPlus(170), null, '', ''),
       mkPerson('Hà', 'coworker', 3, false, mmddPlus(140), null, '', '')
     ];
+    // gán sẵn avatar từ bộ element cho dữ liệu demo (người dùng vẫn đổi được)
+    var demoAvatars = { 'Linh': 'av-01', 'Bố': 'av-07', 'Mẹ': 'av-16', 'Minh': 'av-09',
+                        'Trân': 'av-13', 'Lan': 'av-02', 'Quân': 'av-08', 'Hà': 'av-03' };
+    people.forEach(function (p) { if (demoAvatars[p.name]) p.avatar = demoAvatars[p.name]; });
+
     people[0].memories = [
       { id: uid('mm'), caption: 'Hoàng hôn', color: '#E8A6B4' },
       { id: uid('mm'), caption: 'Sóng biển', color: '#8CB4E0' },
@@ -186,8 +191,81 @@
 
   var peopleViewMode = 'orbit';
   var peopleFilter = 'all';
+  var peopleQuery = '';
+  var orbitCollapsed = false;
+  var orbitView = { scale: 1, x: 0, y: 0 };   // trạng thái zoom/pan của orbit
   var calMonthOffset = 0;
   var bannerDismissed = false;
+
+  function searchPeople(list) {
+    var q = peopleQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(function (p) { return (p.name || '').toLowerCase().indexOf(q) >= 0; });
+  }
+
+  /* ---- Orbit: zoom + pan kiểu bản đồ ---- */
+  function applyOrbitView() {
+    var pan = document.getElementById('orbitPan');
+    if (!pan) return;
+    pan.style.transform = 'translate(' + orbitView.x + 'px,' + orbitView.y + 'px) scale(' + orbitView.scale + ')';
+  }
+  function zoomOrbit(factor, cx, cy) {
+    var vp = document.getElementById('orbitViewport');
+    var next = Math.min(3.2, Math.max(0.5, orbitView.scale * factor));
+    if (vp && cx != null) {
+      // giữ nguyên điểm dưới con trỏ khi phóng to (như Google Maps)
+      var r = vp.getBoundingClientRect();
+      var px = cx - r.left - r.width / 2;
+      var py = cy - r.top - r.height / 2;
+      var k = next / orbitView.scale;
+      orbitView.x = px - (px - orbitView.x) * k;
+      orbitView.y = py - (py - orbitView.y) * k;
+    }
+    orbitView.scale = next;
+    applyOrbitView();
+  }
+  function resetOrbitView() { orbitView = { scale: 1, x: 0, y: 0 }; applyOrbitView(); }
+  function bindOrbitGestures() {
+    var vp = document.getElementById('orbitViewport');
+    if (!vp || vp.dataset.bound) return;
+    vp.dataset.bound = '1';
+    vp.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      zoomOrbit(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+    }, { passive: false });
+    var drag = null;
+    vp.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.orbit-avatar, .orbit-zoom')) return;
+      drag = { x: e.clientX, y: e.clientY, ox: orbitView.x, oy: orbitView.y };
+      vp.setPointerCapture(e.pointerId); vp.classList.add('dragging');
+    });
+    vp.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      orbitView.x = drag.ox + (e.clientX - drag.x);
+      orbitView.y = drag.oy + (e.clientY - drag.y);
+      applyOrbitView();
+    });
+    function endDrag() { drag = null; vp.classList.remove('dragging'); }
+    vp.addEventListener('pointerup', endDrag);
+    vp.addEventListener('pointercancel', endDrag);
+    // pinch 2 ngón trên điện thoại
+    var pinch = null;
+    vp.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+    }, { passive: true });
+    vp.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2 && pinch) {
+        var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        zoomOrbit(d / pinch);
+        pinch = d;
+        e.preventDefault();
+      }
+    }, { passive: false });
+    vp.addEventListener('touchend', function () { pinch = null; }, { passive: true });
+    applyOrbitView();
+  }
 
   function render() {
     if (!state.onboardingDone) {
@@ -210,7 +288,20 @@
 
   function afterRender(page, parts) {
     if (page === 'people' && parts[1]) bindNotesArea(parts[1]);
+    if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); }
     if (page === 'settings' && parts[1] === 'data') bindImportInput();
+  }
+
+  function bindPeopleSearch() {
+    var el = document.getElementById('peopleSearch');
+    if (!el) return;
+    el.addEventListener('input', function () {
+      peopleQuery = el.value;
+      var pos = el.selectionStart;
+      render();
+      var again = document.getElementById('peopleSearch');
+      if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) {} }
+    });
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
@@ -379,10 +470,22 @@
   /* ---------------------------- People / Orbit ---------------------------- */
   function pillBtn(key, label) { return '<button class="pill ' + (peopleFilter === key ? 'active' : '') + '" data-action="set-filter" data-filter="' + key + '">' + label + '</button>'; }
 
+  /* Avatar: ưu tiên ảnh người dùng tải lên (p.photo = dataURL), sau đó tới avatar
+     chọn từ bộ element (p.avatar = 'av-07'), cuối cùng mới fallback chữ cái. */
+  var AVATAR_COUNT = 26;
+  function avatarInner(p, size) {
+    if (p.photo) return '<img class="av-img" src="' + p.photo + '" alt="">';
+    if (p.avatar) return '<img class="av-img" src="assets/avatars/' + p.avatar + '.png" alt="">';
+    return initials(p.name);
+  }
+  function avatarStyle(p) {
+    return (p.photo || p.avatar) ? 'background:transparent;' : 'background:' + avatarColor(p.id) + ';';
+  }
+
   function renderOrbit(people) {
     var groups = { 1: [], 2: [], 3: [] };
     people.forEach(function (p) { (groups[p.closeness] || groups[3]).push(p); });
-    var ringPct = { 1: 38, 2: 64, 3: 90 };
+    var ringPct = { 1: 42, 2: 68, 3: 92 };
     var ringsHtml =
       '<div class="orbit-ring" style="width:' + ringPct[1] + '%;height:' + ringPct[1] + '%;"></div>' +
       '<div class="orbit-ring" style="width:' + ringPct[2] + '%;height:' + ringPct[2] + '%;"></div>' +
@@ -395,19 +498,33 @@
         var angle = (i / (list.length || 1)) * 2 * Math.PI + ring * 0.6;
         var left = 50 + radiusPct * Math.cos(angle);
         var top = 50 + radiusPct * Math.sin(angle);
-        avatarsHtml += '<button class="orbit-avatar" data-action="nav" data-to="people/' + p.id + '" style="left:' + left.toFixed(1) + '%;top:' + top.toFixed(1) + '%;background:' + avatarColor(p.id) + ';" title="' + esc(p.name) + '">' +
-          initials(p.name) + (p.favorite ? '<span class="fav-dot">⭐</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button>';
+        avatarsHtml += '<button class="orbit-avatar" data-action="nav" data-to="people/' + p.id + '" style="left:' + left.toFixed(1) + '%;top:' + top.toFixed(1) + '%;' + avatarStyle(p) + '" title="' + esc(p.name) + '">' +
+          avatarInner(p) + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button>';
       });
     });
-    return '<div class="orbit-wrap"><div class="orbit-stage">' + ringsHtml + '<div class="orbit-center" title="Bạn">🙂</div>' + avatarsHtml + '</div></div>';
+    /* Khung orbit có thể kéo & phóng to/thu nhỏ như bản đồ: .orbit-viewport bắt sự kiện,
+       .orbit-pan nhận transform translate+scale, .orbit-stage giữ nguyên bố cục %. */
+    return '<div class="orbit-wrap">' +
+      '<div class="orbit-viewport" id="orbitViewport">' +
+        '<div class="orbit-pan" id="orbitPan">' +
+          '<div class="orbit-stage">' + ringsHtml +
+          '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/icons/avatar.png" alt=""></div>' +
+          avatarsHtml + '</div>' +
+        '</div>' +
+        '<div class="orbit-zoom">' +
+          '<button data-action="orbit-zoom" data-dz="1" title="Phóng to">+</button>' +
+          '<button data-action="orbit-zoom" data-dz="-1" title="Thu nhỏ">−</button>' +
+          '<button data-action="orbit-reset" title="Về giữa">⊙</button>' +
+        '</div>' +
+      '</div></div>';
   }
 
   function renderPeopleGrid(list) {
-    if (!list.length) return '<div class="empty-state"><div class="big">🌙</div>Chưa có ai trong nhóm này.</div>';
+    if (!list.length) return '<div class="empty-state">Chưa có ai trong nhóm này.</div>';
     var html = '<div class="people-grid">';
     list.forEach(function (p) {
-      html += '<a class="person-chip" href="#/people/' + p.id + '"><div class="avatar" style="background:' + avatarColor(p.id) + '">' + initials(p.name) + '</div>' +
-        (p.favorite ? '<span class="fav">⭐</span>' : '') + '<div class="pname">' + esc(p.name) + '</div></a>';
+      html += '<a class="person-chip" href="#/people/' + p.id + '"><div class="avatar" style="' + avatarStyle(p) + '">' + avatarInner(p) + '</div>' +
+        (p.favorite ? '<span class="fav">★</span>' : '') + '<div class="pname">' + esc(p.name) + '</div></a>';
     });
     html += '<a class="person-chip add-new" href="#" data-action="open-add-person"><div class="avatar">+</div><div class="pname">Thêm người</div></a></div>';
     return html;
@@ -415,21 +532,86 @@
 
   function renderPeople() {
     var filtered = state.people.filter(function (p) { return peopleFilter === 'all' ? true : p.relationship === peopleFilter; });
-    var body = peopleViewMode === 'orbit' ? renderOrbit(filtered)
-      : peopleViewMode === 'favorite' ? renderPeopleGrid(filtered.filter(function (p) { return p.favorite; }))
-      : renderPeopleGrid(filtered);
+    var listed = peopleViewMode === 'favorite' ? filtered.filter(function (p) { return p.favorite; }) : filtered;
+    /* Desktop bám mockup 1.2: orbit bên trái, danh sách bên phải, nút mũi tên gập
+       cột orbit vào mép. Mobile xếp dọc: orbit trước, chip lọc + danh sách sau. */
     return (
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
-      '<h1 class="page-title" style="margin:0;">Mọi người</h1>' +
-      '<div style="display:flex;gap:8px;"><button class="btn-icon" data-action="toast" data-msg="Tìm kiếm — demo">🔍</button>' +
-      '<button class="btn-icon" data-action="open-add-person">➕</button></div></div>' +
-      '<div class="view-switch" style="margin-top:12px;">' +
-      '<button class="' + (peopleViewMode === 'orbit' ? 'active' : '') + '" data-action="set-view-mode" data-mode="orbit">🌌 Orbit</button>' +
-      '<button class="' + (peopleViewMode === 'list' ? 'active' : '') + '" data-action="set-view-mode" data-mode="list">☰ Danh sách</button>' +
-      '<button class="' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="favorite">♡ Yêu thích</button></div>' +
-      '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') + '</div>' +
-      body
+      '<div class="people-head">' +
+        '<h1 class="page-title" style="margin:0;">Mọi người</h1>' +
+        '<div class="people-head-actions">' +
+          '<div class="search-pill"><span>⌕</span><input id="peopleSearch" type="search" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></div>' +
+          '<button class="btn-add-round" data-action="open-add-person" title="Thêm người">+</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="people-split' + (orbitCollapsed ? ' orbit-collapsed' : '') + '">' +
+        '<section class="people-orbit-col">' +
+          renderOrbit(filtered) +
+          '<button class="orbit-toggle" data-action="toggle-orbit" title="' + (orbitCollapsed ? 'Mở orbit' : 'Thu gọn orbit') + '">' + (orbitCollapsed ? '›' : '‹') + '</button>' +
+        '</section>' +
+        '<section class="people-list-col">' +
+          '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') +
+          '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div>' +
+          renderPeopleGrid(searchPeople(listed)) +
+        '</section>' +
+      '</div>'
     );
+  }
+
+  /* ---- Chọn avatar: tải ảnh thật hoặc chọn từ bộ element avatar ---- */
+  function openAvatarPicker(id) {
+    var p = state.people.find(function (x) { return x.id === id; });
+    if (!p) return;
+    var grid = '';
+    for (var i = 1; i <= AVATAR_COUNT; i++) {
+      var key = 'av-' + (i < 10 ? '0' + i : i);
+      grid += '<button class="avatar-opt ' + (p.avatar === key && !p.photo ? 'on' : '') + '" data-action="pick-avatar" data-id="' + p.id + '" data-av="' + key + '">' +
+        '<img src="assets/avatars/' + key + '.png" alt=""></button>';
+    }
+    openModal(
+      '<div class="modal-sheet"><div class="modal-head"><h3>Ảnh đại diện — ' + esc(p.name) + '</h3><button data-action="close-modal">✕</button></div>' +
+      '<label class="btn btn-ghost btn-block" style="cursor:pointer;">Tải ảnh từ máy…' +
+      '<input id="avatarUpload" type="file" accept="image/*" hidden></label>' +
+      '<p class="muted" style="margin:12px 0 8px;font-size:13px;">Hoặc chọn một avatar có sẵn:</p>' +
+      '<div class="avatar-picker">' + grid + '</div>' +
+      (p.photo || p.avatar ? '<button class="btn btn-ghost btn-block" style="margin-top:12px;" data-action="clear-avatar" data-id="' + p.id + '">Gỡ ảnh đại diện</button>' : '') +
+      '</div>'
+    );
+    bindAvatarUpload(p.id);
+  }
+  function bindAvatarUpload(id) {
+    var input = document.getElementById('avatarUpload');
+    if (!input) return;
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      if (!f) return;
+      // Thu nhỏ về 256px trước khi lưu: localStorage chỉ ~5MB, ảnh gốc sẽ làm tràn.
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var S = 256, c = document.createElement('canvas');
+          c.width = S; c.height = S;
+          var ctx = c.getContext('2d');
+          var side = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
+          var person = state.people.find(function (x) { return x.id === id; });
+          if (person) { person.photo = c.toDataURL('image/jpeg', 0.82); delete person.avatar; save(); }
+          closeModal(); render(); showToast('Đã cập nhật ảnh đại diện');
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+  function setPersonAvatar(id, key) {
+    var p = state.people.find(function (x) { return x.id === id; });
+    if (!p) return;
+    p.avatar = key; delete p.photo; save(); closeModal(); render(); showToast('Đã chọn avatar');
+  }
+  function clearPersonAvatar(id) {
+    var p = state.people.find(function (x) { return x.id === id; });
+    if (!p) return;
+    delete p.avatar; delete p.photo; save(); closeModal(); render();
   }
 
   /* ---------------------------- Person detail ---------------------------- */
@@ -451,8 +633,10 @@
 
     return (
       '<div class="detail-cover"><button data-action="nav" data-to="people">‹</button><button data-action="toast" data-msg="Thêm tuỳ chọn — demo">⋯</button></div>' +
-      '<div class="detail-profile"><div class="avatar" style="background:' + color + ';">' + initials(p.name) + '</div>' +
-      '<h2>' + esc(p.name) + (p.favorite ? ' ⭐' : '') + '</h2><div class="meta">' + relDurationLabel(p) + '</div></div>' +
+      '<div class="detail-profile">' +
+      '<button class="avatar avatar-edit" data-action="open-avatar-picker" data-id="' + p.id + '" style="' + avatarStyle(p) + '" title="Đổi ảnh đại diện">' +
+      avatarInner(p) + '<span class="edit-badge">✎</span></button>' +
+      '<h2>' + esc(p.name) + (p.favorite ? ' ★' : '') + '</h2><div class="meta">' + relDurationLabel(p) + '</div></div>' +
       '<div class="quick-actions">' +
       '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 24) + '</button>' +
       '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '" title="Yêu thích">' + (p.favorite ? '💖' : '🤍') + '</button>' +
@@ -793,6 +977,12 @@
       case 'close-modal': closeModal(); break;
       case 'toast': showToast(t.dataset.msg || ''); break;
       case 'set-view-mode': peopleViewMode = t.dataset.mode; render(); break;
+      case 'toggle-orbit': orbitCollapsed = !orbitCollapsed; render(); break;
+      case 'orbit-zoom': zoomOrbit(t.dataset.dz === '1' ? 1.25 : 1 / 1.25); break;
+      case 'orbit-reset': resetOrbitView(); break;
+      case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
+      case 'pick-avatar': setPersonAvatar(t.dataset.id, t.dataset.av); break;
+      case 'clear-avatar': clearPersonAvatar(t.dataset.id); break;
       case 'set-filter': peopleFilter = t.dataset.filter; render(); break;
       case 'toggle-favorite': toggleFavorite(t.dataset.id); break;
       case 'delete-person': if (confirm('Xoá liên hệ này?')) deletePerson(t.dataset.id); break;
