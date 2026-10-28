@@ -316,6 +316,7 @@
     return (
       '<div class="app-shell shell-' + active + '" style="display:flex;width:100%;">' +
       '<aside class="sidebar">' +
+        (active === 'people' ? '<img class="sidebar-hero" src="assets/corner-girl-cat.png" alt="" aria-hidden="true">' : '') +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
           navLink('home', ic('home', 22), 'Home', active) +
@@ -543,7 +544,9 @@
     if (panel) panel.inert = orbitCollapsed && window.innerWidth >= 900;
     document.querySelectorAll('[data-action="toggle-orbit"]').forEach(function (b) {
       b.setAttribute('aria-expanded', String(!orbitCollapsed));
-      if (b.classList.contains('contacts-toggle')) b.innerHTML = orbitCollapsed ? '☷ <span>Danh bạ</span> ‹' : '☷ <span>Thu gọn</span> ›';
+      var label = b.querySelector('span'), arrow = b.querySelector('i');
+      if (label) label.textContent = orbitCollapsed ? 'Danh bạ' : 'Thu gọn';
+      if (arrow) arrow.textContent = orbitCollapsed ? '‹' : '›';
     });
   }
   function toggleOrbitMotion() {
@@ -562,20 +565,29 @@
     var listed = searchPeople(peopleViewMode === 'favorite' ? filtered.filter(function (p) { return p.favorite; }) : filtered);
     return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người</h1>' +
       '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
-      '<div class="people-subbar">' +
+      '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
+      '<section class="people-orbit-col">' + renderOrbit(filtered) + '</section>' +
+      '<button class="contacts-tab" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
+      '<span>' + (orbitCollapsed ? 'Danh bạ' : 'Thu gọn') + '</span><i aria-hidden="true">' + (orbitCollapsed ? '‹' : '›') + '</i></button>' +
+      '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
+      '<div class="contacts-panel-head"><b>Liên lạc <span>' + listed.length + '</span></b></div>' +
       '<label class="search-pill"><span aria-hidden="true">⌕</span>' +
       '<input id="peopleSearch" type="search" aria-label="Tìm người" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></label>' +
       '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') +
-      '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div></div>' +
-      '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
-      '<section class="people-orbit-col">' + renderOrbit(filtered) + '</section>' +
-      '<div class="contacts-rail"><button class="contacts-toggle" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
-      (orbitCollapsed ? '☷ <span>Danh bạ</span> ‹' : '☷ <span>Thu gọn</span> ›') + '</button>' +
-      '<button data-action="orbit-reset" aria-label="Căn giữa bản đồ">⊙</button></div>' +
-      '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
-      '<div class="contacts-panel-head"><b>Liên lạc <span>' + listed.length + '</span></b></div>' +
-      renderPeopleGrid(listed) + '</section></div>' +
-      '<img class="people-corner" src="assets/corner-girl-cat.png" alt="" aria-hidden="true">';
+      '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div>' +
+      renderPeopleGrid(listed) + '</section></div>';
+  }
+
+  function relDurationLabel(p) {
+    var bits = [];
+    if (p.relationship && REL_LABEL[p.relationship]) bits.push(REL_LABEL[p.relationship]);
+    if (p.since) {
+      var years = new Date().getFullYear() - Number(p.since);
+      if (years > 0) bits.push('bên nhau ' + years + ' năm');
+    } else {
+      bits.push(p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết');
+    }
+    return bits.join(' · ');
   }
 
   function renderPersonDetail(id) {
@@ -686,7 +698,8 @@
       '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next">›</button></div>' +
       '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
       '<button class="btn-icon" data-action="open-add-event" data-date="' + todayIso + '">➕</button></div></div>' +
-      '<div class="cal-grid">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + cellsHtml + '</div>'
+      '<div class="cal-grid">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + cellsHtml + '</div>' +
+      '<img class="cal-corner" src="assets/cal-corner.png" alt="" aria-hidden="true">'
     );
   }
 
