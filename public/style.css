@@ -197,7 +197,7 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 900px) {
   .sidebar { display: flex; }
   .bottom-nav, .topbar { display: none; }
-  .view-root { padding: var(--space-8); padding-bottom: var(--space-8); }
+  .view-root { padding: var(--space-8); padding-bottom: var(--space-8); overflow-x: hidden; }
 }
 .view-inner { max-width: 1040px; margin: 0 auto; padding: 0 var(--space-4) var(--space-6); }
 @media (min-width: 900px) { .view-inner { padding: 0; } }
@@ -236,12 +236,13 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(180deg, #FDF1E7 0%, #FDF4EC 32%, #FEFAF6 62%, var(--cream) 100%);
   overflow:hidden;
 }
-/* Tranh hero hiển thị TRỌN VẸN (contain) như mockup — không crop mất cô gái/mèo/hoa */
+/* Tranh hero tràn viền, phóng to hơn mép màn (128%) và fade mềm 2 đầu để
+   không có cảm giác "đóng khung"; nền hero dùng đúng màu nền của file tranh. */
 .home-hero::before {
-  content:""; position:absolute; left:0; right:0; bottom:0; top:86px; z-index:0;
-  background: url('assets/home-art-mobile.png') center bottom / contain no-repeat;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 86%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 86%, transparent 100%);
+  content:""; position:absolute; left:0; right:0; bottom:0; top:70px; z-index:0;
+  background: url('assets/home-art-mobile.png') center bottom / 128% auto no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 88%, transparent 100%);
 }
 .home-hero::after { display:none; }
 .home-hero-head { display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; }
@@ -267,7 +268,8 @@ a { color: inherit; text-decoration: none; }
   display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px;
   aspect-ratio: 112 / 148; text-align:center; text-decoration:none;
 }
-.occasion-card .ic { font-size: 24px; line-height:1; height:30px; display:flex; align-items:center; }
+.occasion-card .ic { height:52px; display:flex; align-items:center; }
+.ev-tile { border-radius: 14px; display:block; }
 .occasion-card .t { font-weight:600; font-size: 12.5px; color:#2B3240; line-height:1.25; text-wrap: balance; min-height: 32px; display:flex; align-items:flex-start; justify-content:center; }
 .occasion-card .s { font-size: 11px; color:#8A8A92; line-height:1.25; margin-top:auto; text-wrap: balance; min-height: 28px; display:flex; align-items:flex-end; justify-content:center; }
 .tone-pink { background:#FCE4E6; }
@@ -286,21 +288,32 @@ a { color: inherit; text-decoration: none; }
 .suggest-card .chev { color: var(--ink-muted); font-size:16px; }
 
 @media (min-width:900px) {
+  /* Desktop: hero TRÀN VIỀN — không bo góc, không khung; kéo ra sát mép vùng nội dung
+     và dùng đúng màu nền của file tranh để không thấy ranh giới ảnh/nền. */
   .home-hero {
-    margin: 0; padding: var(--space-8); border-radius: var(--radius-l);
-    display:flex; align-items:center; min-height: 320px;
-    background: linear-gradient(120deg, #FDF1E7 0%, #FDF5EF 42%, #FEFAF6 68%, #FEFAF6 100%);
+    /* Tràn viền: margin âm ĐỐI XỨNG kéo nền vượt khỏi .view-inner (view-root clip phần
+       thừa), còn chữ nằm trong khối max-width 1040px canh giữa nên vẫn thẳng hàng tuyệt
+       đối với các section bên dưới — không phụ thuộc bề rộng thanh cuộn. */
+    /* không kéo lên trên: hàng chuông + avatar nằm phía trên hero, kéo lên sẽ che mất */
+    margin-top: 0;
+    margin-left: -140px;
+    margin-right: -140px;
+    margin-bottom: 0;
+    padding: var(--space-8) 0 var(--space-6);
+    border-radius: 0;
+    display:flex; align-items:center; min-height: 380px;
+    background: linear-gradient(110deg, #FDF2E9 0%, #FDF6F0 34%, #FEFAF6 58%, #FEFAF6 100%);
   }
-  /* Desktop: tranh ngang hiển thị trọn vẹn ở nửa phải, fade mềm sang cột chữ */
   .home-hero::before {
-    inset: 0 0 0 auto; width: 64%; top:0;
-    background: url('assets/home-art-desktop.png') right center / contain no-repeat;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+    inset: 0 0 0 auto; width: 72%; top:0;
+    background: url('assets/home-art-desktop.png') right bottom / cover no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
   }
   .home-hero::after { display:none; }
   .home-hero-head { display:none; }
-  .home-hero-text { flex: 0 0 44%; margin-top:0; }
+  .home-hero-text { flex: 1 1 auto; width:100%; max-width:1040px; margin: 0 auto; position:relative; z-index:1; }
+  .home-hero-text > * { max-width: 430px; }
   .home-hero-text h1 { font-size: 32px; }
   .home-hero-text .sub { display:block; margin-top: var(--space-2); font-size: var(--text-sm); color:#6B6F7D; }
   .home-section { background: var(--card); border-radius: 24px; padding: var(--space-6); margin-top: var(--space-6); }
@@ -308,7 +321,8 @@ a { color: inherit; text-decoration: none; }
   .home-section-head .link-more { font-size: var(--text-sm); }
   .occasion-row { gap: var(--space-6); }
   .occasion-card { aspect-ratio: 330 / 214; border-radius: 20px; gap: 10px; justify-content:center; }
-  .occasion-card .ic { font-size: 32px; height:38px; }
+  .occasion-card .ic { height:64px; }
+  .occasion-card .ev-tile { width:64px; height:64px; border-radius:18px; }
   .occasion-card .t { font-size: 16px; min-height:0; align-items:center; }
   .occasion-card .s { font-size: 13.5px; margin-top:0; color:#7A7A85; }
   .suggest-card { border:none; background:#FDFBF7; padding: var(--space-4) var(--space-5); }
@@ -317,7 +331,7 @@ a { color: inherit; text-decoration: none; }
   /* sidebar theo mockup: nền hồng-kem, item active là pill trắng có bóng nhẹ */
   .sidebar { background:#FBF2EE; border-right:none; width:240px; }
   .sidebar-link.active { background:#fff; box-shadow: 0 2px 8px rgba(43,50,64,.08); }
-  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-3); margin-bottom: var(--space-4); }
+  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-3); margin-bottom: var(--space-4); position:relative; z-index:2; }
   .home-topright .avatar { width:36px; height:36px; border-radius:50%; background:#E8A6B4; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
 }
 .home-topright { display:none; }
@@ -511,13 +525,12 @@ a { color: inherit; text-decoration: none; }
 .avatar-img { width:36px; height:36px; border-radius:50%; object-fit:cover; display:block; }
 .suggest-card .ic-wrap .ic-img, .settings-row .ic-wrap .ic-img { margin:0 auto; }
 /* Đáy sidebar: cụm sao trang trí (thay cho hoa trong mockup, dùng element sao user cấp) */
-.side-stars { position:relative; height: 92px; margin-bottom: 8px; opacity:.85; }
-.side-stars img { position:absolute; height:auto; }
-.side-stars .s1 { width:40px; left:50%; top:4px; transform: translateX(-50%); }
-.side-stars .s2 { width:28px; left:18%; top:34px; }
-.side-stars .s3 { width:24px; right:16%; top:28px; }
-.side-stars .s4 { width:16px; left:34%; top:68px; }
-.side-stars .s5 { width:13px; right:30%; top:62px; }
+/* Góc sidebar: cụm hoa tulip (element từ sheet minh hoạ) + vài sparkle nhỏ */
+.side-deco { position:relative; height: 112px; margin-bottom: 6px; }
+.side-deco .flower { position:absolute; left:50%; bottom:0; transform: translateX(-50%); width:124px; height:auto; }
+.side-deco .sp { position:absolute; height:auto; }
+.side-deco .sp1 { width:17px; left:16%; top:16px; }
+.side-deco .sp2 { width:12px; right:18%; top:34px; }
 .home-hero-text h1 .ic-img { display:inline-block; vertical-align:-5px; margin-left:6px; }
 .btn .ic-img, .quickinfo-row .ic .ic-img, .quick-actions button .ic-img { display:inline-block; vertical-align:middle; }
 .quickinfo-row .ic { display:inline-flex; align-items:center; }

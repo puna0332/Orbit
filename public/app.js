@@ -12,6 +12,13 @@
     return '<img class="ic-img" src="assets/icons/' + name + '.png" alt="" width="' + size + '" height="' + size + '">';
   }
   var ICONS = { birthday: 'cake', trip: 'plane', memory: 'leaf', meeting: 'people', work: 'calendar', workshop: 'sun', custom: 'calendar' };
+  /* Khung event (ô icon nền pastel) tách từ sheet "elements chung 1" — mục 2 chỉ giữ
+     các loại là SỰ KIỆN, bỏ nhóm tính năng (ảnh, video, nhạc, thời tiết, đồng bộ...). */
+  var EVENT_TILE = { birthday: 'birthday', trip: 'trip', memory: 'memory', meeting: 'family', work: 'work', workshop: 'study', custom: 'goal' };
+  function evTile(kind, size) {
+    var name = EVENT_TILE[kind] || EVENT_TILE.custom;
+    return '<img class="ev-tile" src="assets/events/' + name + '.png" alt="" width="' + size + '" height="' + size + '">';
+  }
   var TONE = { birthday: 'tone-pink', trip: 'tone-blue', memory: 'tone-green', meeting: 'tone-purple', work: 'tone-orange', workshop: 'tone-blue', custom: 'tone-purple' };
   var TONE_DOT = { 'tone-pink': '#B5505E', 'tone-blue': '#3D63A8', 'tone-green': '#3E7A4C', 'tone-purple': '#6A50B0', 'tone-orange': '#B6702A' };
   var REL_LABEL = { family: 'Gia đình', friend: 'Bạn bè', coworker: 'Đồng nghiệp', other: 'Khác' };
@@ -224,12 +231,10 @@
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
-        '<div class="sidebar-illustration"><div class="side-stars">' +
-          '<img src="assets/stars/star-01.png" alt="" class="s1">' +
-          '<img src="assets/stars/star-05.png" alt="" class="s2">' +
-          '<img src="assets/stars/star-03.png" alt="" class="s3">' +
-          '<img src="assets/stars/star-06.png" alt="" class="s4">' +
-          '<img src="assets/stars/star-02.png" alt="" class="s5">' +
+        '<div class="sidebar-illustration"><div class="side-deco">' +
+          '<img class="flower" src="assets/flower-tulip.png" alt="">' +
+          '<img class="sp sp1" src="assets/stars/star-02.png" alt="">' +
+          '<img class="sp sp2" src="assets/stars/star-06.png" alt="">' +
           '</div>' +
           '<div class="slogan">Lưu những điều quan trọng với bạn</div></div>' +
       '</aside>' +
@@ -314,13 +319,13 @@
     if (hasOccasions) {
       occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
         return '<a class="occasion-card ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
-          '<div class="ic">' + ic(o.icon, 34) + '</div><div class="t">' + esc(o.title) + '</div>' +
+          '<div class="ic">' + evTile(o.kind, 52) + '</div><div class="t">' + esc(o.title) + '</div>' +
           '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
       }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">' + ic('cake', 34) + '</div>' +
+          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">' + evTile('birthday', 52) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
