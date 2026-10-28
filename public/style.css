@@ -38,7 +38,9 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
+  --space-9: 44px;
 
   --text-xs: 11px;
   --text-sm: 13px;
@@ -140,13 +142,16 @@ a { color: inherit; text-decoration: none; }
 .sidebar-illustration {
   margin-top: auto;
   padding-top: var(--space-5);
+  padding-bottom: var(--space-2);
   text-align: center;
 }
 .sidebar-illustration .slogan {
-  font-size: var(--text-xs);
-  color: var(--ink-muted);
-  margin-top: var(--space-2);
-  font-style: italic;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8A8276;
+  max-width: 170px;
+  margin: var(--space-2) auto 0;
+  text-wrap: balance;
 }
 
 /* ---- Mobile top bar ---- */
@@ -228,17 +233,19 @@ a { color: inherit; text-decoration: none; }
   margin: 0 calc(var(--space-4) * -1);
   padding: var(--space-4) var(--space-4) 0;
   min-height: 390px;
-  background: linear-gradient(180deg, #FDF2E9 0%, #FBEBE4 42%, #FDF8F3 78%, var(--cream) 100%);
+  background: linear-gradient(180deg, #FDF1E7 0%, #FDF4EC 32%, #FEFAF6 62%, var(--cream) 100%);
   overflow:hidden;
 }
+/* Tranh hero hiển thị TRỌN VẸN (contain) như mockup — không crop mất cô gái/mèo/hoa */
 .home-hero::before {
-  content:""; position:absolute; inset:0; z-index:0;
-  background: url('assets/home-art-mobile.png') left bottom / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 82%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 82%, transparent 100%);
+  content:""; position:absolute; left:0; right:0; bottom:0; top:86px; z-index:0;
+  background: url('assets/home-art-mobile.png') center bottom / contain no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 86%, transparent 100%);
 }
 .home-hero::after { display:none; }
 .home-hero-head { display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; }
+.head-actions { display:flex; align-items:center; gap: 10px; }
 .home-hero-head .logo-mark { display:flex; align-items:center; gap:4px; font-weight:800; font-size: var(--text-lg); color:#2B3240; }
 .home-hero-head .logo-mark .spark { color: var(--gold); font-size:13px; }
 .home-bell { position:relative; width:38px; height:38px; border-radius:50%; border:none; background:transparent; font-size:18px; color:#2B3240; }
@@ -262,7 +269,7 @@ a { color: inherit; text-decoration: none; }
 }
 .occasion-card .ic { font-size: 24px; line-height:1; height:30px; display:flex; align-items:center; }
 .occasion-card .t { font-weight:600; font-size: 12.5px; color:#2B3240; line-height:1.25; text-wrap: balance; min-height: 32px; display:flex; align-items:flex-start; justify-content:center; }
-.occasion-card .s { font-size: 11px; color:#8A8A92; line-height:1.25; margin-top:auto; text-wrap: balance; }
+.occasion-card .s { font-size: 11px; color:#8A8A92; line-height:1.25; margin-top:auto; text-wrap: balance; min-height: 28px; display:flex; align-items:flex-end; justify-content:center; }
 .tone-pink { background:#FCE4E6; }
 .tone-blue { background:#E7E9FB; }
 .tone-green { background:#E4F0E5; }
@@ -282,13 +289,14 @@ a { color: inherit; text-decoration: none; }
   .home-hero {
     margin: 0; padding: var(--space-8); border-radius: var(--radius-l);
     display:flex; align-items:center; min-height: 320px;
-    background: linear-gradient(120deg, #FDF4EC 0%, #FBEFE8 55%, #FAE8E3 100%);
+    background: linear-gradient(120deg, #FDF1E7 0%, #FDF5EF 42%, #FEFAF6 68%, #FEFAF6 100%);
   }
+  /* Desktop: tranh ngang hiển thị trọn vẹn ở nửa phải, fade mềm sang cột chữ */
   .home-hero::before {
-    inset: 0 0 0 auto; width: 58%;
-    background: url('assets/home-art-desktop.png') right center / cover no-repeat;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 24%, #000 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 24%, #000 100%);
+    inset: 0 0 0 auto; width: 64%; top:0;
+    background: url('assets/home-art-desktop.png') right center / contain no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 100%);
   }
   .home-hero::after { display:none; }
   .home-hero-head { display:none; }
@@ -458,7 +466,8 @@ a { color: inherit; text-decoration: none; }
 }
 .onboard-top { text-align:center; padding-top: var(--space-4); }
 .onboard-art-band {
-  flex:1; min-height: 230px; margin: var(--space-4) calc(var(--space-5) * -1);
+  /* Tăng khoảng thở giữa khối thương hiệu (logo+chữ) và khối CTA — 2 khung user khoanh bị dính */
+  flex:1; min-height: 230px; margin: var(--space-6) calc(var(--space-5) * -1) var(--space-7);
   background: url('assets/onboard-bg-mobile.png') center 72% / cover no-repeat;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
@@ -484,7 +493,7 @@ a { color: inherit; text-decoration: none; }
 @media (min-width:900px) {
   .onboard-wrap { background: url('assets/onboard-bg-desktop.png') center/cover no-repeat; }
   .onboard-art-band { display:none; }
-  .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-6); padding: var(--space-8) var(--space-6); }
+  .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-9); padding: var(--space-8) var(--space-6); }
   /* Desktop: phóng to cả cụm (logo + chữ + nút + dots) cho cân với khổ màn hình */
   .onboard-top, .onboard-bottom { width:100%; max-width:520px; margin:0; padding-top:0; }
   .onboard-title { font-size: 38px; max-width: 480px; }
@@ -501,7 +510,14 @@ a { color: inherit; text-decoration: none; }
 .home-bell .ic-img { margin:0 auto; }
 .avatar-img { width:36px; height:36px; border-radius:50%; object-fit:cover; display:block; }
 .suggest-card .ic-wrap .ic-img, .settings-row .ic-wrap .ic-img { margin:0 auto; }
-.side-art { width: 86px; height:auto; margin: 0 auto 6px; display:block; }
+/* Đáy sidebar: cụm sao trang trí (thay cho hoa trong mockup, dùng element sao user cấp) */
+.side-stars { position:relative; height: 92px; margin-bottom: 8px; opacity:.85; }
+.side-stars img { position:absolute; height:auto; }
+.side-stars .s1 { width:40px; left:50%; top:4px; transform: translateX(-50%); }
+.side-stars .s2 { width:28px; left:18%; top:34px; }
+.side-stars .s3 { width:24px; right:16%; top:28px; }
+.side-stars .s4 { width:16px; left:34%; top:68px; }
+.side-stars .s5 { width:13px; right:30%; top:62px; }
 .home-hero-text h1 .ic-img { display:inline-block; vertical-align:-5px; margin-left:6px; }
 .btn .ic-img, .quickinfo-row .ic .ic-img, .quick-actions button .ic-img { display:inline-block; vertical-align:middle; }
 .quickinfo-row .ic { display:inline-flex; align-items:center; }

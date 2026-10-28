@@ -98,7 +98,7 @@
       mkPerson('Trân', 'friend', 2, false, mmddPlus(250), 2020, '', ''),
       mkPerson('Lan', 'friend', 3, false, mmddPlus(300), 2022, '', ''),
       mkPerson('Quân', 'coworker', 3, false, mmddPlus(170), null, '', ''),
-      mkPerson('Hà', 'coworker', 3, false, mmddPlus(40), null, '', '')
+      mkPerson('Hà', 'coworker', 3, false, mmddPlus(140), null, '', '')
     ];
     people[0].memories = [
       { id: uid('mm'), caption: 'Hoàng hôn', color: '#E8A6B4' },
@@ -107,13 +107,13 @@
     ];
 
     var events = [
-      mkEvent('Chuyến đi Đà Lạt', 'trip', isoPlus(30)),
-      mkEvent('Họp nhóm', 'meeting', isoPlus(3)),
-      mkEvent('Làm proposal', 'work', isoPlus(6)),
-      mkEvent('Workshop kỹ năng', 'workshop', isoPlus(10)),
-      mkEvent('Team building', 'meeting', isoPlus(18))
+      mkEvent('Chuyến đi', 'trip', isoPlus(30)),
+      mkEvent('Họp nhóm', 'meeting', isoPlus(75)),
+      mkEvent('Làm proposal', 'work', isoPlus(90)),
+      mkEvent('Workshop kỹ năng', 'workshop', isoPlus(110)),
+      mkEvent('Team building', 'meeting', isoPlus(130))
     ];
-    events.push({ id: uid('ev'), title: 'Một kỷ niệm với Linh', type: 'memory', annMMDD: toMMDD(new Date()), personId: people[0].id });
+    events.push({ id: uid('ev'), title: 'Một kỷ niệm', type: 'memory', annMMDD: toMMDD(new Date()), personId: people[0].id });
 
     return {
       onboardingDone: false,
@@ -224,8 +224,14 @@
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
-        '<div class="sidebar-illustration"><img class="side-art" src="assets/icons/sun.png" alt="">' +
-          '<div class="slogan">&quot;Lưu những điều quan trọng với bạn ✨&quot;</div></div>' +
+        '<div class="sidebar-illustration"><div class="side-stars">' +
+          '<img src="assets/stars/star-01.png" alt="" class="s1">' +
+          '<img src="assets/stars/star-05.png" alt="" class="s2">' +
+          '<img src="assets/stars/star-03.png" alt="" class="s3">' +
+          '<img src="assets/stars/star-06.png" alt="" class="s4">' +
+          '<img src="assets/stars/star-02.png" alt="" class="s5">' +
+          '</div>' +
+          '<div class="slogan">Lưu những điều quan trọng với bạn</div></div>' +
       '</aside>' +
       '<div class="shell-main">' +
         '<div class="view-root"><div class="view-inner">' + inner + '</div></div>' +
@@ -264,7 +270,12 @@
         list.push({ id: ev.id, title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom, daysAway: daysAway, kind: ev.type });
       }
     });
-    list.sort(function (a, b) { return a.daysAway - b.daysAway; });
+    // Mockup xếp: dịp sắp tới theo ngày trước, "kỷ niệm ngày này năm ngoái" ở cuối.
+    list.sort(function (a, b) {
+      var am = a.kind === 'memory' ? 1 : 0, bm = b.kind === 'memory' ? 1 : 0;
+      if (am !== bm) return am - bm;
+      return a.daysAway - b.daysAway;
+    });
     return list;
   }
   function occasionSubtitle(o) {
@@ -327,7 +338,9 @@
 
       '<div class="home-hero">' +
       '<div class="home-hero-head"><div class="logo-mark">Orbit<span class="spark">✦</span></div>' +
-      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button></div>' +
+      '<div class="head-actions">' +
+      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button>' +
+      '<img class="avatar-img" src="assets/icons/avatar.png" alt="Ảnh đại diện"></div></div>' +
       '<div class="home-hero-text"><div class="date">' + dateLabel + '</div>' +
       '<h1>Chào bạn ' + ic('sun', 26) + '</h1>' +
       '<p class="sub">Những người bạn yêu thương luôn ở gần đây ✨</p></div>' +
