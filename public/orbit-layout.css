@@ -13,17 +13,19 @@
 
 /* ===== Sidebar: tranh cô gái + mèo trong cột trái, chồng lên thanh điều hướng ===== */
 .sidebar { position:relative; overflow:hidden; }
+/* Tranh là MỘT LỚP NỔI (z-index 5) đè lên vùng dưới sidebar, không cắt nhân vật:
+   giữ nguyên tỉ lệ ảnh, neo trái-dưới nên cô gái + mèo luôn trọn vẹn. */
 .sidebar-hero {
-  position:absolute; left:0; bottom:0; width:100%; height:auto;
-  z-index:0; pointer-events:none; opacity:.97;
-  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
-  mask-image: linear-gradient(to top, #000 0%, #000 62%, transparent 100%);
+  position:absolute; left:0; bottom:0; width:132%; height:auto;
+  z-index:5; pointer-events:none; opacity:.97;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 100%);
 }
 .sidebar-logo, .sidebar-nav { position:relative; z-index:2; }
 @media (min-width:900px) {
   .shell-people .sidebar-illustration .side-deco { display:none; }
-  .shell-people .sidebar-illustration { position:relative; z-index:2; padding-bottom:146px; }
-  .shell-people .sidebar-illustration .slogan { position:relative; z-index:2; color:#5F574E; font-weight:600; }
+  .shell-people .sidebar-illustration { position:relative; z-index:6; padding-bottom:178px; }
+  .shell-people .sidebar-illustration .slogan { position:relative; z-index:6; color:#5F574E; font-weight:600; }
 }
 
 /* ===== Bảng liên lạc: nội dung panel ===== */
