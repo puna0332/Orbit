@@ -692,12 +692,12 @@
     var featured = !bannerDismissed && upcoming[0];
 
     return (
-      '<h1 class="page-title">Sự kiện</h1>' +
+      '<div class="cal-topbar"><h1 class="page-title">Sự kiện</h1>' +
+      '<div class="cal-header"><div class="cal-nav"><button class="btn-icon" data-action="cal-prev" aria-label="Tháng trước">‹</button>' +
+      '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next" aria-label="Tháng sau">›</button></div>' +
+      '<div class="cal-actions"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
+      '<button class="btn-icon" data-action="open-add-event" data-date="' + todayIso + '" aria-label="Thêm sự kiện">➕</button></div></div></div>' +
       (featured ? '<div class="cal-banner"><div class="ic-wrap">' + ic(featured.icon, 26) + '</div><div class="txt"><b>' + esc(featured.title) + '</b><span>' + occasionSubtitle(featured) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
-      '<div class="cal-header"><div class="cal-nav"><button class="btn-icon" data-action="cal-prev">‹</button>' +
-      '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next">›</button></div>' +
-      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
-      '<button class="btn-icon" data-action="open-add-event" data-date="' + todayIso + '">➕</button></div></div>' +
       '<div class="cal-grid">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + cellsHtml + '</div>' +
       '<img class="cal-corner" src="assets/cal-corner.png" alt="" aria-hidden="true">'
     );

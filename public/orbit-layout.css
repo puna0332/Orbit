@@ -169,14 +169,26 @@
   .orbit-zoom button { width:36px; height:36px; }
 }
 
-/* ===== Sự kiện: ô lịch có vạch ngăn rõ, tranh góc ===== */
+/* ===== Sự kiện: ô lịch chỉ rõ viền, fit màn hình, tranh góc ===== */
+.cal-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:10px; }
+.cal-topbar .page-title { margin:0; }
+.cal-topbar .cal-header { margin:0; }
+.cal-topbar .cal-header .cal-nav .btn-icon { background:var(--card); }
+.cal-actions { display:flex; align-items:center; gap:8px; }
+.cal-banner { background:#FDF1ED; color:#8C6053; }
 .cal-grid {
   gap:1px; background:var(--border); border:1px solid var(--border);
   border-radius:16px; overflow:hidden;
 }
-.cal-dow { background:var(--cream); padding:9px 0; margin:0; }
+.cal-dow { background:#FBF7F3; padding:9px 0; margin:0; }
 .cal-cell { background:var(--card); border-radius:0; overflow:hidden; }
-.cal-cell.outside { background:#FBF7F3; }
+.cal-cell.outside { background:#FDFBF9; color:#A79F95; }
+.cal-cell.outside .daynum { color:#A79F95; }
+/* Thẻ sự kiện trong ô ngày: to và mềm hơn */
+.cal-tag {
+  font-size:11.5px; border-radius:9px; padding:3px 8px; margin-top:3px;
+  font-weight:600; letter-spacing:.1px;
+}
 .cal-corner {
   display:none; position:fixed; right:0; bottom:0; width:330px; height:auto;
   pointer-events:none; z-index:1;
@@ -184,11 +196,27 @@
   mask-image: radial-gradient(105% 105% at 92% 100%, #000 40%, transparent 78%);
 }
 @media (min-width:900px) {
-  .cal-corner { display:block; width:300px; opacity:.92; }
-  .cal-grid { border-radius:18px; }
-  .cal-dow { padding:11px 0; font-size:12px; letter-spacing:.3px; }
-  .cal-cell { min-height:74px; }
+  /* Trang Sự kiện fit trọn một màn: tiêu đề + điều hướng tháng cùng hàng,
+     lưới co giãn theo chiều cao còn lại, không phóng to quá khổ. */
+  .page-calendar {
+    display:flex; flex-direction:column; height:100dvh;
+    padding:18px 24px 14px; overflow:hidden;
+  }
+  .page-calendar > .view-inner {
+    width:100%; max-width:none; margin:0; flex:0 0 auto; min-height:0;
+  }
+  /* Lưới cao đúng phần còn lại của màn: ô không còn bị ép vuông và phóng to. */
+  .page-calendar .cal-grid {
+    flex:0 0 auto; height:calc(100dvh - 190px);
+    grid-auto-rows:1fr; border-radius:16px;
+  }
+  .page-calendar .cal-cell { aspect-ratio:auto; min-height:0; padding:6px; }
+  .cal-corner { display:block; width:236px; opacity:.82; }
+  .cal-dow { padding:9px 0; font-size:12px; letter-spacing:.3px; }
   .cal-cell.today { background:#FFF9F3; }
+  .cal-topbar .page-title { font-size:26px; }
+  /* Thanh điều hướng luôn đứng yên khi nội dung cuộn */
+  .sidebar { position:sticky; top:0; align-self:flex-start; height:100dvh; }
 }
 
 @media (prefers-reduced-motion:reduce) {
