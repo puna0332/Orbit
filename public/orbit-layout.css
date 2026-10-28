@@ -71,7 +71,7 @@
 .orbit-avatar { touch-action:none; }
 
 /* ===== Camera quay theo người được chọn ===== */
-.orbit-stage { transform: rotate(var(--cam, 0deg)); transition: transform .7s cubic-bezier(.22,1,.36,1); }
+.orbit-stage { will-change: transform; }
 .orbit-avatar .av-wrap { display:block; width:100%; height:100%; }
 /* nội dung avatar + nhãn bù ngược chiều quay để luôn thẳng đứng */
 .orbit-avatar .av-wrap,
@@ -183,7 +183,7 @@
   }
   .people-orbit-col .orbit-pan { right:46%; }
   .contacts-collapsed .orbit-pan { right:0; }
-  .orbit-stage { width:min(80vw,100dvh,900px); height:min(80vw,100dvh,900px); }
+  .orbit-stage { width:min(92vw,118dvh,1060px); height:min(92vw,118dvh,1060px); }
   .people-split:not(.contacts-collapsed) .orbit-stage { width:min(34vw,66dvh,520px); height:min(34vw,66dvh,520px); }
   .orbit-avatar { width:56px; height:56px; }
   .orbit-avatar span.name-tag { top:57px; font-size:11px; }

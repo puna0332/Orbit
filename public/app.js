@@ -21,7 +21,7 @@
   }
   var TONE = { birthday: 'tone-pink', trip: 'tone-blue', memory: 'tone-green', meeting: 'tone-purple', work: 'tone-orange', workshop: 'tone-blue', custom: 'tone-purple' };
   var TONE_DOT = { 'tone-pink': '#B5505E', 'tone-blue': '#3D63A8', 'tone-green': '#3E7A4C', 'tone-purple': '#6A50B0', 'tone-orange': '#B6702A' };
-  var REL_LABEL = { family: 'Gia đình', friend: 'Bạn bè', coworker: 'Đồng nghiệp', other: 'Khác' };
+  var REL_LABEL = { family: 'Gia đình', soulmate: 'Tri kỉ', closefriend: 'Bạn thân', friend: 'Bạn', coworker: 'Đồng nghiệp', other: 'Khác' };
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
 
@@ -194,7 +194,7 @@
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
-  var orbitView = { scale: 0.98, x: 0, y: 0 }; // mở đầu chỉ thấy vòng 1-4, vòng 5 nằm ngoài khung
+  var orbitView = { scale: 1.05, x: 0, y: 0 }; // mở đầu chỉ thấy vòng 1-4, vòng 5-6 nằm ngoài khung
   var calSelectedDay = null;
   var orbitJustDragged = false;
   var orbitFocus = null;   // id người đang được focus (camera + thẻ thông tin)
@@ -276,6 +276,7 @@
     var drag = null;
     vp.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.orbit-avatar, .orbit-zoom')) return;
+      stopFocusFollow();
       drag = { x: e.clientX, y: e.clientY, ox: orbitView.x, oy: orbitView.y };
       vp.setPointerCapture(e.pointerId); vp.classList.add('dragging');
     });
@@ -328,7 +329,7 @@
 
   function afterRender(page, parts) {
     if (page === 'people' && parts[1]) bindNotesArea(parts[1]);
-    if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); applyCameraFocus(); }
+    if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); startFocusFollow(); } else { stopFocusFollow(); }
     if (page === 'settings' && parts[1] === 'data') bindImportInput();
   }
 
@@ -371,24 +372,30 @@
     }, 700);
   }
 
-  /* Camera quay theo người được chọn: xoay cả stage, nội dung avatar tự bù ngược */
-  function applyCameraFocus() {
-    var stage = document.querySelector('.orbit-stage');
-    if (!stage) return;
-    if (!orbitFocus) { stage.style.setProperty('--cam', '0deg'); stage.classList.remove('cam-on'); return; }
-    var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
-    var angle = 0;
-    if (av) {
-      // Đo góc theo vị trí thật của avatar so với tâm stage (không phụ thuộc animation)
-      var ab = av.getBoundingClientRect();
-      var sb = stage.getBoundingClientRect();
-      var dx = (ab.left + ab.width / 2) - (sb.left + sb.width / 2);
-      var dy = (ab.top + ab.height / 2) - (sb.top + sb.height / 2);
-      angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    }
-    // đưa người được chọn lên đỉnh (12 giờ)
-    stage.style.setProperty('--cam', (-(angle + 90)) + 'deg');
-    stage.classList.add('cam-on');
+  /* Camera: mọi thứ vẫn quay bình thường, chỉ zoom lên và bám theo người được chọn */
+  var orbitFocusRAF = null;
+  function stopFocusFollow() {
+    if (orbitFocusRAF) { cancelAnimationFrame(orbitFocusRAF); orbitFocusRAF = null; }
+  }
+  function startFocusFollow() {
+    stopFocusFollow();
+    var vp = document.getElementById('orbitViewport');
+    if (!vp || !orbitFocus) return;
+    var targetScale = 1.85;
+    var tick = function () {
+      var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
+      if (!av) { stopFocusFollow(); return; }
+      var ab = av.getBoundingClientRect(), vb = vp.getBoundingClientRect();
+      var tx = vb.left + vb.width * 0.5;
+      var ty = vb.top + vb.height * 0.42;
+      var cx = ab.left + ab.width / 2, cy = ab.top + ab.height / 2;
+      orbitView.x += (tx - cx) * 0.3;
+      orbitView.y += (ty - cy) * 0.3;
+      orbitView.scale += (targetScale - orbitView.scale) * 0.12;
+      applyOrbitView();
+      orbitFocusRAF = requestAnimationFrame(tick);
+    };
+    orbitFocusRAF = requestAnimationFrame(tick);
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
@@ -571,21 +578,24 @@
   }
 
   // Sức chứa từng vòng: 8, 10, 14, 20, 28 (mỗi vòng cộng thêm 2 so với mức tăng trước)
-  var RING_CAP = [8, 10, 14, 20, 28];
-  var RING_PCT = [20, 40, 60, 80, 100];
+  var RING_CAP = [8, 10, 14, 20, 28, 38];
+  var RING_PCT = [16, 32, 48, 64, 80, 96];
   // Vòng tự động: gia đình -> 1-2, người yêu/bạn thân -> 2-3, còn lại -> 4+
   function autoRingFor(p) {
-    if (p.ring) return Math.min(5, Math.max(1, Number(p.ring)));
+    if (p.ring) return Math.min(6, Math.max(1, Number(p.ring)));
+    // Gia đình -> 1-2; Tri kỉ -> 3-4; Bạn thân -> 4-5; Bạn & còn lại -> vòng 5-6 đổ ra
     if (p.relationship === 'family') return p.closeness === 1 ? 1 : 2;
-    if (p.relationship === 'friend') return p.closeness === 1 ? 2 : 3;
-    return 4;
+    if (p.relationship === 'soulmate') return 3;
+    if (p.relationship === 'closefriend') return 4;
+    if (p.relationship === 'friend') return 6;
+    return 6;
   }
   function renderOrbit(people) {
-    var rings = [[], [], [], [], []];
+    var rings = [[], [], [], [], [], []];
     people.forEach(function (p) {
       var idx = autoRingFor(p) - 1;
       // vòng đầy thì đẩy ra vòng ngoài kế tiếp
-      while (idx < 4 && rings[idx].length >= RING_CAP[idx]) idx++;
+      while (idx < 5 && rings[idx].length >= RING_CAP[idx]) idx++;
       rings[idx].push(p);
     });
     var scene = '';
@@ -623,7 +633,7 @@
     var ringNow = 1;
     state.people.forEach(function (x) { }); // no-op giữ chỗ
     var chips = '';
-    for (var i = 1; i <= 5; i++) {
+    for (var i = 1; i <= 6; i++) {
       chips += '<button class="ring-chip' + (p.ring === i ? ' on' : '') + '" data-action="move-person" data-pid="' + esc(p.id) + '" data-ring="' + i + '">Vòng ' + i + '</button>';
     }
     return '<div class="orbit-focus-card" role="dialog" aria-label="Thông tin ' + esc(p.name) + '">' +
@@ -997,7 +1007,7 @@
       '<div class="field"><label>Tên</label><input type="text" name="name" required placeholder="Vd: Hoa"></div>' +
       '<div class="field"><label>Mối quan hệ</label><select name="relationship">' +
       '<option value="family">Gia đình</option><option value="friend" selected>Bạn bè</option>' +
-      '<option value="coworker">Đồng nghiệp</option><option value="other">Khác</option></select></div>' +
+      '<option value="coworker">Đồng nghiệp</option><option value="soulmate">Tri kỉ</option><option value="closefriend">Bạn thân</option><option value="friend">Bạn</option><option value="coworker">Đồng nghiệp</option><option value="other">Khác</option></select></div>' +
       '<div class="field"><label>Mức độ thân thiết</label><select name="closeness">' +
       '<option value="1">Thân nhất</option><option value="2" selected>Thân</option><option value="3">Quen biết</option></select></div>' +
       '<div class="field"><label>Ngày sinh (không bắt buộc)</label><input type="date" name="birthday"></div>' +
@@ -1083,8 +1093,8 @@
       case 'select-day': calSelectedDay = t.dataset.date; render(); break;
       case 'focus-person':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
-        orbitFocus = t.dataset.pid; orbitMotionPaused = true; render(); break;
-      case 'close-focus': orbitFocus = null; render(); break;
+        orbitFocus = t.dataset.pid; render(); break;
+      case 'close-focus': orbitFocus = null; orbitView = { scale: 1.05, x: 0, y: 0 }; stopFocusFollow(); render(); break;
       case 'move-person':
         bubbleThen(t.dataset.pid, function (pid, ring) {
           var person = state.people.find(function (x) { return x.id === pid; });
