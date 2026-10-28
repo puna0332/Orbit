@@ -179,12 +179,13 @@ a { color: inherit; text-decoration: none; }
   padding: 4px 8px; border-radius: var(--radius-m);
 }
 .bottom-nav .nav-item.active { color: var(--navy); font-weight: 700; }
-.bottom-nav .nav-item .ic { font-size: 20px; }
+.bottom-nav .nav-item .ic { font-size: 20px; display:flex; align-items:center; justify-content:center; height:22px; }
 .bottom-nav .fab {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: var(--brand); color: var(--brand-ink); font-size: 22px;
+  /* icon plus.png đã là nút tròn hoàn chỉnh (nền kem + viền) nên không tô nền đè */
+  width: 54px; height: 54px; border-radius: 50%;
+  background: transparent; padding:0; overflow:hidden;
   display: flex; align-items: center; justify-content: center;
-  border: none; margin-top: -26px; box-shadow: var(--shadow-pop);
+  border: none; margin-top: -28px; box-shadow: var(--shadow-pop);
 }
 
 .view-root { flex: 1; overflow-y: auto; padding-bottom: 90px; }
@@ -459,28 +460,54 @@ a { color: inherit; text-decoration: none; }
 .onboard-art-band {
   flex:1; min-height: 230px; margin: var(--space-4) calc(var(--space-5) * -1);
   background: url('assets/onboard-bg-mobile.png') center 72% / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
 }
-.onboard-bottom { max-width: 360px; margin: 0 auto; width:100%; text-align:center; }
+.onboard-bottom {
+  max-width: 420px; margin: 0 auto; width:100%; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap: var(--space-3);
+}
 /* Logo: chữ "Orbit" nằm ở 25–44% chiều cao file PNG, 56% dưới là khoảng trống.
    Ảnh tỉ lệ 2000:1341 => height = 0.67 × width. Kéo chữ lên bằng margin âm
    -36% (margin % tính theo WIDTH của cột) ≈ 54% chiều cao ảnh, để tiêu đề nằm
    gọn trong khoảng trống ngay dưới chữ Orbit, tự co giãn theo mọi bề rộng cột. */
 .onboard-logo-badge { margin: 0 0 -33%; }
 .onboard-logo-badge img { width: 100%; height: auto; display:block; }
-.onboard-title { font-size: var(--text-2xl); font-weight:800; text-align:center; color: var(--brand); margin: 0 auto var(--space-2); max-width: 340px; text-wrap: balance; }
-.onboard-sub { text-align:center; color: #5B5F6E; font-size: var(--text-base); max-width:320px; margin: 0 auto; text-wrap: balance; }
-.onboard-dots { display:flex; justify-content:center; gap:6px; margin-top: var(--space-4); }
-.onboard-dots .d { width:7px; height:7px; border-radius:50%; background: #D8D4C9; }
-.onboard-dots .d.on { background: var(--brand); width:18px; border-radius: var(--radius-pill); }
-.onboard-skip { margin-top: var(--space-3); font-size: var(--text-sm); color: #5B5F6E; background:none; border:none; }
+.onboard-title { font-size: 30px; line-height:1.25; font-weight:800; text-align:center; color: var(--brand); margin: 0 auto var(--space-3); max-width: 400px; text-wrap: balance; }
+.onboard-sub { text-align:center; color: #5B5F6E; font-size: 16px; line-height:1.5; max-width:380px; margin: 0 auto; text-wrap: balance; }
+/* Nút "Bắt đầu": cụm chữ to lên nhưng riêng nút thu hẹp bề ngang (không full-width) */
+.onboard-bottom .btn { width:auto; min-width:190px; padding: 14px 30px; font-size:16px; }
+.onboard-dots { display:flex; justify-content:center; gap:7px; margin-top: var(--space-5); }
+.onboard-dots .d { width:8px; height:8px; border-radius:50%; background: #D8D4C9; }
+.onboard-dots .d.on { background: var(--brand); width:22px; border-radius: var(--radius-pill); }
+.onboard-skip { margin-top: 0; font-size: 15px; font-weight:600; color: #4A4E60; background:none; border:none; text-decoration: underline; text-underline-offset: 3px; padding: 6px 10px; }
 @media (min-width:900px) {
   .onboard-wrap { background: url('assets/onboard-bg-desktop.png') center/cover no-repeat; }
   .onboard-art-band { display:none; }
   .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-6); padding: var(--space-8) var(--space-6); }
-  .onboard-top, .onboard-bottom { width:100%; max-width:430px; margin:0; padding-top:0; }
+  /* Desktop: phóng to cả cụm (logo + chữ + nút + dots) cho cân với khổ màn hình */
+  .onboard-top, .onboard-bottom { width:100%; max-width:520px; margin:0; padding-top:0; }
+  .onboard-title { font-size: 38px; max-width: 480px; }
+  .onboard-sub { font-size: 18px; max-width: 440px; }
+  .onboard-bottom .btn { min-width:210px; padding: 15px 34px; font-size:17px; }
+  .onboard-skip { font-size: 16px; }
 }
+
+/* ===== Icon ảnh (bộ element thật) ===== */
+.ic-img { display:block; object-fit:contain; flex-shrink:0; }
+.nav-item .ic .ic-img, .sidebar-nav a .ic-img { display:inline-block; vertical-align:middle; }
+.cal-tag .ic-img { display:inline-block; vertical-align:-2px; margin-right:2px; }
+.bottom-nav .fab .ic-img, .sidebar .fab .ic-img { width:100%; height:100%; }
+.home-bell .ic-img { margin:0 auto; }
+.avatar-img { width:36px; height:36px; border-radius:50%; object-fit:cover; display:block; }
+.suggest-card .ic-wrap .ic-img, .settings-row .ic-wrap .ic-img { margin:0 auto; }
+.side-art { width: 86px; height:auto; margin: 0 auto 6px; display:block; }
+.home-hero-text h1 .ic-img { display:inline-block; vertical-align:-5px; margin-left:6px; }
+.btn .ic-img, .quickinfo-row .ic .ic-img, .quick-actions button .ic-img { display:inline-block; vertical-align:middle; }
+.quickinfo-row .ic { display:inline-flex; align-items:center; }
+/* nav: icon cùng cỡ, trạng thái active đổi màu chứ không đổi nét */
+.bottom-nav .nav-item .ic-img, .sidebar-nav a .ic-img { width:22px; height:22px; opacity:.55; transition: opacity .15s; }
+.bottom-nav .nav-item.active .ic-img, .sidebar-nav a.active .ic-img { opacity:1; }
 
 /* ===== Modal ===== */
 .modal-backdrop { position:fixed; inset:0; background: rgba(15,18,30,.45); display:flex; align-items:flex-end; justify-content:center; z-index:100; }

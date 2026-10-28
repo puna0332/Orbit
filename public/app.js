@@ -7,7 +7,11 @@
 
   var STORAGE_KEY = 'orbit_state_v1';
 
-  var ICONS = { birthday: '🎂', trip: '✈️', memory: '🍃', meeting: '👥', work: '🌱', workshop: '📖', custom: '📌' };
+  /* Bộ icon thật tách từ sheet element người dùng cấp (assets/icons/*.png) */
+  function ic(name, size) {
+    return '<img class="ic-img" src="assets/icons/' + name + '.png" alt="" width="' + size + '" height="' + size + '">';
+  }
+  var ICONS = { birthday: 'cake', trip: 'plane', memory: 'leaf', meeting: 'people', work: 'calendar', workshop: 'sun', custom: 'calendar' };
   var TONE = { birthday: 'tone-pink', trip: 'tone-blue', memory: 'tone-green', meeting: 'tone-purple', work: 'tone-orange', workshop: 'tone-blue', custom: 'tone-purple' };
   var TONE_DOT = { 'tone-pink': '#B5505E', 'tone-blue': '#3D63A8', 'tone-green': '#3E7A4C', 'tone-purple': '#6A50B0', 'tone-orange': '#B6702A' };
   var REL_LABEL = { family: 'Gia đình', friend: 'Bạn bè', coworker: 'Đồng nghiệp', other: 'Khác' };
@@ -122,7 +126,7 @@
   function emptyState(keepSettings) {
     return {
       onboardingDone: true, onboardingSlide: 0, people: [], events: [],
-      settings: keepSettings || { theme: 'system', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
+      settings: keepSettings || { theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
     };
   }
 
@@ -136,6 +140,9 @@
         // kiện/ghi chú vẫn giữ nguyên, chỉ riêng tiến trình onboarding reset mỗi phiên.
         parsed.onboardingDone = false;
         parsed.onboardingSlide = 0;
+        // Thiết kế gốc là giao diện SÁNG. Theme 'system' khiến máy đang dark-mode
+        // hiển thị nền đen, lệch hẳn mockup -> migrate sang 'light'; chỉ tối khi user tự chọn.
+        if (parsed.settings && parsed.settings.theme === 'system') parsed.settings.theme = 'light';
         return parsed;
       }
     } catch (e) { /* ignore corrupt storage */ }
@@ -212,22 +219,22 @@
       '<aside class="sidebar">' +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
-          navLink('home', '🏠', 'Home', active) +
-          navLink('people', '👥', 'Mọi người', active) +
-          navLink('calendar', '📅', 'Sự kiện', active) +
-          navLink('settings', '⚙️', 'Cài đặt', active) +
+          navLink('home', ic('home', 22), 'Home', active) +
+          navLink('people', ic('people', 22), 'Mọi người', active) +
+          navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
+          navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
-        '<div class="sidebar-illustration"><div style="font-size:48px;">🌙🐾</div>' +
+        '<div class="sidebar-illustration"><img class="side-art" src="assets/icons/sun.png" alt="">' +
           '<div class="slogan">&quot;Lưu những điều quan trọng với bạn ✨&quot;</div></div>' +
       '</aside>' +
       '<div class="shell-main">' +
         '<div class="view-root"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
-          bottomItem('home', '🏠', 'Home', active) +
-          bottomItem('people', '👥', 'Mọi người', active) +
-          '<button class="fab" data-action="open-quickadd">+</button>' +
-          bottomItem('calendar', '📅', 'Sự kiện', active) +
-          bottomItem('settings', '⚙️', 'Cài đặt', active) +
+          bottomItem('home', ic('home', 22), 'Home', active) +
+          bottomItem('people', ic('people', 22), 'Mọi người', active) +
+          '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
+          bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
+          bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
       '</div></div>'
     );
@@ -272,10 +279,10 @@
     if (occ.length) {
       var o = occ[0];
       var person = state.people.find(function (p) { return p.id === o.personId; });
-      return { icon: '✉️', text: 'Thử nhắn tin chúc mừng sinh nhật ' + (person ? person.name : '') + ' nhé!', href: person ? '#/people/' + person.id : '#/home' };
+      return { icon: 'envelope', text: 'Thử nhắn tin chúc mừng sinh nhật ' + (person ? person.name : '') + ' nhé!', href: person ? '#/people/' + person.id : '#/home' };
     }
     var noNote = state.people.find(function (p) { return !p.notes; });
-    if (noNote) return { icon: '📝', text: 'Ghi lại vài điều bạn nhớ về ' + noNote.name, href: '#/people/' + noNote.id };
+    if (noNote) return { icon: 'leaf', text: 'Ghi lại vài điều bạn nhớ về ' + noNote.name, href: '#/people/' + noNote.id };
     return null;
   }
 
@@ -296,13 +303,13 @@
     if (hasOccasions) {
       occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
         return '<a class="occasion-card ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
-          '<div class="ic">' + o.icon + '</div><div class="t">' + esc(o.title) + '</div>' +
+          '<div class="ic">' + ic(o.icon, 34) + '</div><div class="t">' + esc(o.title) + '</div>' +
           '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
       }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">🎂</div>' +
+          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">' + ic('cake', 34) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
@@ -315,14 +322,14 @@
 
     return (
       '<div class="home-topright">' +
-      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">🔔<span class="badge-dot"></span></button>' +
-      '<div class="avatar">' + esc(initial) + '</div></div>' +
+      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button>' +
+      '<img class="avatar-img" src="assets/icons/avatar.png" alt="">' + '</div>' +
 
       '<div class="home-hero">' +
       '<div class="home-hero-head"><div class="logo-mark">Orbit<span class="spark">✦</span></div>' +
-      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">🔔<span class="badge-dot"></span></button></div>' +
+      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button></div>' +
       '<div class="home-hero-text"><div class="date">' + dateLabel + '</div>' +
-      '<h1>Chào bạn <span>⭐</span></h1>' +
+      '<h1>Chào bạn ' + ic('sun', 26) + '</h1>' +
       '<p class="sub">Những người bạn yêu thương luôn ở gần đây ✨</p></div>' +
       '<div class="home-hero-art"></div>' +
       '</div>' +
@@ -334,7 +341,7 @@
 
       (suggestion ?
         '<section class="home-section"><div class="home-section-head"><h2>Gợi ý hôm nay</h2></div>' +
-        '<a class="suggest-card" href="' + suggestion.href + '"><div class="ic-wrap">' + suggestion.icon + '</div>' +
+        '<a class="suggest-card" href="' + suggestion.href + '"><div class="ic-wrap">' + ic(suggestion.icon, 28) + '</div>' +
         '<div class="txt">' + esc(suggestion.text) + '</div><div class="chev">›</div></a></section>' : '')
     );
   }
@@ -344,7 +351,7 @@
     openModal(
       '<div class="modal-sheet"><div class="modal-head"><h3>Tất cả dịp sắp tới</h3><button data-action="close-modal">✕</button></div>' +
       (occ.length ? occ.map(function (o) {
-        return '<div class="suggest-card card" style="margin-bottom:8px;"><div class="ic-wrap" style="background:transparent;font-size:20px;">' + o.icon + '</div>' +
+        return '<div class="suggest-card card" style="margin-bottom:8px;"><div class="ic-wrap" style="background:transparent;">' + ic(o.icon, 26) + '</div>' +
           '<div class="txt">' + esc(o.title) + '<br><span class="muted" style="font-weight:400;">' + occasionSubtitle(o) + '</span></div></div>';
       }).join('') : '<p class="muted">Không có dịp nào trong 180 ngày tới.</p>') +
       '</div>'
@@ -429,10 +436,10 @@
       '<div class="detail-profile"><div class="avatar" style="background:' + color + ';">' + initials(p.name) + '</div>' +
       '<h2>' + esc(p.name) + (p.favorite ? ' ⭐' : '') + '</h2><div class="meta">' + relDurationLabel(p) + '</div></div>' +
       '<div class="quick-actions">' +
-      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">🎂</button>' +
+      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 24) + '</button>' +
       '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '" title="Yêu thích">' + (p.favorite ? '💖' : '🤍') + '</button>' +
-      '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">📖</button>' +
-      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">✈️</button></div>' +
+      '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">' + ic('leaf', 24) + '</button>' +
+      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">' + ic('plane', 24) + '</button></div>' +
       (p.quote ? '<div class="quote-box">' + esc(p.quote) + '</div>' : '') +
       '<div class="detail-grid"><div>' +
       '<div class="section-head" style="margin-top:0;"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
@@ -446,7 +453,7 @@
       }).join('') || '<p class="muted">Chưa có hoạt động.</p>') +
       '</div></div><div>' +
       '<div class="card quickinfo-card">' +
-      '<div class="quickinfo-row"><span class="ic">🎂</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
+      '<div class="quickinfo-row"><span class="ic">' + ic('cake', 20) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">❤️</span> Mức độ <b>' + (p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">🏷️</span> Nhóm <b>' + REL_LABEL[p.relationship] + '</b></div></div>' +
       '<div class="section-head" style="margin-top:0;"><h2>Nhắc nhở</h2></div>' +
@@ -505,7 +512,7 @@
       var dayEvents = eventsOnDate(iso, mmdd);
       cellsHtml += '<div class="cal-cell ' + (outside ? 'outside' : '') + ' ' + (isToday ? 'today' : '') + '" data-action="open-add-event" data-date="' + iso + '">' +
         '<span class="daynum">' + cellDate.getDate() + '</span>' +
-        '<div class="cal-tags-desktop">' + dayEvents.slice(0, 2).map(function (e) { return '<div class="cal-tag ' + e.tone + '">' + e.icon + ' ' + esc(e.title) + '</div>'; }).join('') + '</div>' +
+        '<div class="cal-tags-desktop">' + dayEvents.slice(0, 2).map(function (e) { return '<div class="cal-tag ' + e.tone + '">' + ic(e.icon, 14) + ' ' + esc(e.title) + '</div>'; }).join('') + '</div>' +
         '<div class="cal-dots">' + dayEvents.slice(0, 3).map(function (e) { return '<span class="cal-dot" style="background:' + dotColor(e.tone) + '"></span>'; }).join('') + '</div>' +
         '</div>';
     }
@@ -515,7 +522,7 @@
 
     return (
       '<h1 class="page-title">Sự kiện</h1>' +
-      (featured ? '<div class="cal-banner"><div style="font-size:20px;">' + featured.icon + '</div><div class="txt"><b>' + esc(featured.title) + '</b><span>' + occasionSubtitle(featured) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
+      (featured ? '<div class="cal-banner"><div class="ic-wrap">' + ic(featured.icon, 26) + '</div><div class="txt"><b>' + esc(featured.title) + '</b><span>' + occasionSubtitle(featured) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
       '<div class="cal-header"><div class="cal-nav"><button class="btn-icon" data-action="cal-prev">‹</button>' +
       '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next">›</button></div>' +
       '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
@@ -531,11 +538,11 @@
   }
   function renderSettings() {
     return '<h1 class="page-title">Cài đặt</h1><div class="settings-list">' +
-      settingsRow('reminders', '🔔', 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
-      settingsRow('appearance', '🌙', 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
-      settingsRow('ai', '✨', 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
-      settingsRow('data', '☁️', 'tone-green', 'Xuất / Xoá dữ liệu', 'Sao lưu và quản lý dữ liệu') +
-      settingsRow('account', '👤', 'tone-blue', 'Tài khoản', 'Thông tin cá nhân, bảo mật') +
+      settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
+      settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
+      settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
+      settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu', 'Sao lưu và quản lý dữ liệu') +
+      settingsRow('account', ic('avatar', 26), 'tone-blue', 'Tài khoản', 'Thông tin cá nhân, bảo mật') +
       '</div>';
   }
   function backBtn() { return '<button class="subpage-back" data-action="nav" data-to="settings">‹ Cài đặt</button>'; }
@@ -669,8 +676,8 @@
     openModal(
       '<div class="modal-sheet"><div class="modal-head"><h3>Thêm nhanh</h3><button data-action="close-modal">✕</button></div>' +
       '<div style="display:flex;flex-direction:column;gap:10px;">' +
-      '<button class="btn btn-ghost btn-block" data-action="open-add-person">👥 Thêm người mới</button>' +
-      '<button class="btn btn-ghost btn-block" data-action="open-add-event">📅 Thêm sự kiện mới</button>' +
+      '<button class="btn btn-ghost btn-block" data-action="open-add-person">' + ic('people', 20) + ' Thêm người mới</button>' +
+      '<button class="btn btn-ghost btn-block" data-action="open-add-event">' + ic('calendar', 20) + ' Thêm sự kiện mới</button>' +
       '</div></div>'
     );
   }
