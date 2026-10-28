@@ -196,6 +196,7 @@
   var orbitMotionPaused = false;
   var orbitView = { scale: 1.05, x: 0, y: 0 }; // mở đầu chỉ thấy vòng 1-4, vòng 5-6 nằm ngoài khung
   var calSelectedDay = null;
+  var calStripMore = false;
   var orbitJustDragged = false;
   var orbitFocus = null;   // id người đang được focus (camera + thẻ thông tin)
   var orbitFocusRAF = null;
@@ -790,12 +791,40 @@
   /* ---------------------------- Calendar ---------------------------- */
   function eventsOnDate(iso, mmdd) {
     var out = [];
-    state.people.forEach(function (p) { if (p.birthday === mmdd) out.push({ title: 'Sinh nhật ' + p.name, icon: ICONS.birthday, tone: TONE.birthday }); });
+    state.people.forEach(function (p) {
+      if (p.birthday === mmdd) out.push({ title: 'Sinh nhật ' + p.name, icon: ICONS.birthday, tone: TONE.birthday, kind: 'birthday', date: iso, personName: p.name, time: '', location: '', note: '' });
+    });
     state.events.forEach(function (ev) {
-      if (ev.type === 'memory') { if (ev.annMMDD === mmdd) out.push({ title: ev.title, icon: ICONS.memory, tone: TONE.memory }); return; }
-      if (ev.date === iso) out.push({ title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom });
+      var pm = ev.personId ? state.people.find(function (x) { return x.id === ev.personId; }) : null;
+      var base = { date: iso, note: ev.note || '', location: ev.location || '', time: ev.time || '', personName: pm ? pm.name : '' };
+      if (ev.type === 'memory') {
+        if (ev.annMMDD === mmdd) out.push(Object.assign({ title: ev.title, icon: ICONS.memory, tone: TONE.memory, kind: 'memory' }, base));
+        return;
+      }
+      if (ev.date === iso) out.push(Object.assign({ title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom, kind: ev.type }, base));
     });
     return out;
+  }
+
+  /* Chi tiết sự kiện: chỉ hiện những trường thực sự có dữ liệu */
+  function openEventDetail(dateIso, idx) {
+    var evs = eventsOnDate(dateIso, dateIso.slice(5, 7) + '-' + dateIso.slice(8, 10));
+    var e = evs[idx];
+    if (!e) return;
+    var dd = new Date(dateIso + 'T00:00:00');
+    var rows = [['Ngày', DOW[(dd.getDay() + 6) % 7] + ', ' + dd.getDate() + '/' + (dd.getMonth() + 1) + '/' + dd.getFullYear()]];
+    if (e.time) rows.push(['Thời gian', e.time]);
+    if (e.location) rows.push(['Địa điểm', e.location]);
+    if (e.personName) rows.push(['Liên quan', e.personName]);
+    if (e.note) rows.push(['Ghi chú', e.note]);
+    openModal(
+      '<div class="modal-card event-detail">' +
+      '<div class="ed-head"><span class="cal-tag ' + e.tone + '">' + ic(e.icon, 15) + '<span>' + esc(e.title) + '</span></span>' +
+      '<button class="btn-icon" data-action="close-modal" aria-label="Đóng">✕</button></div>' +
+      '<div class="ed-rows">' + rows.map(function (r) {
+        return '<div class="ed-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
+      }).join('') + '</div></div>'
+    );
   }
 
   function renderCalendar() {
@@ -808,6 +837,7 @@
     var daysInPrevMonth = new Date(year, month, 0).getDate();
     var cellsCount = Math.ceil((firstDow + daysInMonth) / 7) * 7;
     var todayIso = todayISO();
+    var selIso = calSelectedDay || todayIso;
 
     var cellsHtml = '';
     for (var i = 0; i < cellsCount; i++) {
@@ -819,26 +849,43 @@
       var iso = toISO(cellDate), mmdd = toMMDD(cellDate);
       var isToday = iso === todayIso;
       var dayEvents = eventsOnDate(iso, mmdd);
-      var isSel = calSelectedDay === iso;
-      cellsHtml += '<div class="cal-cell ' + (outside ? 'outside' : '') + ' ' + (isToday ? 'today' : '') + (isSel ? ' selected' : '') + '" data-action="select-day" data-date="' + iso + '" role="button" tabindex="0">' +
+      var isSel = selIso === iso;
+      // tối đa 2 chip + "+N" còn lại
+      var chips = dayEvents.slice(0, 2).map(function (e, idx) {
+        return '<button class="cal-tag ' + e.tone + '" data-action="open-event" data-date="' + iso + '" data-idx="' + idx + '">' + ic(e.icon, 13) + '<span>' + esc(e.title) + '</span></button>';
+      }).join('');
+      var rest = dayEvents.length - Math.min(2, dayEvents.length);
+      if (rest > 0) chips += '<span class="cal-tag cal-tag-more">+' + rest + '</span>';
+      cellsHtml += '<div class="cal-cell' + (outside ? ' outside' : '') + (isToday ? ' today' : '') + (isSel ? ' selected' : '') + '" data-action="select-day" data-date="' + iso + '" role="button" tabindex="0">' +
         '<span class="daynum">' + cellDate.getDate() + '</span>' +
-        '<div class="cal-tags-desktop">' + dayEvents.map(function (e) { return '<div class="cal-tag ' + e.tone + '">' + ic(e.icon, 14) + '<span>' + esc(e.title) + '</span></div>'; }).join('') + '</div>' +
+        '<div class="cal-tags-desktop">' + chips + '</div>' +
         '<div class="cal-dots">' + dayEvents.slice(0, 3).map(function (e) { return '<span class="cal-dot" style="background:' + dotColor(e.tone) + '"></span>'; }).join('') + '</div>' +
         '</div>';
     }
 
-    var upcoming = getOccasions(14);
-    var featured = !bannerDismissed && upcoming[0];
-    // Ô ngày được chọn -> thanh ngang phía trên hiển thị sự kiện của ngày đó
-    var selEvents = calSelectedDay ? eventsOnDate(calSelectedDay, calSelectedDay.slice(5, 7) + '-' + calSelectedDay.slice(8, 10)) : [];
-    var banner = null, bannerSub = '';
+    // Thanh sự kiện động của ngày đang chọn
+    var selEvents = eventsOnDate(selIso, selIso.slice(5, 7) + '-' + selIso.slice(8, 10));
+    var dd = new Date(selIso + 'T00:00:00');
+    var stripDate = (selIso === todayIso ? 'Hôm nay · ' : DOW[(dd.getDay() + 6) % 7] + ', ') + dd.getDate() + '/' + (dd.getMonth() + 1);
+    var MAX_CHIPS = 3;
+    var stripChips = selEvents.slice(0, MAX_CHIPS).map(function (e, idx) {
+      return '<button class="strip-chip ' + e.tone + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
+        ic(e.icon, 14) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
+    }).join('');
+    var restCount = Math.max(0, selEvents.length - MAX_CHIPS);
+    var strip = '';
     if (selEvents.length) {
-      var dObj = new Date(calSelectedDay + 'T00:00:00');
-      banner = selEvents[0];
-      bannerSub = DOW[(dObj.getDay() + 6) % 7] + ', ' + dObj.getDate() + '/' + (dObj.getMonth() + 1) + (selEvents.length > 1 ? ' • ' + selEvents.length + ' sự kiện' : '');
-    } else if (featured) {
-      banner = featured;
-      bannerSub = occasionSubtitle(featured);
+      strip = '<div class="cal-strip">' +
+        '<span class="strip-date">' + esc(stripDate) + '</span>' +
+        '<div class="strip-chips">' + stripChips +
+        (restCount ? '<button class="strip-chip strip-more" data-action="toggle-strip-more">+' + restCount + ' sự kiện</button>' : '') +
+        '</div></div>';
+      if (calStripMore && restCount) {
+        strip += '<div class="strip-panel">' + selEvents.map(function (e, idx) {
+          return '<button class="strip-chip ' + e.tone + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
+            ic(e.icon, 14) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
+        }).join('') + '</div>';
+      }
     }
 
     return (
@@ -846,9 +893,11 @@
       '<div class="cal-nav"><button class="btn-icon" data-action="cal-prev" aria-label="Tháng trước">‹</button>' +
       '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next" aria-label="Tháng sau">›</button></div>' +
       '<div class="cal-actions"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
-      '<button class="btn-icon" data-action="open-add-event" data-date="' + todayIso + '" aria-label="Thêm sự kiện">➕</button></div></div>' +
-      (banner ? '<div class="cal-banner"><div class="ic-wrap">' + ic(banner.icon, 26) + '</div><div class="txt"><b>' + esc(banner.title) + '</b><span>' + esc(bannerSub) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
-      '<div class="cal-grid">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + cellsHtml + '</div>' +
+      '<button class="btn-icon btn-add" data-action="open-add-event" data-date="' + todayIso + '" aria-label="Thêm sự kiện">＋</button></div></div>' +
+      strip +
+      '<div class="cal-board">' +
+      '<div class="cal-dowrow">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + '</div>' +
+      '<div class="cal-grid">' + cellsHtml + '</div></div>' +
       '<img class="cal-corner" src="assets/cal-corner.png" alt="" aria-hidden="true">'
     );
   }
@@ -1093,7 +1142,9 @@
       case 'nav':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
         navigate(t.dataset.to); break;
-      case 'select-day': calSelectedDay = t.dataset.date; render(); break;
+      case 'select-day': calSelectedDay = t.dataset.date; calStripMore = false; render(); break;
+      case 'open-event': openEventDetail(t.dataset.date, Number(t.dataset.idx)); break;
+      case 'toggle-strip-more': calStripMore = !calStripMore; render(); break;
       case 'focus-person':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
         orbitFocus = t.dataset.pid; movePickerOpen = false; render(); break;
