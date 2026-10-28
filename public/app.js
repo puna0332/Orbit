@@ -526,15 +526,8 @@
     var initial = (state.settings.profileName || 'B').trim().charAt(0).toUpperCase();
 
     return (
-      '<div class="home-topright">' +
-      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button>' +
-      '<img class="avatar-img" src="assets/icons/avatar.png" alt="">' + '</div>' +
-
       '<div class="home-hero">' +
-      '<div class="home-hero-head"><div class="logo-mark">Orbit<span class="spark">✦</span></div>' +
-      '<div class="head-actions">' +
-      '<button class="home-bell" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button>' +
-      '<img class="avatar-img" src="assets/icons/avatar.png" alt="Ảnh đại diện"></div></div>' +
+      '<button class="home-bell home-bell-float" data-action="toast" data-msg="Chưa có thông báo mới">' + ic('bell', 26) + '</button>' +
       '<div class="home-hero-text"><div class="date">' + dateLabel + '</div>' +
       '<h1>Chào bạn ' + ic('sun', 26) + '</h1>' +
       '<p class="sub">Những người bạn yêu thương luôn ở gần đây ✨</p></div>' +

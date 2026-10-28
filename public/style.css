@@ -247,11 +247,10 @@ a { color: inherit; text-decoration: none; }
   mask-image: linear-gradient(to bottom, #000 0%, #000 42%, transparent 62%);
 }
 .home-hero::after { display:none; }
-.home-hero-head { display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; }
-.head-actions { display:flex; align-items:center; gap: 10px; }
-.home-hero-head .logo-mark { display:flex; align-items:center; gap:4px; font-weight:800; font-size: var(--text-lg); color:#2B3240; }
-.home-hero-head .logo-mark .spark { color: var(--gold); font-size:13px; }
+.home-hero-head { display:none; }
+.head-actions { display:none; }
 .home-bell { position:relative; width:38px; height:38px; border-radius:50%; border:none; background:transparent; font-size:18px; color:#2B3240; }
+.home-bell.home-bell-float { position:absolute; top: var(--space-4); right: var(--space-4); z-index:2; }
 .home-bell .badge-dot { position:absolute; top:7px; right:8px; width:7px; height:7px; border-radius:50%; background:#E0636E; }
 .home-hero-text { margin-top: 256px; position:relative; z-index:1; }
 .home-hero-text .date { font-size: var(--text-xs); color:#9A9A9A; }
@@ -330,16 +329,10 @@ a { color: inherit; text-decoration: none; }
   /* sidebar theo mockup: nền hồng-kem, item active là pill trắng có bóng nhẹ */
   .sidebar { background:#FBF2EE; border-right:none; width:240px; }
   .sidebar-link.active { background:#fff; box-shadow: 0 2px 8px rgba(43,50,64,.08); }
-  /* hàng chuông + avatar: nhỏ lại và kéo sát mép trên vùng nội dung */
-  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-2);
-    margin: calc(var(--space-5) * -1) 0 var(--space-1); position:relative; z-index:2; }
-  .home-topright .home-bell { width:30px; height:30px; }
-  .home-topright .home-bell .ic-img { width:21px; height:21px; }
-  .home-topright .avatar-img { width:28px; height:28px; }
-  .home-topright .avatar { width:36px; height:36px; border-radius:50%; background:#E8A6B4; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+  /* chuông thông báo: không viền, không nền, đè trực tiếp lên góc phải trên của ảnh bìa
+     (fixed theo viewport vì ảnh bìa tràn hết view-root, rộng hơn cột nội dung 1040px) */
+  .home-bell.home-bell-float { position:fixed; top: var(--space-5); right: var(--space-5); }
 }
-.home-topright { display:none; }
-@media (min-width:900px) { .home-topright { display:flex; } }
 
 .empty-state { text-align:center; padding: var(--space-8) var(--space-4); color: var(--ink-muted); }
 .empty-state .big { font-size: 40px; margin-bottom: var(--space-2); }
@@ -504,9 +497,23 @@ a { color: inherit; text-decoration: none; }
 .radio-opt.selected { border-color: var(--navy); background: var(--cream); }
 
 /* ===== Person detail ===== */
-.detail-cover { position:relative; height:170px; border-radius: 0 0 var(--radius-l) var(--radius-l); background: linear-gradient(160deg,#2b2f55,#6b4a7a 60%, #e49a66); display:flex; align-items:flex-start; justify-content:space-between; padding: var(--space-4); margin: 0 calc(var(--space-4) * -1); }
-@media (min-width:900px){ .detail-cover { margin:0; border-radius: var(--radius-l); } }
-.detail-cover button { background: rgba(255,255,255,.25); border:none; color:#fff; width:34px;height:34px;border-radius:50%; font-size:16px; backdrop-filter: blur(4px); }
+.detail-cover {
+  position:relative; height:200px; border-radius: 0 0 var(--radius-l) var(--radius-l);
+  background: linear-gradient(160deg,#2b2f55,#6b4a7a 55%, #e49a66);
+  display:flex; align-items:flex-start; justify-content:space-between;
+  padding: var(--space-4); margin: 0 calc(var(--space-4) * -1); overflow:hidden;
+}
+.detail-cover::before {
+  content:""; position:absolute; inset:0; z-index:0;
+  background: url('assets/home-art-mobile.png') center 18% / cover no-repeat;
+  opacity:.85;
+}
+.detail-cover::after {
+  content:""; position:absolute; inset:0; z-index:0;
+  background: linear-gradient(180deg, rgba(43,47,85,.15) 0%, rgba(43,47,85,0) 45%, rgba(0,0,0,.18) 100%);
+}
+@media (min-width:900px){ .detail-cover { margin:0; border-radius: var(--radius-l); height:230px; } }
+.detail-cover button { position:relative; z-index:1; background: rgba(255,255,255,.25); border:none; color:#fff; width:34px;height:34px;border-radius:50%; font-size:16px; backdrop-filter: blur(4px); }
 .detail-profile { display:flex; flex-direction:column; align-items:center; margin-top:-46px; }
 .detail-profile .avatar { width:92px; height:92px; border-radius:50%; border:4px solid var(--cream); display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; color:#fff; box-shadow: var(--shadow-pop); }
 .detail-profile h2 { margin: var(--space-2) 0 2px; font-size: var(--text-xl); }
