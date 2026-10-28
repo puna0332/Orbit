@@ -194,7 +194,9 @@
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
-  var orbitView = { scale: 1, x: 0, y: 0 };   // trạng thái zoom/pan của orbit
+  var orbitView = { scale: 0.92, x: 0, y: 0 }; // zoom nhẹ để vòng ngoài không bị cắt
+  var calSelectedDay = null;
+  var orbitJustDragged = false;
   var calMonthOffset = 0;
   var bannerDismissed = false;
 
@@ -230,6 +232,42 @@
     var vp = document.getElementById('orbitViewport');
     if (!vp || vp.dataset.bound) return;
     vp.dataset.bound = '1';
+    // Kéo-thả avatar sang vòng trong / vòng ngoài
+    var dragAv = null;
+    vp.addEventListener('pointerdown', function (e) {
+      var av = e.target.closest('.orbit-avatar');
+      if (!av) return;
+      dragAv = { av: av, pid: av.dataset.pid, x: e.clientX, y: e.clientY, moved: false };
+    });
+    vp.addEventListener('pointermove', function (e) {
+      if (!dragAv) return;
+      if (!dragAv.moved && Math.hypot(e.clientX - dragAv.x, e.clientY - dragAv.y) > 6) {
+        dragAv.moved = true; dragAv.av.classList.add('dragging-av');
+      }
+      if (!dragAv.moved) return;
+      var st = document.querySelector('.orbit-stage');
+      if (!st) return;
+      var b = st.getBoundingClientRect();
+      var ring = Math.min(5, Math.max(1, Math.round(Math.hypot(e.clientX - (b.left + b.width / 2), e.clientY - (b.top + b.height / 2)) / (b.width / 2) * 5.2)));
+      vp.dataset.dropRing = ring;
+      document.querySelectorAll('.orbit-ring').forEach(function (r) {
+        r.classList.toggle('drop-target', Number(r.dataset.ring) === ring);
+      });
+    });
+    vp.addEventListener('pointerup', function () {
+      if (!dragAv) return;
+      var d = dragAv; dragAv = null;
+      d.av.classList.remove('dragging-av');
+      document.querySelectorAll('.orbit-ring').forEach(function (r) { r.classList.remove('drop-target'); });
+      if (!d.moved) return;
+      var ring = Number(vp.dataset.dropRing);
+      delete vp.dataset.dropRing;
+      var p = state.people.find(function (x) { return x.id === d.pid; });
+      if (p && ring) {
+        p.ring = ring; orbitJustDragged = true; save(); render();
+        setTimeout(function () { orbitJustDragged = false; }, 0);
+      }
+    });
     vp.addEventListener('wheel', function (e) {
       e.preventDefault();
       zoomOrbit(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
@@ -484,22 +522,36 @@
     return (p.photo || p.avatar) ? 'background:transparent;' : 'background:' + avatarColor(p.id) + ';';
   }
 
+  // Sức chứa từng vòng: 8, 10, 14, 20, 28 (mỗi vòng cộng thêm 2 so với mức tăng trước)
+  var RING_CAP = [8, 10, 14, 20, 28];
+  var RING_PCT = [22, 40, 58, 76, 94];
+  // Vòng tự động: gia đình -> 1-2, người yêu/bạn thân -> 2-3, còn lại -> 4+
+  function autoRingFor(p) {
+    if (p.ring) return Math.min(5, Math.max(1, Number(p.ring)));
+    if (p.relationship === 'family') return p.closeness === 1 ? 1 : 2;
+    if (p.relationship === 'friend') return p.closeness === 1 ? 2 : 3;
+    return 4;
+  }
   function renderOrbit(people) {
-    var groups = { 1: [], 2: [], 3: [] };
-    people.forEach(function (p) { (groups[p.closeness] || groups[3]).push(p); });
-    var ringPct = { 1: 42, 2: 68, 3: 92 };
+    var rings = [[], [], [], [], []];
+    people.forEach(function (p) {
+      var idx = autoRingFor(p) - 1;
+      // vòng đầy thì đẩy ra vòng ngoài kế tiếp
+      while (idx < 4 && rings[idx].length >= RING_CAP[idx]) idx++;
+      rings[idx].push(p);
+    });
     var scene = '';
-    [1, 2, 3].forEach(function (ring) {
-      var diameter = ringPct[ring], period = 100 + ring * 35;
-      scene += '<div class="orbit-ring" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
-      groups[ring].forEach(function (p, i) {
-        var delay = -(i / Math.max(groups[ring].length, 1) + ring * 0.11) * period;
+    rings.forEach(function (list, r) {
+      var diameter = RING_PCT[r], period = 90 + r * 40;
+      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
+      list.forEach(function (p, i) {
+        var delay = -(i / Math.max(list.length, 1) + r * 0.11) * period;
         scene += '<div class="orbit-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
-          '<button class="orbit-avatar orbit-traveler" data-action="nav" data-to="people/' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Mở hồ sơ ' + esc(p.name) + '">' +
+          '<button class="orbit-avatar orbit-traveler" data-action="nav" data-to="people/' + esc(p.id) + '" data-pid="' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Mở hồ sơ ' + esc(p.name) + '">' +
           avatarInner(p) + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button></div>';
       });
       ['#DFA8B9', '#B5CBB3', '#E8C076', '#A9BFD9'].forEach(function (color, i) {
-        var delay = -(i / 4 + ring * 0.17) * period;
+        var delay = -(i / 4 + r * 0.17) * period;
         scene += '<div aria-hidden="true" class="orbit-track orbit-dust-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
           '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });
@@ -681,15 +733,27 @@
       var iso = toISO(cellDate), mmdd = toMMDD(cellDate);
       var isToday = iso === todayIso;
       var dayEvents = eventsOnDate(iso, mmdd);
-      cellsHtml += '<div class="cal-cell ' + (outside ? 'outside' : '') + ' ' + (isToday ? 'today' : '') + '" data-action="open-add-event" data-date="' + iso + '">' +
+      var isSel = calSelectedDay === iso;
+      cellsHtml += '<div class="cal-cell ' + (outside ? 'outside' : '') + ' ' + (isToday ? 'today' : '') + (isSel ? ' selected' : '') + '" data-action="select-day" data-date="' + iso + '" role="button" tabindex="0">' +
         '<span class="daynum">' + cellDate.getDate() + '</span>' +
-        '<div class="cal-tags-desktop">' + dayEvents.slice(0, 2).map(function (e) { return '<div class="cal-tag ' + e.tone + '">' + ic(e.icon, 14) + ' ' + esc(e.title) + '</div>'; }).join('') + '</div>' +
+        '<div class="cal-tags-desktop">' + dayEvents.map(function (e) { return '<div class="cal-tag ' + e.tone + '">' + ic(e.icon, 14) + '<span>' + esc(e.title) + '</span></div>'; }).join('') + '</div>' +
         '<div class="cal-dots">' + dayEvents.slice(0, 3).map(function (e) { return '<span class="cal-dot" style="background:' + dotColor(e.tone) + '"></span>'; }).join('') + '</div>' +
         '</div>';
     }
 
     var upcoming = getOccasions(14);
     var featured = !bannerDismissed && upcoming[0];
+    // Ô ngày được chọn -> thanh ngang phía trên hiển thị sự kiện của ngày đó
+    var selEvents = calSelectedDay ? eventsOnDate(calSelectedDay, calSelectedDay.slice(5, 7) + '-' + calSelectedDay.slice(8, 10)) : [];
+    var banner = null, bannerSub = '';
+    if (selEvents.length) {
+      var dObj = new Date(calSelectedDay + 'T00:00:00');
+      banner = selEvents[0];
+      bannerSub = DOW[(dObj.getDay() + 6) % 7] + ', ' + dObj.getDate() + '/' + (dObj.getMonth() + 1) + (selEvents.length > 1 ? ' • ' + selEvents.length + ' sự kiện' : '');
+    } else if (featured) {
+      banner = featured;
+      bannerSub = occasionSubtitle(featured);
+    }
 
     return (
       '<div class="cal-topbar"><h1 class="page-title">Sự kiện</h1>' +
@@ -697,7 +761,7 @@
       '<div class="cal-month-label">' + monthLabel + '</div><button class="btn-icon" data-action="cal-next" aria-label="Tháng sau">›</button></div>' +
       '<div class="cal-actions"><button class="btn btn-ghost" data-action="cal-today">Hôm nay</button>' +
       '<button class="btn-icon" data-action="open-add-event" data-date="' + todayIso + '" aria-label="Thêm sự kiện">➕</button></div></div>' +
-      (featured ? '<div class="cal-banner"><div class="ic-wrap">' + ic(featured.icon, 26) + '</div><div class="txt"><b>' + esc(featured.title) + '</b><span>' + occasionSubtitle(featured) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
+      (banner ? '<div class="cal-banner"><div class="ic-wrap">' + ic(banner.icon, 26) + '</div><div class="txt"><b>' + esc(banner.title) + '</b><span>' + esc(bannerSub) + '</span></div><button class="x" data-action="dismiss-banner">✕</button></div>' : '') +
       '<div class="cal-grid">' + DOW.map(function (d) { return '<div class="cal-dow">' + d + '</div>'; }).join('') + cellsHtml + '</div>' +
       '<img class="cal-corner" src="assets/cal-corner.png" alt="" aria-hidden="true">'
     );
@@ -940,7 +1004,10 @@
     if (!t) return;
     var action = t.dataset.action;
     switch (action) {
-      case 'nav': navigate(t.dataset.to); break;
+      case 'nav':
+        if (orbitJustDragged) { orbitJustDragged = false; break; }
+        navigate(t.dataset.to); break;
+      case 'select-day': calSelectedDay = t.dataset.date; render(); break;
       case 'open-quickadd': openQuickAddModal(); break;
       case 'open-add-person': openAddPersonModal(); break;
       case 'open-add-event': openAddEventModal(t.dataset.date || ''); break;
