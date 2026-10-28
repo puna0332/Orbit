@@ -81,11 +81,17 @@
 .orbit-avatar .av-wrap { display:block; width:100%; height:100%; }
 .orbit-pan.focus-anim { transition: transform .52s cubic-bezier(.22,1,.36,1); }
 
-/* Người đang focus: viền sáng + nhịp thở nhẹ */
+/* Người đang focus: viền sáng + nhịp thở nhẹ.
+   Dùng pseudo-element cho hiệu ứng pulse để KHÔNG ghi đè animation
+   orbit-upright (giữ avatar + tên luôn thẳng đứng). */
 .orbit-avatar.focused {
+  z-index: 9;
+}
+.orbit-avatar.focused::after {
+  content:""; position:absolute; inset:-4px; border-radius:50%;
   box-shadow: 0 0 0 3px #F5CE93, 0 0 26px rgba(245,206,147,.85);
   animation: focusPulse 2.4s ease-in-out infinite;
-  z-index: 9;
+  pointer-events:none;
 }
 @keyframes focusPulse {
   0%,100% { box-shadow: 0 0 0 3px #F5CE93, 0 0 18px rgba(245,206,147,.6); }

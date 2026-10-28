@@ -230,7 +230,7 @@
     orbitView.scale = next;
     applyOrbitView();
   }
-  function resetOrbitView() { orbitView = { scale: 1, x: 0, y: 0 }; applyOrbitView(); }
+  function resetOrbitView() { orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); }
   function bindOrbitGestures() {
     var vp = document.getElementById('orbitViewport');
     if (!vp || vp.dataset.bound) return;
@@ -277,7 +277,9 @@
     }, { passive: false });
     var drag = null;
     vp.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('.orbit-avatar, .orbit-zoom')) return;
+      // Bỏ qua mọi phần tử tương tác để click của chúng không bị "nuốt"
+      // bởi thao tác kéo bản đồ (thẻ thông tin, nút, liên kết, input).
+      if (e.target.closest('.orbit-avatar, .orbit-zoom, .orbit-focus-card, .contacts-tab, button, a, input, select, textarea')) return;
       drag = { x: e.clientX, y: e.clientY, ox: orbitView.x, oy: orbitView.y };
       vp.setPointerCapture(e.pointerId); vp.classList.add('dragging');
     });
@@ -620,7 +622,7 @@
       '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
       '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
       '<button data-action="orbit-zoom" data-dz="-1" aria-label="Thu nhỏ">−</button>' +
-      '<button data-action="orbit-reset" aria-label="Về giữa">⊙</button>' +
+      '<button data-action="orbit-reset" aria-label="Về toàn cảnh" title="Về toàn cảnh">⊙</button>' +
       '<button data-action="orbit-motion" aria-label="Tạm dừng chuyển động" aria-pressed="' + orbitMotionPaused + '">' + (orbitMotionPaused ? '▷' : 'Ⅱ') + '</button></div>' +
       renderOrbitFocusCard() + '</div></div>';
   }
@@ -1128,7 +1130,9 @@
       case 'toggle-orbit': togglePeopleDrawer(); break;
       case 'orbit-motion': toggleOrbitMotion(); break;
       case 'orbit-zoom': zoomOrbit(t.dataset.dz === '1' ? 1.25 : 1 / 1.25); break;
-      case 'orbit-reset': resetOrbitView(); break;
+      case 'orbit-reset':
+        orbitFocus = null; movePickerOpen = false; stopFocusFollow();
+        orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); render(); break;
       case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
       case 'pick-avatar': setPersonAvatar(t.dataset.id, t.dataset.av); break;
       case 'clear-avatar': clearPersonAvatar(t.dataset.id); break;
