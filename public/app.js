@@ -198,6 +198,8 @@
   var calSelectedDay = null;
   var orbitJustDragged = false;
   var orbitFocus = null;   // id người đang được focus (camera + thẻ thông tin)
+  var orbitFocusRAF = null;
+  var movePickerOpen = false;
   var calMonthOffset = 0;
   var bannerDismissed = false;
 
@@ -371,28 +373,30 @@
     }, 700);
   }
 
-  /* Camera: map vẫn quay bình thường. Bấm một người -> zoom nhẹ và đưa họ vào giữa
-     MỘT LẦN (không bám theo từng frame nên không bị quay lung tung).
-     Bấm X -> trả về đúng trạng thái toàn cảnh ban đầu. */
+  /* Camera bám theo người được chọn theo thời gian thực: chỉ pan + zoom mỗi
+     frame, tuyệt đối không xoay nội dung nên avatar/tên luôn thẳng đứng dù
+     map vẫn đang quay như bình thường. */
+  function stopFocusFollow() {
+    if (orbitFocusRAF) { cancelAnimationFrame(orbitFocusRAF); orbitFocusRAF = null; }
+  }
   function applyFocusCamera() {
-    var pan = document.getElementById('orbitPan');
-    if (!pan) return;
-    pan.classList.add('focus-anim');
-    if (!orbitFocus) {
-      orbitView = { scale: 1.05, x: 0, y: 0 };
-      applyOrbitView();
-    } else {
+    stopFocusFollow();
+    if (!orbitFocus) { orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); return; }
+    var targetScale = 1.55;
+    var tick = function () {
       var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
       var vp = document.getElementById('orbitViewport');
-      if (av && vp) {
-        var ab = av.getBoundingClientRect(), vb = vp.getBoundingClientRect();
-        orbitView.scale = 1.5;
-        orbitView.x = (vb.left + vb.width / 2) - (ab.left + ab.width / 2);
-        orbitView.y = (vb.top + vb.height * 0.45) - (ab.top + ab.height / 2);
-        applyOrbitView();
-      }
-    }
-    setTimeout(function () { pan.classList.remove('focus-anim'); }, 540);
+      if (!av || !vp) { stopFocusFollow(); return; }
+      var ab = av.getBoundingClientRect(), vb = vp.getBoundingClientRect();
+      var dx = (vb.left + vb.width / 2) - (ab.left + ab.width / 2);
+      var dy = (vb.top + vb.height * 0.42) - (ab.top + ab.height / 2);
+      orbitView.x += dx * 0.22;
+      orbitView.y += dy * 0.22;
+      orbitView.scale += (targetScale - orbitView.scale) * 0.12;
+      applyOrbitView();
+      orbitFocusRAF = requestAnimationFrame(tick);
+    };
+    orbitFocusRAF = requestAnimationFrame(tick);
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
@@ -627,22 +631,29 @@
     if (!p) return '';
     var nb = p.birthday ? nextBirthdayISO(p.birthday, todayISO()) : null;
     var days = nb ? daysBetween(todayISO(), nb) : null;
-    var ringNow = 1;
-    state.people.forEach(function (x) { }); // no-op giữ chỗ
+    var bdayText = nb ? (days === 0 ? 'Hôm nay · ' + formatMMDD(p.birthday) : days + ' ngày nữa · ' + formatMMDD(p.birthday)) : 'Chưa có';
+    var mems = (p.memories || []).map(function (m) { return m.caption; }).filter(Boolean);
+    var memText = mems.length ? (mems.length > 1 ? mems[0] + ' +' + (mems.length - 1) : mems[0]) : 'Chưa có kỷ niệm';
     var chips = '';
     for (var i = 1; i <= 6; i++) {
       chips += '<button class="ring-chip' + (p.ring === i ? ' on' : '') + '" data-action="move-person" data-pid="' + esc(p.id) + '" data-ring="' + i + '">Vòng ' + i + '</button>';
     }
     return '<div class="orbit-focus-card" role="dialog" aria-label="Thông tin ' + esc(p.name) + '">' +
       '<div class="fc-head"><span class="fc-av" style="' + avatarStyle(p) + '">' + avatarInner(p) + '</span>' +
-      '<div class="fc-title"><b>' + esc(p.name) + '</b><span>' + esc(REL_LABEL[p.relationship] || 'Khác') +
-      (days != null ? ' · sinh nhật sau ' + days + ' ngày' : '') + '</span></div>' +
+      '<div class="fc-title"><b>' + esc(p.name) + '</b><span>' + esc(REL_LABEL[p.relationship] || 'Khác') + '</span></div>' +
       '<button class="fc-close" data-action="close-focus" aria-label="Đóng">✕</button></div>' +
-      '<div class="fc-rings">' + chips + '</div>' +
+      '<div class="fc-facts">' +
+      '<div class="fc-fact"><span>Mối quan hệ</span><b>' + esc(REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
+      '<div class="fc-fact"><span>Sinh nhật</span><b>' + esc(bdayText) + '</b></div>' +
+      '<div class="fc-fact"><span>Ký ức nổi bật</span><b>' + esc(memText) + '</b></div>' +
+      '</div>' +
       '<div class="fc-actions">' +
       '<button class="fc-btn" data-action="nav" data-to="people/' + esc(p.id) + '">Xem chi tiết</button>' +
+      '<button class="fc-btn" data-action="toggle-move" data-pid="' + esc(p.id) + '">Di chuyển</button>' +
       '<button class="fc-btn danger" data-action="delete-person" data-id="' + esc(p.id) + '">Xoá</button>' +
-      '</div></div>';
+      '</div>' +
+      (movePickerOpen ? '<div class="fc-rings">' + chips + '</div>' : '') +
+      '</div>';
   }
 
   function renderPeopleGrid(list) {
@@ -1090,19 +1101,22 @@
       case 'select-day': calSelectedDay = t.dataset.date; render(); break;
       case 'focus-person':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
-        orbitFocus = t.dataset.pid; render(); break;
-      case 'close-focus': orbitFocus = null; orbitView = { scale: 1.05, x: 0, y: 0 }; render(); break;
+        orbitFocus = t.dataset.pid; movePickerOpen = false; render(); break;
+      case 'close-focus': orbitFocus = null; movePickerOpen = false; stopFocusFollow(); render(); break;
+      case 'toggle-move': movePickerOpen = !movePickerOpen; render(); break;
       case 'move-person':
-        bubbleThen(t.dataset.pid, function (pid, ring) {
+        var moveRing = Number(t.dataset.ring);
+        movePickerOpen = false;
+        bubbleThen(t.dataset.pid, function (pid) {
           var person = state.people.find(function (x) { return x.id === pid; });
-          if (person) { person.ring = Number(ring); save(); }
+          if (person) { person.ring = moveRing; save(); }
           render();
         }); break;
       case 'delete-person':
         if (!confirm('Xoá liên hệ này? Hành động không hoàn tác được.')) break;
         bubbleThen(t.dataset.id, function (pid) {
           state.people = state.people.filter(function (x) { return x.id !== pid; });
-          if (orbitFocus === pid) orbitFocus = null;
+          if (orbitFocus === pid) { orbitFocus = null; stopFocusFollow(); }
           save(); render(); showToast('Đã xoá liên hệ');
         }); break;
       case 'open-quickadd': openQuickAddModal(); break;

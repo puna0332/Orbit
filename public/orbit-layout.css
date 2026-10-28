@@ -60,7 +60,7 @@
 .orbit-pan { will-change:auto; }
 .orbit-viewport.dragging .orbit-pan { will-change:transform; }
 .orbit-stage { width:276px; height:276px; }
-.orbit-ring { border:1px solid rgba(220,211,206,.65); }
+.orbit-ring { border:1px solid rgba(220,211,206,.65); pointer-events:none; }
 .orbit-track {
   position:absolute; left:50%; top:50%; pointer-events:none;
   animation:orbit-revolve var(--period) linear var(--phase) infinite;
@@ -71,17 +71,14 @@
 }
 .orbit-avatar .name-tag { background:rgba(253,244,236,.8); padding:2px 5px; border-radius:7px; }
 .orbit-dust { position:absolute; top:50%; left:100%; transform:translate(-50%,-50%); border-radius:50%; opacity:.75; }
-.orbit-dust-track { z-index:0; }
+.orbit-dust-track { z-index:0; pointer-events:none; }
 .orbit-ring.drop-target { border-color:#E7B489 !important; border-style:solid !important; border-width:2px !important; }
 .orbit-avatar.dragging-av { opacity:.55; cursor:grabbing; }
-.orbit-avatar { touch-action:none; }
+.orbit-avatar { touch-action:none; z-index:3; }
 
 /* ===== Camera quay theo người được chọn ===== */
 .orbit-stage { will-change: transform; }
 .orbit-avatar .av-wrap { display:block; width:100%; height:100%; }
-/* nội dung avatar + nhãn bù ngược chiều quay để luôn thẳng đứng */
-.orbit-avatar .av-wrap,
-.orbit-avatar .name-tag,
 .orbit-pan.focus-anim { transition: transform .52s cubic-bezier(.22,1,.36,1); }
 
 /* Người đang focus: viền sáng + nhịp thở nhẹ */
@@ -110,17 +107,23 @@
 .fc-title span { display:block; font-size:11.5px; color:var(--ink-muted); }
 .fc-close { border:0; background:transparent; color:var(--ink-muted); font-size:13px; cursor:pointer; padding:4px; border-radius:8px; }
 .fc-close:hover { background:var(--cream); }
-.fc-rings { display:flex; gap:5px; margin:11px 0 9px; flex-wrap:wrap; }
+/* Thông tin cơ bản: quan hệ, sinh nhật, ký ức nổi bật */
+.fc-facts { margin:12px 0 10px; display:flex; flex-direction:column; gap:7px; }
+.fc-fact { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12px; }
+.fc-fact span { color:var(--ink-muted); flex:0 0 auto; }
+.fc-fact b { color:var(--ink); font-weight:600; text-align:right; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Bảng chọn vòng chỉ hiện sau khi bấm "Di chuyển" */
+.fc-rings { display:flex; gap:5px; margin:10px 0 0; flex-wrap:wrap; animation:cardIn .2s cubic-bezier(.22,1,.36,1); }
 .ring-chip {
   border:1px solid var(--border); background:var(--cream); color:var(--ink-muted);
   border-radius:999px; padding:4px 9px; font-size:11px; font-weight:600; cursor:pointer;
 }
 .ring-chip.on { background:#F5CE93; border-color:#E2B77A; color:#5A4326; }
 .ring-chip:hover { border-color:#D9BFA9; }
-.fc-actions { display:flex; gap:6px; }
+.fc-actions { display:flex; gap:5px; flex-wrap:wrap; }
 .fc-btn {
-  flex:1; border:1px solid var(--border); background:var(--cream); color:var(--ink);
-  border-radius:10px; padding:8px 6px; font-size:12px; font-weight:600; cursor:pointer;
+  flex:1 1 auto; min-width:72px; border:1px solid var(--border); background:var(--cream); color:var(--ink);
+  border-radius:10px; padding:8px 5px; font-size:11px; font-weight:600; cursor:pointer;
 }
 .fc-btn:hover { background:#FFF3E3; }
 .fc-btn.danger { color:#B4555F; border-color:#EFD3D5; background:#FDF1F1; }
