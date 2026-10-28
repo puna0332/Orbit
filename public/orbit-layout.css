@@ -69,6 +69,79 @@
 .orbit-ring.drop-target { border-color:#E7B489 !important; border-style:solid !important; border-width:2px !important; }
 .orbit-avatar.dragging-av { opacity:.55; cursor:grabbing; }
 .orbit-avatar { touch-action:none; }
+
+/* ===== Camera quay theo người được chọn ===== */
+.orbit-stage { transform: rotate(var(--cam, 0deg)); transition: transform .7s cubic-bezier(.22,1,.36,1); }
+.orbit-avatar .av-wrap { display:block; width:100%; height:100%; }
+/* nội dung avatar + nhãn bù ngược chiều quay để luôn thẳng đứng */
+.orbit-avatar .av-wrap,
+.orbit-avatar .name-tag,
+.orbit-avatar .fav-dot { rotate: calc(-1 * var(--cam, 0deg)); }
+.orbit-avatar .name-tag { transition: rotate .7s cubic-bezier(.22,1,.36,1); }
+
+/* Người đang focus: viền sáng + nhịp thở nhẹ */
+.orbit-avatar.focused {
+  box-shadow: 0 0 0 3px #F5CE93, 0 0 26px rgba(245,206,147,.85);
+  animation: focusPulse 2.4s ease-in-out infinite;
+  z-index: 9;
+}
+@keyframes focusPulse {
+  0%,100% { box-shadow: 0 0 0 3px #F5CE93, 0 0 18px rgba(245,206,147,.6); }
+  50% { box-shadow: 0 0 0 4px #FFDCA8, 0 0 30px rgba(245,206,147,.95); }
+}
+
+/* ===== Thẻ thông tin người được chọn ===== */
+.orbit-focus-card {
+  position:absolute; left:92px; bottom:22px; width:264px; z-index:16;
+  background:var(--card); border:1px solid var(--border); border-radius:18px;
+  box-shadow:0 16px 40px rgba(92,69,53,.14); padding:14px;
+  animation: cardIn .28s cubic-bezier(.22,1,.36,1);
+}
+@keyframes cardIn { from { opacity:0; transform: translateY(8px) scale(.97); } to { opacity:1; transform:none; } }
+.fc-head { display:flex; align-items:center; gap:10px; }
+.fc-av { width:40px; height:40px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px; flex:0 0 auto; }
+.fc-title { min-width:0; flex:1; }
+.fc-title b { display:block; font-size:14px; color:var(--ink); }
+.fc-title span { display:block; font-size:11.5px; color:var(--ink-muted); }
+.fc-close { border:0; background:transparent; color:var(--ink-muted); font-size:13px; cursor:pointer; padding:4px; border-radius:8px; }
+.fc-close:hover { background:var(--cream); }
+.fc-rings { display:flex; gap:5px; margin:11px 0 9px; flex-wrap:wrap; }
+.ring-chip {
+  border:1px solid var(--border); background:var(--cream); color:var(--ink-muted);
+  border-radius:999px; padding:4px 9px; font-size:11px; font-weight:600; cursor:pointer;
+}
+.ring-chip.on { background:#F5CE93; border-color:#E2B77A; color:#5A4326; }
+.ring-chip:hover { border-color:#D9BFA9; }
+.fc-actions { display:flex; gap:6px; }
+.fc-btn {
+  flex:1; border:1px solid var(--border); background:var(--cream); color:var(--ink);
+  border-radius:10px; padding:8px 6px; font-size:12px; font-weight:600; cursor:pointer;
+}
+.fc-btn:hover { background:#FFF3E3; }
+.fc-btn.danger { color:#B4555F; border-color:#EFD3D5; background:#FDF1F1; }
+
+/* ===== Tan thành bọt khi di chuyển / xoá ===== */
+.orbit-avatar.dissolving { opacity:0; transform: scale(.55); transition: opacity .45s ease, transform .45s ease; pointer-events:none; }
+.bubble-layer { position:fixed; z-index:9999; pointer-events:none; }
+.bubble-layer i {
+  position:absolute; left:0; top:0; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, #fff, rgba(245,206,147,.85));
+  box-shadow: 0 0 0 1px rgba(214,184,148,.28);
+  animation: bubbleOut .72s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes bubbleOut {
+  0% { opacity:.95; transform: translate(-50%,-50%) scale(.4); }
+  55% { opacity:.7; }
+  100% { opacity:0; transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(1.15); }
+}
+@media (max-width:899px) {
+  .orbit-focus-card { left:12px; right:12px; width:auto; bottom:12px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .orbit-stage, .orbit-avatar .name-tag { transition:none; }
+  .orbit-avatar.focused { animation:none; }
+  .bubble-layer { display:none; }
+}
 .orbit-center { width:72px; height:72px; }
 .orbit-viewport.motion-paused .orbit-track,
 .orbit-viewport.motion-paused .orbit-traveler,
