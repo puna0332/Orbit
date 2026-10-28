@@ -316,7 +316,7 @@
     return (
       '<div class="app-shell shell-' + active + '" style="display:flex;width:100%;">' +
       '<aside class="sidebar">' +
-        (active === 'people' ? '<img class="sidebar-hero" src="assets/corner-girl-cat.png" alt="" aria-hidden="true">' : '') +
+        (active === 'people' ? '<div class="sidebar-hero-card"><img class="sidebar-hero" src="assets/sidebar-girl-cloud.png" alt="" aria-hidden="true"></div>' : '') +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
           navLink('home', ic('home', 22), 'Home', active) +
