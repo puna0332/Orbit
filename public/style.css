@@ -290,29 +290,25 @@ a { color: inherit; text-decoration: none; }
 .suggest-card .chev { color: var(--ink-muted); font-size:16px; }
 
 @media (min-width:900px) {
-  /* Desktop: hero TRÀN VIỀN — không bo góc, không khung; kéo ra sát mép vùng nội dung
-     và dùng đúng màu nền của file tranh để không thấy ranh giới ảnh/nền. */
+  /* Desktop: tranh là NỀN FULL của cả trang Home (không còn "thanh ngang" riêng).
+     Ảnh 1672x941, nội dung nằm ở 8–41% trên cùng, phần dưới là kem trống -> neo
+     center top, rộng đúng 100% vùng nội dung, nền kem đỡ phía dưới. */
+  .view-root.page-home {
+    /* cover: tranh phủ KÍN cả trang (không còn mảng kem trống dưới ảnh), neo mép trên
+       để nhân vật + mặt trời luôn nằm ở dải trên, phần dưới là vùng kem trống của
+       chính bức tranh nên thẻ nội dung đặt lên vẫn sạch. */
+    background-image: url('assets/home-bg-desktop.png');
+    background-repeat: no-repeat;
+    background-position: center top;
+    background-size: cover;
+    background-color: var(--cream);
+  }
   .home-hero {
-    /* Tràn viền: margin âm ĐỐI XỨNG kéo nền vượt khỏi .view-inner (view-root clip phần
-       thừa), còn chữ nằm trong khối max-width 1040px canh giữa nên vẫn thẳng hàng tuyệt
-       đối với các section bên dưới — không phụ thuộc bề rộng thanh cuộn. */
-    /* không kéo lên trên: hàng chuông + avatar nằm phía trên hero, kéo lên sẽ che mất */
-    margin-top: 0;
-    margin-left: -140px;
-    margin-right: -140px;
-    margin-bottom: 0;
-    padding: var(--space-6) 0 var(--space-5);
-    border-radius: 0;
-    display:flex; align-items:center; min-height: 300px;
-    /* liền màu với nền trang (#FDF4EC) để không thành 'thanh ngang' tách biệt */
-    background: linear-gradient(110deg, #FBECE0 0%, #FCF1E8 36%, var(--cream) 62%, var(--cream) 100%);
+    /* hero giờ chỉ là khối chữ đặt lên nền trang, không nền/khung riêng */
+    margin: 0; padding: 0; border-radius: 0; background: none;
+    display:flex; align-items:flex-start; min-height: 250px;
   }
-  .home-hero::before {
-    inset: 0 0 0 auto; width: 72%; top:0;
-    background: url('assets/home-art-desktop.png') right bottom / cover no-repeat;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 34%, #000 100%);
-  }
+  .home-hero::before { display:none; }
   .home-hero::after { display:none; }
   .home-hero-head { display:none; }
   .home-hero-text { flex: 1 1 auto; width:100%; max-width:1040px; margin: 0 auto; position:relative; z-index:1; }
@@ -334,7 +330,12 @@ a { color: inherit; text-decoration: none; }
   /* sidebar theo mockup: nền hồng-kem, item active là pill trắng có bóng nhẹ */
   .sidebar { background:#FBF2EE; border-right:none; width:240px; }
   .sidebar-link.active { background:#fff; box-shadow: 0 2px 8px rgba(43,50,64,.08); }
-  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-3); margin-bottom: var(--space-2); position:relative; z-index:2; }
+  /* hàng chuông + avatar: nhỏ lại và kéo sát mép trên vùng nội dung */
+  .home-topright { display:flex; align-items:center; justify-content:flex-end; gap: var(--space-2);
+    margin: calc(var(--space-5) * -1) 0 var(--space-1); position:relative; z-index:2; }
+  .home-topright .home-bell { width:30px; height:30px; }
+  .home-topright .home-bell .ic-img { width:21px; height:21px; }
+  .home-topright .avatar-img { width:28px; height:28px; }
   .home-topright .avatar { width:36px; height:36px; border-radius:50%; background:#E8A6B4; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
 }
 .home-topright { display:none; }

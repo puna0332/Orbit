@@ -330,7 +330,7 @@
           '<div class="slogan">Lưu những điều quan trọng với bạn</div></div>' +
       '</aside>' +
       '<div class="shell-main">' +
-        '<div class="view-root"><div class="view-inner">' + inner + '</div></div>' +
+        '<div class="view-root page-' + active + '"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
           bottomItem('home', ic('home', 22), 'Home', active) +
           bottomItem('people', ic('people', 22), 'Mọi người', active) +
