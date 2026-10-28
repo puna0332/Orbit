@@ -172,24 +172,37 @@
 }
 
 /* ===== Sự kiện: ô lịch chỉ rõ viền, fit màn hình, tranh góc ===== */
-.cal-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:10px; }
-.cal-topbar .page-title { margin:0; }
-.cal-topbar .cal-header { margin:0; }
-.cal-topbar .cal-header .cal-nav .btn-icon { background:var(--card); }
+.cal-topbar {
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+  gap:12px; margin-bottom:10px;
+}
+.cal-topbar .page-title { margin:0; justify-self:start; }
+.cal-topbar .cal-nav { justify-self:center; margin:0; }
+.cal-topbar .cal-actions { justify-self:end; }
 .cal-actions { display:flex; align-items:center; gap:8px; }
-.cal-banner { background:#FDF1ED; color:#8C6053; }
+/* Banner sự kiện: hồng pastel đủ rõ, không còn nhạt như nước lã */
+.cal-banner {
+  background:#FBE3E3; color:#7C4B4B;
+  border:1px solid #F3CFCF; box-shadow:0 4px 14px rgba(200,131,131,.10);
+}
+.cal-banner .txt b { color:#7C4B4B; font-size:14px; }
+.cal-banner .txt span { color:#9A6A6A; }
+.cal-banner .ic-wrap { background:#F8D3D3; }
 .cal-grid {
   gap:1px; background:var(--border); border:1px solid var(--border);
   border-radius:16px; overflow:hidden;
 }
-.cal-dow { background:#FBF7F3; padding:9px 0; margin:0; }
-.cal-cell { background:var(--card); border-radius:0; overflow:hidden; }
-.cal-cell.outside { background:#FDFBF9; color:#A79F95; }
-.cal-cell.outside .daynum { color:#A79F95; }
-/* Thẻ sự kiện trong ô ngày: to và mềm hơn */
+.cal-dow { background:#FBF7F3; padding:9px 0; margin:0; font-weight:700; color:#6E6A63; }
+/* Ô ngày: trắng mờ 80% trên nền kem, số ngày đặc 100% để đọc như cột mốc */
+.cal-cell { background:rgba(255,255,255,.8); border-radius:0; overflow:hidden; }
+.cal-cell .daynum { opacity:1; font-weight:600; color:#3A3A44; }
+.cal-cell.outside { background:rgba(255,255,255,.42); color:#9A938A; }
+.cal-cell.outside .daynum { color:#9A938A; }
+/* Thẻ sự kiện trong ô ngày: cao hơn, mềm hơn */
 .cal-tag {
-  font-size:11.5px; border-radius:9px; padding:3px 8px; margin-top:3px;
-  font-weight:600; letter-spacing:.1px;
+  font-size:11.5px; border-radius:10px; padding:5px 8px; margin-top:4px;
+  min-height:26px; display:flex; align-items:center; gap:5px;
+  font-weight:600; letter-spacing:.1px; overflow:hidden;
 }
 .cal-corner {
   display:none; position:fixed; right:0; bottom:0; width:330px; height:auto;
@@ -209,12 +222,14 @@
   }
   /* Lưới cao đúng phần còn lại của màn: ô không còn bị ép vuông và phóng to. */
   .page-calendar .cal-grid {
-    flex:0 0 auto; height:calc(100dvh - 190px);
+    flex:0 0 auto; height:calc(100dvh - 254px);
     grid-auto-rows:1fr; border-radius:16px;
   }
   .page-calendar .cal-cell { aspect-ratio:auto; min-height:0; padding:6px; }
   .cal-corner { display:block; width:236px; opacity:.82; }
-  .cal-dow { padding:9px 0; font-size:12px; letter-spacing:.3px; }
+  .cal-dow { padding:10px 0; font-size:12.5px; letter-spacing:.3px; }
+  .page-calendar .cal-cell .daynum { font-size:13px; }
+  .page-calendar .cal-tag { min-height:28px; padding:6px 8px; }
   .cal-cell.today { background:#FFF9F3; }
   .cal-topbar .page-title { font-size:26px; }
   /* Thanh điều hướng luôn đứng yên khi nội dung cuộn */
