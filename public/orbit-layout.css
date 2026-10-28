@@ -51,10 +51,16 @@
 @media (hover:hover) and (pointer:fine) { .person-chip:hover { border-color:#DABFAE; } }
 
 /* ===== Orbit: vòng quay quỹ đạo ===== */
+.orbit-viewport {
+  background:
+    radial-gradient(circle at 44% 46%, rgba(231,226,245,.22) 0%, rgba(231,226,245,0) 60%),
+    radial-gradient(circle at 56% 54%, rgba(246,226,228,.18) 0%, rgba(246,226,228,0) 64%),
+    radial-gradient(circle at 50% 45%, #FFFDFB 0%, var(--cream) 72%);
+}
 .orbit-pan { will-change:auto; }
 .orbit-viewport.dragging .orbit-pan { will-change:transform; }
 .orbit-stage { width:276px; height:276px; }
-.orbit-ring { border:1px solid rgba(176,147,129,.24); }
+.orbit-ring { border:1px solid rgba(220,211,206,.65); }
 .orbit-track {
   position:absolute; left:50%; top:50%; pointer-events:none;
   animation:orbit-revolve var(--period) linear var(--phase) infinite;
@@ -76,8 +82,7 @@
 /* nội dung avatar + nhãn bù ngược chiều quay để luôn thẳng đứng */
 .orbit-avatar .av-wrap,
 .orbit-avatar .name-tag,
-.orbit-avatar .fav-dot { rotate: calc(-1 * var(--cam, 0deg)); }
-.orbit-avatar .name-tag { transition: rotate .7s cubic-bezier(.22,1,.36,1); }
+.orbit-pan.focus-anim { transition: transform .52s cubic-bezier(.22,1,.36,1); }
 
 /* Người đang focus: viền sáng + nhịp thở nhẹ */
 .orbit-avatar.focused {
@@ -179,11 +184,14 @@
   .people-orbit-col .orbit-wrap, .people-orbit-col .orbit-viewport { height:100%; }
   .people-orbit-col .orbit-viewport {
     border-radius:0; touch-action:none;
-    background:radial-gradient(ellipse at 45% 45%,#FFFCF9 0%,var(--cream) 70%);
+    background:
+      radial-gradient(circle at 44% 46%, rgba(231,226,245,.25) 0%, rgba(231,226,245,0) 58%),
+      radial-gradient(circle at 56% 54%, rgba(246,226,228,.20) 0%, rgba(246,226,228,0) 62%),
+      radial-gradient(ellipse at 48% 46%, #FFFDFB 0%, var(--cream) 74%);
   }
   .people-orbit-col .orbit-pan { right:46%; }
   .contacts-collapsed .orbit-pan { right:0; }
-  .orbit-stage { width:min(92vw,118dvh,1060px); height:min(92vw,118dvh,1060px); }
+  .orbit-stage { width:min(96vw,124dvh,1120px); height:min(96vw,124dvh,1120px); }
   .people-split:not(.contacts-collapsed) .orbit-stage { width:min(34vw,66dvh,520px); height:min(34vw,66dvh,520px); }
   .orbit-avatar { width:56px; height:56px; }
   .orbit-avatar span.name-tag { top:57px; font-size:11px; }

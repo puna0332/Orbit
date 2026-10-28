@@ -276,7 +276,6 @@
     var drag = null;
     vp.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.orbit-avatar, .orbit-zoom')) return;
-      stopFocusFollow();
       drag = { x: e.clientX, y: e.clientY, ox: orbitView.x, oy: orbitView.y };
       vp.setPointerCapture(e.pointerId); vp.classList.add('dragging');
     });
@@ -329,7 +328,7 @@
 
   function afterRender(page, parts) {
     if (page === 'people' && parts[1]) bindNotesArea(parts[1]);
-    if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); startFocusFollow(); } else { stopFocusFollow(); }
+    if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); applyFocusCamera(); }
     if (page === 'settings' && parts[1] === 'data') bindImportInput();
   }
 
@@ -372,30 +371,28 @@
     }, 700);
   }
 
-  /* Camera: mọi thứ vẫn quay bình thường, chỉ zoom lên và bám theo người được chọn */
-  var orbitFocusRAF = null;
-  function stopFocusFollow() {
-    if (orbitFocusRAF) { cancelAnimationFrame(orbitFocusRAF); orbitFocusRAF = null; }
-  }
-  function startFocusFollow() {
-    stopFocusFollow();
-    var vp = document.getElementById('orbitViewport');
-    if (!vp || !orbitFocus) return;
-    var targetScale = 1.85;
-    var tick = function () {
-      var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
-      if (!av) { stopFocusFollow(); return; }
-      var ab = av.getBoundingClientRect(), vb = vp.getBoundingClientRect();
-      var tx = vb.left + vb.width * 0.5;
-      var ty = vb.top + vb.height * 0.42;
-      var cx = ab.left + ab.width / 2, cy = ab.top + ab.height / 2;
-      orbitView.x += (tx - cx) * 0.3;
-      orbitView.y += (ty - cy) * 0.3;
-      orbitView.scale += (targetScale - orbitView.scale) * 0.12;
+  /* Camera: map vẫn quay bình thường. Bấm một người -> zoom nhẹ và đưa họ vào giữa
+     MỘT LẦN (không bám theo từng frame nên không bị quay lung tung).
+     Bấm X -> trả về đúng trạng thái toàn cảnh ban đầu. */
+  function applyFocusCamera() {
+    var pan = document.getElementById('orbitPan');
+    if (!pan) return;
+    pan.classList.add('focus-anim');
+    if (!orbitFocus) {
+      orbitView = { scale: 1.05, x: 0, y: 0 };
       applyOrbitView();
-      orbitFocusRAF = requestAnimationFrame(tick);
-    };
-    orbitFocusRAF = requestAnimationFrame(tick);
+    } else {
+      var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
+      var vp = document.getElementById('orbitViewport');
+      if (av && vp) {
+        var ab = av.getBoundingClientRect(), vb = vp.getBoundingClientRect();
+        orbitView.scale = 1.5;
+        orbitView.x = (vb.left + vb.width / 2) - (ab.left + ab.width / 2);
+        orbitView.y = (vb.top + vb.height * 0.45) - (ab.top + ab.height / 2);
+        applyOrbitView();
+      }
+    }
+    setTimeout(function () { pan.classList.remove('focus-anim'); }, 540);
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
@@ -579,7 +576,7 @@
 
   // Sức chứa từng vòng: 8, 10, 14, 20, 28 (mỗi vòng cộng thêm 2 so với mức tăng trước)
   var RING_CAP = [8, 10, 14, 20, 28, 38];
-  var RING_PCT = [16, 32, 48, 64, 80, 96];
+  var RING_PCT = [24, 39, 54, 69, 84, 99];
   // Vòng tự động: gia đình -> 1-2, người yêu/bạn thân -> 2-3, còn lại -> 4+
   function autoRingFor(p) {
     if (p.ring) return Math.min(6, Math.max(1, Number(p.ring)));
@@ -1094,7 +1091,7 @@
       case 'focus-person':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
         orbitFocus = t.dataset.pid; render(); break;
-      case 'close-focus': orbitFocus = null; orbitView = { scale: 1.05, x: 0, y: 0 }; stopFocusFollow(); render(); break;
+      case 'close-focus': orbitFocus = null; orbitView = { scale: 1.05, x: 0, y: 0 }; render(); break;
       case 'move-person':
         bubbleThen(t.dataset.pid, function (pid, ring) {
           var person = state.people.find(function (x) { return x.id === pid; });
