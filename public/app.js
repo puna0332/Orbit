@@ -192,7 +192,8 @@
   var peopleViewMode = 'orbit';
   var peopleFilter = 'all';
   var peopleQuery = '';
-  var orbitCollapsed = false;
+  var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
+  var orbitMotionPaused = false;
   var orbitView = { scale: 1, x: 0, y: 0 };   // trạng thái zoom/pan của orbit
   var calMonthOffset = 0;
   var bannerDismissed = false;
@@ -313,7 +314,7 @@
   }
   function shell(inner, active) {
     return (
-      '<div style="display:flex;width:100%;">' +
+      '<div class="app-shell shell-' + active + '" style="display:flex;width:100%;">' +
       '<aside class="sidebar">' +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
@@ -474,8 +475,8 @@
      chọn từ bộ element (p.avatar = 'av-07'), cuối cùng mới fallback chữ cái. */
   var AVATAR_COUNT = 26;
   function avatarInner(p, size) {
-    if (p.photo) return '<img class="av-img" src="' + p.photo + '" alt="">';
-    if (p.avatar) return '<img class="av-img" src="assets/avatars/' + p.avatar + '.png" alt="">';
+    if (p.photo) return '<img class="av-img" src="' + esc(p.photo) + '" alt="">';
+    if (p.avatar) return '<img class="av-img" src="assets/avatars/' + esc(p.avatar) + '.png" alt="">';
     return initials(p.name);
   }
   function avatarStyle(p) {
@@ -486,37 +487,29 @@
     var groups = { 1: [], 2: [], 3: [] };
     people.forEach(function (p) { (groups[p.closeness] || groups[3]).push(p); });
     var ringPct = { 1: 42, 2: 68, 3: 92 };
-    var ringsHtml =
-      '<div class="orbit-ring" style="width:' + ringPct[1] + '%;height:' + ringPct[1] + '%;"></div>' +
-      '<div class="orbit-ring" style="width:' + ringPct[2] + '%;height:' + ringPct[2] + '%;"></div>' +
-      '<div class="orbit-ring" style="width:' + ringPct[3] + '%;height:' + ringPct[3] + '%;"></div>';
-    var avatarsHtml = '';
+    var scene = '';
     [1, 2, 3].forEach(function (ring) {
-      var list = groups[ring];
-      var radiusPct = ringPct[ring] / 2;
-      list.forEach(function (p, i) {
-        var angle = (i / (list.length || 1)) * 2 * Math.PI + ring * 0.6;
-        var left = 50 + radiusPct * Math.cos(angle);
-        var top = 50 + radiusPct * Math.sin(angle);
-        avatarsHtml += '<button class="orbit-avatar" data-action="nav" data-to="people/' + p.id + '" style="left:' + left.toFixed(1) + '%;top:' + top.toFixed(1) + '%;' + avatarStyle(p) + '" title="' + esc(p.name) + '">' +
-          avatarInner(p) + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button>';
+      var diameter = ringPct[ring], period = 100 + ring * 35;
+      scene += '<div class="orbit-ring" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
+      groups[ring].forEach(function (p, i) {
+        var delay = -(i / Math.max(groups[ring].length, 1) + ring * 0.11) * period;
+        scene += '<div class="orbit-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
+          '<button class="orbit-avatar orbit-traveler" data-action="nav" data-to="people/' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Mở hồ sơ ' + esc(p.name) + '">' +
+          avatarInner(p) + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button></div>';
+      });
+      ['#DFA8B9', '#B5CBB3', '#E8C076', '#A9BFD9'].forEach(function (color, i) {
+        var delay = -(i / 4 + ring * 0.17) * period;
+        scene += '<div aria-hidden="true" class="orbit-track orbit-dust-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
+          '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });
     });
-    /* Khung orbit có thể kéo & phóng to/thu nhỏ như bản đồ: .orbit-viewport bắt sự kiện,
-       .orbit-pan nhận transform translate+scale, .orbit-stage giữ nguyên bố cục %. */
-    return '<div class="orbit-wrap">' +
-      '<div class="orbit-viewport" id="orbitViewport">' +
-        '<div class="orbit-pan" id="orbitPan">' +
-          '<div class="orbit-stage">' + ringsHtml +
-          '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/icons/avatar.png" alt=""></div>' +
-          avatarsHtml + '</div>' +
-        '</div>' +
-        '<div class="orbit-zoom">' +
-          '<button data-action="orbit-zoom" data-dz="1" title="Phóng to">+</button>' +
-          '<button data-action="orbit-zoom" data-dz="-1" title="Thu nhỏ">−</button>' +
-          '<button data-action="orbit-reset" title="Về giữa">⊙</button>' +
-        '</div>' +
-      '</div></div>';
+    return '<div class="orbit-wrap"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
+      '<div class="orbit-pan" id="orbitPan"><div class="orbit-stage">' + scene +
+      '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
+      '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
+      '<button data-action="orbit-zoom" data-dz="-1" aria-label="Thu nhỏ">−</button>' +
+      '<button data-action="orbit-reset" aria-label="Về giữa">⊙</button>' +
+      '<button data-action="orbit-motion" aria-label="Tạm dừng chuyển động" aria-pressed="' + orbitMotionPaused + '">' + (orbitMotionPaused ? '▷' : 'Ⅱ') + '</button></div></div></div>';
   }
 
   function renderPeopleGrid(list) {
@@ -530,95 +523,59 @@
     return html;
   }
 
-  function renderPeople() {
-    var filtered = state.people.filter(function (p) { return peopleFilter === 'all' ? true : p.relationship === peopleFilter; });
-    var listed = peopleViewMode === 'favorite' ? filtered.filter(function (p) { return p.favorite; }) : filtered;
-    /* Desktop bám mockup 1.2: orbit bên trái, danh sách bên phải, nút mũi tên gập
-       cột orbit vào mép. Mobile xếp dọc: orbit trước, chip lọc + danh sách sau. */
-    return (
-      '<div class="people-head">' +
-        '<h1 class="page-title" style="margin:0;">Mọi người</h1>' +
-        '<div class="people-head-actions">' +
-          '<div class="search-pill"><span>⌕</span><input id="peopleSearch" type="search" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></div>' +
-          '<button class="btn-add-round" data-action="open-add-person" title="Thêm người">+</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="people-split' + (orbitCollapsed ? ' orbit-collapsed' : '') + '">' +
-        '<section class="people-orbit-col">' +
-          renderOrbit(filtered) +
-          '<button class="orbit-toggle" data-action="toggle-orbit" title="' + (orbitCollapsed ? 'Mở orbit' : 'Thu gọn orbit') + '">' + (orbitCollapsed ? '›' : '‹') + '</button>' +
-        '</section>' +
-        '<section class="people-list-col">' +
-          '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') +
-          '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div>' +
-          renderPeopleGrid(searchPeople(listed)) +
-        '</section>' +
-      '</div>'
-    );
+  function ensureContactAvatars() {
+    // Upgrade existing contacts, not only new seed data. Keep chosen/uploaded images.
+    var changed = false;
+    state.people.forEach(function (p) {
+      if (!p.photo && typeof p.avatar === 'undefined') {
+        p.avatar = 'av-' + String(1 + Math.floor(Math.random() * AVATAR_COUNT)).padStart(2, '0');
+        changed = true;
+      }
+    });
+    if (changed) save();
   }
-
-  /* ---- Chọn avatar: tải ảnh thật hoặc chọn từ bộ element avatar ---- */
-  function openAvatarPicker(id) {
-    var p = state.people.find(function (x) { return x.id === id; });
-    if (!p) return;
-    var grid = '';
-    for (var i = 1; i <= AVATAR_COUNT; i++) {
-      var key = 'av-' + (i < 10 ? '0' + i : i);
-      grid += '<button class="avatar-opt ' + (p.avatar === key && !p.photo ? 'on' : '') + '" data-action="pick-avatar" data-id="' + p.id + '" data-av="' + key + '">' +
-        '<img src="assets/avatars/' + key + '.png" alt=""></button>';
-    }
-    openModal(
-      '<div class="modal-sheet"><div class="modal-head"><h3>Ảnh đại diện — ' + esc(p.name) + '</h3><button data-action="close-modal">✕</button></div>' +
-      '<label class="btn btn-ghost btn-block" style="cursor:pointer;">Tải ảnh từ máy…' +
-      '<input id="avatarUpload" type="file" accept="image/*" hidden></label>' +
-      '<p class="muted" style="margin:12px 0 8px;font-size:13px;">Hoặc chọn một avatar có sẵn:</p>' +
-      '<div class="avatar-picker">' + grid + '</div>' +
-      (p.photo || p.avatar ? '<button class="btn btn-ghost btn-block" style="margin-top:12px;" data-action="clear-avatar" data-id="' + p.id + '">Gỡ ảnh đại diện</button>' : '') +
-      '</div>'
-    );
-    bindAvatarUpload(p.id);
-  }
-  function bindAvatarUpload(id) {
-    var input = document.getElementById('avatarUpload');
-    if (!input) return;
-    input.addEventListener('change', function () {
-      var f = input.files && input.files[0];
-      if (!f) return;
-      // Thu nhỏ về 256px trước khi lưu: localStorage chỉ ~5MB, ảnh gốc sẽ làm tràn.
-      var reader = new FileReader();
-      reader.onload = function () {
-        var img = new Image();
-        img.onload = function () {
-          var S = 256, c = document.createElement('canvas');
-          c.width = S; c.height = S;
-          var ctx = c.getContext('2d');
-          var side = Math.min(img.width, img.height);
-          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
-          var person = state.people.find(function (x) { return x.id === id; });
-          if (person) { person.photo = c.toDataURL('image/jpeg', 0.82); delete person.avatar; save(); }
-          closeModal(); render(); showToast('Đã cập nhật ảnh đại diện');
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(f);
+  function togglePeopleDrawer() {
+    orbitCollapsed = !orbitCollapsed;
+    var split = document.querySelector('.people-split');
+    if (!split) return;
+    split.classList.toggle('contacts-collapsed', orbitCollapsed);
+    var panel = document.getElementById('contactsPanel');
+    if (panel) panel.inert = orbitCollapsed && window.innerWidth >= 900;
+    document.querySelectorAll('[data-action="toggle-orbit"]').forEach(function (b) {
+      b.setAttribute('aria-expanded', String(!orbitCollapsed));
+      if (b.classList.contains('contacts-toggle')) b.innerHTML = orbitCollapsed ? '☷ <span>Danh bạ</span> ‹' : '☷ <span>Thu gọn</span> ›';
     });
   }
-  function setPersonAvatar(id, key) {
-    var p = state.people.find(function (x) { return x.id === id; });
-    if (!p) return;
-    p.avatar = key; delete p.photo; save(); closeModal(); render(); showToast('Đã chọn avatar');
+  function toggleOrbitMotion() {
+    orbitMotionPaused = !orbitMotionPaused;
+    var vp = document.getElementById('orbitViewport');
+    if (vp) vp.classList.toggle('motion-paused', orbitMotionPaused);
+    document.querySelectorAll('[data-action="orbit-motion"]').forEach(function (b) {
+      b.textContent = orbitMotionPaused ? '▷' : 'Ⅱ';
+      b.setAttribute('aria-pressed', String(orbitMotionPaused));
+      b.setAttribute('aria-label', orbitMotionPaused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động');
+    });
   }
-  function clearPersonAvatar(id) {
-    var p = state.people.find(function (x) { return x.id === id; });
-    if (!p) return;
-    delete p.avatar; delete p.photo; save(); closeModal(); render();
-  }
-
-  /* ---------------------------- Person detail ---------------------------- */
-  function relDurationLabel(p) {
-    var relLabel = REL_LABEL[p.relationship] || 'Khác';
-    if (p.since) { var years = new Date().getFullYear() - p.since; if (years > 0) return relLabel + ' • ' + years + ' năm'; }
-    return relLabel;
+  function renderPeople() {
+    ensureContactAvatars();
+    var filtered = state.people.filter(function (p) { return peopleFilter === 'all' || p.relationship === peopleFilter; });
+    var listed = searchPeople(peopleViewMode === 'favorite' ? filtered.filter(function (p) { return p.favorite; }) : filtered);
+    return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người</h1>' +
+      '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
+      '<div class="people-subbar">' +
+      '<label class="search-pill"><span aria-hidden="true">⌕</span>' +
+      '<input id="peopleSearch" type="search" aria-label="Tìm người" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></label>' +
+      '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') +
+      '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div></div>' +
+      '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
+      '<section class="people-orbit-col">' + renderOrbit(filtered) + '</section>' +
+      '<div class="contacts-rail"><button class="contacts-toggle" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
+      (orbitCollapsed ? '☷ <span>Danh bạ</span> ‹' : '☷ <span>Thu gọn</span> ›') + '</button>' +
+      '<button data-action="orbit-reset" aria-label="Căn giữa bản đồ">⊙</button></div>' +
+      '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
+      '<div class="contacts-panel-head"><b>Liên lạc <span>' + listed.length + '</span></b></div>' +
+      renderPeopleGrid(listed) + '</section></div>' +
+      '<img class="people-corner" src="assets/corner-girl-cat.png" alt="" aria-hidden="true">';
   }
 
   function renderPersonDetail(id) {
@@ -977,7 +934,8 @@
       case 'close-modal': closeModal(); break;
       case 'toast': showToast(t.dataset.msg || ''); break;
       case 'set-view-mode': peopleViewMode = t.dataset.mode; render(); break;
-      case 'toggle-orbit': orbitCollapsed = !orbitCollapsed; render(); break;
+      case 'toggle-orbit': togglePeopleDrawer(); break;
+      case 'orbit-motion': toggleOrbitMotion(); break;
       case 'orbit-zoom': zoomOrbit(t.dataset.dz === '1' ? 1.25 : 1 / 1.25); break;
       case 'orbit-reset': resetOrbitView(); break;
       case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
