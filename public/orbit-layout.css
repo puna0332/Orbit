@@ -244,10 +244,26 @@
     background:var(--card); box-shadow:0 10px 28px rgba(92,69,53,.10);
   }
   .orbit-zoom button {
-    width:36px; height:36px; border:0; background:transparent; box-shadow:none;
-    border-radius:10px;
+    width:38px; height:38px; border:0; background:transparent; box-shadow:none;
+    border-radius:12px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    color:#3D342D; transition:background .16s, color .16s;
   }
-  .orbit-zoom button:hover { background:var(--cream); }
+  .orbit-zoom button svg { width:19px; height:19px; display:block; }
+  .orbit-zoom button:hover { background:#F6E9DE; color:#17243B; }
+  .orbit-zoom button:active { background:#EFDCCB; }
+  /* Chú thích hiện khi hover / focus */
+  .orbit-zoom button::after {
+    content:attr(data-tip); position:absolute; left:calc(100% + 12px); top:50%;
+    transform:translateY(-50%) translateX(-5px);
+    background:#2B3240; color:#fff; font-size:11.5px; font-weight:600; line-height:1;
+    padding:7px 10px; border-radius:9px; white-space:nowrap;
+    opacity:0; pointer-events:none; z-index:40;
+    box-shadow:0 6px 16px rgba(23,36,59,.18);
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .orbit-zoom button:hover::after,
+  .orbit-zoom button:focus-visible::after { opacity:1; transform:translateY(-50%) translateX(0); }
 
   /* Tab dọc "Danh bạ / Thu gọn" ở mép phải (vị trí ảnh 3) */
   /* Tab Danh bạ / Thu gọn: to hơn, nằm đúng rìa giữa bản đồ và bảng liên lạc */
@@ -805,3 +821,9 @@
 .orbit-wrap.is-dots .orbit-ring { border-color:rgba(150,116,90,.28); border-width:1px; }
 .orbit-wrap.is-dots .orbit-avatar { width:30px; height:30px; border-width:2.5px; }
 .orbit-wrap.is-dots .orbit-avatar span.name-tag { top:32px; font-size:8.5px; }
+
+
+/* Mobile không hover được -> ẩn chú thích */
+@media (max-width:899px){
+  .orbit-zoom button::after { display:none; }
+}

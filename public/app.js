@@ -82,6 +82,21 @@
     other: '#B4A0C9'
   };
   function ringColor(rel) { return REL_RING[rel] || REL_RING.other; }
+  /* Icon thanh điều khiển quỹ đạo: SVG nét mảnh, cùng độ dày nét với bộ icon
+     trong app (thay cho ký tự +, −, ⊙, Ⅱ, ⟲ vốn mảnh và lệch tông). */
+  function svgIcon(paths, size) {
+    var s = size || 18;
+    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+  }
+  var ORBIT_IC = {
+    plus: '<path d="M12 5.5v13M5.5 12h13"/>',
+    minus: '<path d="M5.5 12h13"/>',
+    target: '<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.3"/>',
+    pause: '<path d="M9.4 6.2v11.6M14.6 6.2v11.6" stroke-width="2.6"/>',
+    play: '<path d="M9.2 5.9 18.4 12 9.2 18.1z" fill="currentColor" stroke="none"/>',
+    reset: '<path d="M19.6 12a7.6 7.6 0 1 1-2.5-5.6"/><path d="M19.8 4.4v4.3h-4.3"/>'
+  };
   var PRIORITIES = [
     { k: 'highest', label: 'Cao nhất' },
     { k: 'high', label: 'Cao' },
@@ -855,11 +870,12 @@
     return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + (dotMode ? ' is-dots' : '') + (tight && !compact ? ' is-tight' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
       '<div class="orbit-pan" id="orbitPan"><div class="orbit-stage">' + scene +
       '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
-      '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
-      '<button data-action="orbit-zoom" data-dz="-1" aria-label="Thu nhỏ">−</button>' +
-      '<button data-action="orbit-reset" aria-label="Về toàn cảnh" title="Về toàn cảnh">⊙</button>' +
-      '<button data-action="orbit-motion" aria-label="Tạm dừng chuyển động" aria-pressed="' + orbitMotionPaused + '">' + (orbitMotionPaused ? '▷' : 'Ⅱ') + '</button>' +
-      '<button data-action="reset-orbit-layout" aria-label="Đặt lại quỹ đạo" title="Đặt lại quỹ đạo theo mức ưu tiên">⟲</button></div>' +
+      '<div class="orbit-zoom">' +
+      '<button data-action="orbit-zoom" data-dz="1" data-tip="Phóng to" aria-label="Phóng to">' + svgIcon(ORBIT_IC.plus) + '</button>' +
+      '<button data-action="orbit-zoom" data-dz="-1" data-tip="Thu nhỏ" aria-label="Thu nhỏ">' + svgIcon(ORBIT_IC.minus) + '</button>' +
+      '<button data-action="orbit-reset" data-tip="Về toàn cảnh" aria-label="Về toàn cảnh">' + svgIcon(ORBIT_IC.target) + '</button>' +
+      '<button data-action="orbit-motion" data-tip="' + (orbitMotionPaused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động') + '" aria-label="' + (orbitMotionPaused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động') + '" aria-pressed="' + orbitMotionPaused + '">' + svgIcon(orbitMotionPaused ? ORBIT_IC.play : ORBIT_IC.pause) + '</button>' +
+      '<button data-action="reset-orbit-layout" data-tip="Đặt lại quỹ đạo" aria-label="Đặt lại quỹ đạo theo mức ưu tiên">' + svgIcon(ORBIT_IC.reset) + '</button></div>' +
       renderOrbitFocusCard() + '</div></div>';
   }
 
@@ -945,9 +961,11 @@
     var vp = document.getElementById('orbitViewport');
     if (vp) vp.classList.toggle('motion-paused', orbitMotionPaused);
     document.querySelectorAll('[data-action="orbit-motion"]').forEach(function (b) {
-      b.textContent = orbitMotionPaused ? '▷' : 'Ⅱ';
+      var lbl = orbitMotionPaused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động';
+      b.innerHTML = svgIcon(orbitMotionPaused ? ORBIT_IC.play : ORBIT_IC.pause);
+      b.dataset.tip = lbl;
       b.setAttribute('aria-pressed', String(orbitMotionPaused));
-      b.setAttribute('aria-label', orbitMotionPaused ? 'Tiếp tục chuyển động' : 'Tạm dừng chuyển động');
+      b.setAttribute('aria-label', lbl);
     });
   }
   function renderPeople() {
