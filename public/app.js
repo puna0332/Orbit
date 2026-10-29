@@ -270,6 +270,8 @@
   // Panel danh bạ mở thì khung orbit hẹp đi -> phải lùi camera ra mới thấy toàn cảnh
   function defaultOrbitScale() {
     if (window.innerWidth < 900) return 1.0;
+    // Orbit gốc (Tất cả) giữ đúng khung cũ; chế độ lọc có layout riêng nên cần lùi nhẹ
+    if (peopleFilter === 'all') return 1.05;
     return orbitCollapsed ? 1.05 : 0.95;
   }
   function resetOrbitView() { orbitView = { scale: defaultOrbitScale(), x: 0, y: 0 }; applyOrbitView(); }
@@ -720,7 +722,7 @@
           '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });
     });
-    return '<div class="orbit-wrap"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
+    return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
       '<div class="orbit-pan" id="orbitPan"><div class="orbit-stage">' + scene +
       '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
       '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
