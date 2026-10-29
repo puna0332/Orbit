@@ -564,13 +564,13 @@
     if (hasOccasions) {
       occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
         return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '" style="--cloud-img:url(assets/clouds/' + cloudImg(o.tone) + ')">' +
-          '<div class="ic">' + evTile(o.kind, 52) + '</div><div class="t">' + esc(o.title) + '</div>' +
+          '<div class="ic">' + evIcon(o.kind, 56) + '</div><div class="t">' + esc(o.title) + '</div>' +
           '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
       }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '" style="--cloud-img:url(assets/clouds/' + cloudImg('tone-purple') + ')"><div class="ic">' + evTile('birthday', 52) + '</div>' +
+          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '" style="--cloud-img:url(assets/clouds/' + cloudImg('tone-purple') + ')"><div class="ic">' + evIcon('birthday', 56) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
@@ -963,19 +963,22 @@
         evIcon(e.kind, 22) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
     }).join('');
     var restCount = Math.max(0, selEvents.length - MAX_CHIPS);
-    var strip = '';
+    var strip = '<div class="cal-strip' + (selEvents.length ? '' : ' empty') + '">' +
+      '<span class="strip-date">' + esc(stripDate) + '</span>';
     if (selEvents.length) {
-      strip = '<div class="cal-strip">' +
-        '<span class="strip-date">' + esc(stripDate) + '</span>' +
-        '<div class="strip-chips">' + stripChips +
+      strip += '<div class="strip-chips">' + stripChips +
         (restCount ? '<button class="strip-chip strip-more" data-action="toggle-strip-more">+' + restCount + ' sự kiện</button>' : '') +
-        '</div></div>';
-      if (calStripMore && restCount) {
-        strip += '<div class="strip-panel">' + selEvents.map(function (e, idx) {
-          return '<button class="strip-chip ' + evTone(e.kind) + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
-            evIcon(e.kind, 22) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
-        }).join('') + '</div>';
-      }
+        '</div>';
+    } else {
+      strip += '<span class="strip-empty">Không có sự kiện nào trong ngày này</span>' +
+        '<button class="strip-add" data-action="open-add-event" data-date="' + selIso + '">＋ Thêm sự kiện</button>';
+    }
+    strip += '</div>';
+    if (calStripMore && restCount) {
+      strip += '<div class="strip-panel">' + selEvents.map(function (e, idx) {
+        return '<button class="strip-chip ' + evTone(e.kind) + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
+          evIcon(e.kind, 22) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
+      }).join('') + '</div>';
     }
 
     return (
