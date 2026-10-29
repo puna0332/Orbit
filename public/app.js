@@ -230,7 +230,7 @@
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
-  var orbitView = { scale: 1.05, x: 0, y: 0 }; // mở đầu chỉ thấy vòng 1-4, vòng 5-6 nằm ngoài khung
+  var orbitView = { scale: 1.0, x: 0, y: 0 }; // panel đóng: orbit chiếm trọn khung
   var calSelectedDay = null;
   var calStripMore = false;
   var orbitJustDragged = false;
@@ -267,7 +267,32 @@
     orbitView.scale = next;
     applyOrbitView();
   }
-  function resetOrbitView() { orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); }
+  // Panel danh bạ mở thì khung orbit hẹp đi -> phải lùi camera ra mới thấy toàn cảnh
+  function defaultOrbitScale() {
+    if (window.innerWidth < 900) return 0.92;
+    return orbitCollapsed ? 1.0 : 0.76;
+  }
+  function resetOrbitView() { orbitView = { scale: defaultOrbitScale(), x: 0, y: 0 }; applyOrbitView(); }
+
+  /* Thu/phóng camera có easing: dùng khi bấm X hoặc nút về giữa, để nó lùi ra
+     mượt như lúc zoom vào chứ không bật phịch về vị trí cũ. */
+  var orbitAnimRAF = null;
+  function stopOrbitAnim() { if (orbitAnimRAF) { cancelAnimationFrame(orbitAnimRAF); orbitAnimRAF = null; } }
+  function animateOrbitView(target, ms) {
+    stopOrbitAnim();
+    var from = { scale: orbitView.scale, x: orbitView.x, y: orbitView.y };
+    var dur = ms || 420, t0 = performance.now();
+    var tick = function (now) {
+      var k = Math.min(1, (now - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 3); // easeOutCubic
+      orbitView.scale = from.scale + (target.scale - from.scale) * e;
+      orbitView.x = from.x + (target.x - from.x) * e;
+      orbitView.y = from.y + (target.y - from.y) * e;
+      applyOrbitView();
+      if (k < 1) orbitAnimRAF = requestAnimationFrame(tick); else orbitAnimRAF = null;
+    };
+    orbitAnimRAF = requestAnimationFrame(tick);
+  }
   function bindOrbitGestures() {
     var vp = document.getElementById('orbitViewport');
     if (!vp || vp.dataset.bound) return;
@@ -420,7 +445,10 @@
   }
   function applyFocusCamera() {
     stopFocusFollow();
-    if (!orbitFocus) { orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); return; }
+    if (!orbitFocus) {
+      if (orbitAnimRAF) return;            // đang lùi camera có easing -> đừng cắt ngang
+      orbitView = { scale: defaultOrbitScale(), x: 0, y: 0 }; applyOrbitView(); return;
+    }
     var targetScale = 1.55;
     var tick = function () {
       var av = document.querySelector('.orbit-avatar[data-pid="' + orbitFocus + '"]');
@@ -642,10 +670,24 @@
     if (p.relationship === 'friend') return 6;
     return 6;
   }
-  function renderOrbit(people) {
+  function renderOrbit(people, compact) {
     var rings = [[], [], [], [], [], []];
-    people.forEach(function (p) {
-      var idx = autoRingFor(p) - 1;
+    /* Khi đang lọc (vd chỉ xem "Bạn bè") thì cả nhóm đều rơi vào vòng ngoài nên
+       vòng 1-2-3 trống trơn. Dồn cả nhóm vào trong, giữ nguyên thứ tự thân thiết. */
+    var shift = 0;
+    if (compact && people.length) {
+      var minRing = 6;
+      people.forEach(function (p) { minRing = Math.min(minRing, autoRingFor(p)); });
+      shift = minRing - 1;
+    }
+    var ordered = compact
+      ? people.slice().sort(function (a, b) {
+          return autoRingFor(a) - autoRingFor(b) || (a.closeness || 3) - (b.closeness || 3);
+        })
+      : people;
+    ordered.forEach(function (p) {
+      var idx = autoRingFor(p) - 1 - shift;
+      if (idx < 0) idx = 0;
       // vòng đầy thì đẩy ra vòng ngoài kế tiếp
       while (idx < 5 && rings[idx].length >= RING_CAP[idx]) idx++;
       rings[idx].push(p);
@@ -731,6 +773,8 @@
   }
   function togglePeopleDrawer() {
     orbitCollapsed = !orbitCollapsed;
+    // khung orbit đổi bề rộng -> lùi/tiến camera cho khớp, có easing
+    if (!orbitFocus) animateOrbitView({ scale: defaultOrbitScale(), x: 0, y: 0 }, 340);
     var split = document.querySelector('.people-split');
     if (!split) return;
     split.classList.toggle('contacts-collapsed', orbitCollapsed);
@@ -760,7 +804,7 @@
     return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người</h1>' +
       '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
       '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
-      '<section class="people-orbit-col">' + renderOrbit(filtered) + '</section>' +
+      '<section class="people-orbit-col">' + renderOrbit(filtered, peopleFilter !== 'all') + '</section>' +
       '<button class="contacts-tab" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
       '<span>' + (orbitCollapsed ? 'Danh bạ' : 'Thu gọn') + '</span><i aria-hidden="true">' + (orbitCollapsed ? '‹' : '›') + '</i></button>' +
       '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
@@ -1255,7 +1299,14 @@
       case 'focus-person':
         if (orbitJustDragged) { orbitJustDragged = false; break; }
         orbitFocus = t.dataset.pid; movePickerOpen = false; render(); break;
-      case 'close-focus': orbitFocus = null; movePickerOpen = false; stopFocusFollow(); render(); break;
+      case 'close-focus': {
+        var keep = { scale: orbitView.scale, x: orbitView.x, y: orbitView.y };
+        orbitFocus = null; movePickerOpen = false; stopFocusFollow();
+        render();
+        orbitView = keep; applyOrbitView();   // giữ khung đang zoom
+        animateOrbitView({ scale: defaultOrbitScale(), x: 0, y: 0 }); // rồi lùi ra từ từ
+        break;
+      }
       case 'toggle-move': movePickerOpen = !movePickerOpen; render(); break;
       case 'move-person':
         var moveRing = Number(t.dataset.ring);
@@ -1281,9 +1332,14 @@
       case 'toggle-orbit': togglePeopleDrawer(); break;
       case 'orbit-motion': toggleOrbitMotion(); break;
       case 'orbit-zoom': zoomOrbit(t.dataset.dz === '1' ? 1.25 : 1 / 1.25); break;
-      case 'orbit-reset':
+      case 'orbit-reset': {
+        var keep2 = { scale: orbitView.scale, x: orbitView.x, y: orbitView.y };
         orbitFocus = null; movePickerOpen = false; stopFocusFollow();
-        orbitView = { scale: 1.05, x: 0, y: 0 }; applyOrbitView(); render(); break;
+        render();
+        orbitView = keep2; applyOrbitView();
+        animateOrbitView({ scale: defaultOrbitScale(), x: 0, y: 0 });
+        break;
+      }
       case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
       case 'pick-avatar': setPersonAvatar(t.dataset.id, t.dataset.av); break;
       case 'clear-avatar': clearPersonAvatar(t.dataset.id); break;

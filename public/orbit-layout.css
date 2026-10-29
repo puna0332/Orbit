@@ -473,13 +473,16 @@
 /* ============================================================
    Home: ô dạng mây thật (ảnh pastel do người dùng cung cấp)
    ============================================================ */
+/* Hàng mây: nới khoảng cách để các hoạ tiết lá/tim quanh mây không chạm nhau */
+.occasion-row:has(.cloud) { gap:46px; }
 .occasion-card.cloud {
   position:relative; background:transparent !important; border:0 !important;
   box-shadow:none !important; border-radius:0 !important;
-  aspect-ratio: 6 / 5; padding:26px 14px 20px;
+  aspect-ratio: 6 / 5; padding:20px 10px 15px;
+  max-width:278px; justify-self:center; width:100%;
 }
 .occasion-card.cloud::before {
-  content:""; position:absolute; inset:-14px -10px; z-index:0;
+  content:""; position:absolute; inset:-4px 2px; z-index:0;
   background-image:var(--cloud-img);
   background-repeat:no-repeat; background-position:center; background-size:100% 100%;
   /* bóng đổ theo đúng tông mây để mây nổi lên khỏi nền trắng */
@@ -567,7 +570,7 @@
 /* Ảnh bìa mặc định */
 .pd-cover {
   position:relative; height:150px; border-radius:18px; overflow:hidden; flex:0 0 auto;
-  background-image:var(--pd-cover); background-size:cover; background-position:center 32%;
+  background-image:var(--pd-cover); background-size:cover; background-position:center 88%;
   background-color:#E9D8E4;
 }
 .pd-back, .pd-more {
@@ -706,7 +709,7 @@
   .pd-panel { padding:10px; border-radius:20px; }
   .pd-cover {
     height:210px; background-image:var(--pd-cover-tall, var(--pd-cover));
-    background-position:center 28%;
+    background-position:center 72%;
   }
   .pd-head { margin:-40px 0 0; gap:12px; }
   .pd-avatar { width:74px; height:74px; font-size:20px; }
