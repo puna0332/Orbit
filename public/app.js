@@ -230,7 +230,7 @@
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
-  var orbitView = { scale: 1.0, x: 0, y: 0 }; // panel đóng: orbit chiếm trọn khung
+  var orbitView = { scale: 1.05, x: 0, y: 0 }; // panel đóng: orbit chiếm trọn khung
   var calSelectedDay = null;
   var calStripMore = false;
   var orbitJustDragged = false;
@@ -269,8 +269,8 @@
   }
   // Panel danh bạ mở thì khung orbit hẹp đi -> phải lùi camera ra mới thấy toàn cảnh
   function defaultOrbitScale() {
-    if (window.innerWidth < 900) return 0.92;
-    return orbitCollapsed ? 1.0 : 0.76;
+    if (window.innerWidth < 900) return 1.0;
+    return orbitCollapsed ? 1.05 : 0.95;
   }
   function resetOrbitView() { orbitView = { scale: defaultOrbitScale(), x: 0, y: 0 }; applyOrbitView(); }
 
@@ -693,17 +693,23 @@
       rings[idx].push(p);
     });
     var scene = '';
-    rings.forEach(function (list, r) {
-      var diameter = RING_PCT[r], period = 90 + r * 40;
-      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
+    /* Khi lọc: bỏ hẳn những vòng không có ai, và kéo các vòng còn lại vào trong
+       theo thứ tự liền nhau để không chừa vòng rỗng giữa chừng. */
+    var slots = [];
+    rings.forEach(function (list, r) { if (!compact || list.length) slots.push(r); });
+    slots.forEach(function (r, slot) {
+      var list = rings[r];
+      var ri = compact ? slot : r;
+      var diameter = RING_PCT[ri], period = 90 + ri * 40;
+      scene += '<div class="orbit-ring" data-ring="' + (ri + 1) + '" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
       list.forEach(function (p, i) {
-        var delay = -(i / Math.max(list.length, 1) + r * 0.11) * period;
+        var delay = -(i / Math.max(list.length, 1) + ri * 0.11) * period;
         scene += '<div class="orbit-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
           '<button class="orbit-avatar orbit-traveler' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Chọn ' + esc(p.name) + '">' +
           '<span class="av-wrap">' + avatarInner(p) + '</span>' + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button></div>';
       });
       ['#DFA8B9', '#B5CBB3', '#E8C076', '#A9BFD9'].forEach(function (color, i) {
-        var delay = -(i / 4 + r * 0.17) * period;
+        var delay = -(i / 4 + ri * 0.17) * period;
         scene += '<div aria-hidden="true" class="orbit-track orbit-dust-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
           '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });

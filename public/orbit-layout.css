@@ -217,9 +217,9 @@
   .contacts-collapsed .orbit-pan { right:0; }
   .orbit-stage { width:min(96vw,124dvh,1120px); height:min(96vw,124dvh,1120px); }
   .people-split:not(.contacts-collapsed) .orbit-stage { width:min(34vw,66dvh,520px); height:min(34vw,66dvh,520px); }
-  .orbit-avatar { width:56px; height:56px; }
-  .orbit-avatar span.name-tag { top:57px; font-size:11px; }
-  .orbit-center { width:86px; height:86px; }
+  .orbit-avatar { width:42px; height:42px; }
+  .orbit-avatar span.name-tag { top:44px; font-size:10px; }
+  .orbit-center { width:70px; height:70px; }
 
   /* Nút +,-,⊙,⏸ gói trong một KHUNG dọc, dịch lên trên (ô xanh người dùng khoanh) */
   .orbit-zoom {
@@ -570,7 +570,7 @@
 /* Ảnh bìa mặc định */
 .pd-cover {
   position:relative; height:150px; border-radius:18px; overflow:hidden; flex:0 0 auto;
-  background-image:var(--pd-cover); background-size:cover; background-position:center 88%;
+  background-image:var(--pd-cover); background-size:cover; background-position:center 70%;
   background-color:#E9D8E4;
 }
 .pd-back, .pd-more {
@@ -584,10 +584,10 @@
 /* Khối danh tính: avatar đè mép dưới ảnh bìa, KHÔNG có badge bút */
 .pd-head {
   display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;
-  margin:-46px 0 0; padding:0 8px 2px; position:relative; z-index:3;
+  margin:-56px 0 0; padding:0 8px 2px 20px; position:relative; z-index:3;
 }
 .pd-avatar {
-  width:88px; height:88px; border-radius:50%; flex:0 0 auto; padding:0;
+  width:112px; height:112px; border-radius:50%; flex:0 0 auto; padding:0;
   border:4px solid #FFFDFB; box-shadow:0 6px 18px rgba(120,90,70,.16);
   overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center;
   color:#fff; font-weight:700; font-size:24px;
@@ -595,13 +595,13 @@
 }
 .pd-avatar:hover { transform:scale(1.03); box-shadow:0 8px 22px rgba(120,90,70,.22); }
 .pd-avatar .av-img { width:100%; height:100%; object-fit:cover; display:block; }
-.pd-id { min-width:0; flex:1 1 440px; padding-top:50px; }
+.pd-id { min-width:0; flex:1 1 440px; padding-top:62px; }
 .pd-id h2 { margin:0; font-size:var(--text-xl); color:var(--ink); }
 .pd-id .meta { font-size:var(--text-sm); color:var(--ink-muted); margin-top:2px; }
 .pd-star { color:#E8A33D; }
 .pd-id .quick-actions { margin:12px 0 0; display:flex; gap:8px; }
 .pd-quote {
-  flex:1 1 200px; max-width:300px; align-self:center; position:relative; margin-top:50px;
+  flex:1 1 200px; max-width:300px; align-self:center; position:relative; margin-top:62px;
   background:#FBE7EA; border-radius:18px; padding:14px 34px 14px 18px;
   font-size:13.5px; font-style:italic; color:#7C4B55; line-height:1.45;
 }
@@ -711,9 +711,9 @@
     height:210px; background-image:var(--pd-cover-tall, var(--pd-cover));
     background-position:center 72%;
   }
-  .pd-head { margin:-40px 0 0; gap:12px; }
-  .pd-avatar { width:74px; height:74px; font-size:20px; }
-  .pd-id { padding-top:42px; flex-basis:100%; }
+  .pd-head { margin:-48px 0 0; gap:12px; }
+  .pd-avatar { width:92px; height:92px; font-size:24px; }
+  .pd-id { padding-top:50px; flex-basis:100%; }
   .pd-id h2 { font-size:var(--text-lg); }
   .pd-quote { margin-top:4px; flex-basis:100%; }
   .pd-block .memory-grid { grid-template-columns:repeat(2,1fr); }
