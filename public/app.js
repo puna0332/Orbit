@@ -73,6 +73,15 @@
     return m;
   })();
   var REL_MIGRATE = { soulmate: 'love', closefriend: 'friend', coworker: 'acquaintance' };
+  /* Viền avatar trên quỹ đạo, phân biệt bằng màu theo mối quan hệ */
+  var REL_RING = {
+    family: '#E2A275',
+    love: '#D985A5',
+    friend: '#88ADD5',
+    acquaintance: '#94B9A0',
+    other: '#B4A0C9'
+  };
+  function ringColor(rel) { return REL_RING[rel] || REL_RING.other; }
   var PRIORITIES = [
     { k: 'highest', label: 'Cao nhất' },
     { k: 'high', label: 'Cao' },
@@ -818,7 +827,7 @@
           var ang = ((i + 0.5) / Math.max(list.length, 1)) * Math.PI * 2 - Math.PI / 2 + r * 0.62;
           var pos = 'left:' + (50 + 50 * Math.cos(ang)).toFixed(2) + '%;top:' + (50 + 50 * Math.sin(ang)).toFixed(2) + '%;';
           if (p.relationship === 'family' || p.favorite) {
-            scene += '<button class="orbit-avatar orbit-static-av' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + pos + avatarStyle(p) + '" aria-label="Chọn ' + esc(p.name) + '">' +
+            scene += '<button class="orbit-avatar orbit-static-av' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + pos + avatarStyle(p) + 'border-color:' + ringColor(p.relationship) + ';" aria-label="Chọn ' + esc(p.name) + '">' +
               '<span class="av-wrap">' + avatarInner(p) + '</span>' + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button>';
           } else {
             scene += '<i class="orbit-member-dot" data-action="focus-person" data-pid="' + esc(p.id) + '" title="' + esc(p.name) + '" style="' + pos + 'background:' + avatarColor(p.id) + '"></i>';
@@ -830,7 +839,7 @@
       list.forEach(function (p, i) {
         var delay = -(i / Math.max(list.length, 1) + r * 0.11) * period;
         scene += '<div class="orbit-track" style="width:' + d + '%;height:' + d + '%;--period:' + period + 's;--phase:' + delay + 's">' +
-          '<button class="orbit-avatar orbit-traveler' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Chọn ' + esc(p.name) + '">' +
+          '<button class="orbit-avatar orbit-traveler' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + avatarStyle(p) + 'border-color:' + ringColor(p.relationship) + ';" aria-label="Chọn ' + esc(p.name) + '">' +
           '<span class="av-wrap">' + avatarInner(p) + '</span>' + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button></div>';
       });
       ['#DFA8B9', '#B5CBB3', '#E8C076', '#A9BFD9'].forEach(function (color, i) {

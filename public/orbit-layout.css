@@ -231,7 +231,7 @@
     width:min(calc(100% - 76px), 80dvh, 760px); height:min(calc(100% - 76px), 80dvh, 760px);
   }
   .orbit-wrap.is-filtered .orbit-avatar,
-  .orbit-wrap.is-tight .orbit-avatar { width:42px; height:42px; border-width:2.5px; }
+  .orbit-wrap.is-tight .orbit-avatar { width:42px; height:42px; border-width:3px; }
   .orbit-wrap.is-filtered .orbit-avatar span.name-tag,
   .orbit-wrap.is-tight .orbit-avatar span.name-tag { top:44px; font-size:10px; }
   .orbit-wrap.is-tight .orbit-center { width:70px; height:70px; }
@@ -803,5 +803,5 @@
 .orbit-static-av { pointer-events:auto; }
 /* Chế độ hàng trăm người: vòng cần rõ hơn một chút vì có nhiều vòng sát nhau */
 .orbit-wrap.is-dots .orbit-ring { border-color:rgba(150,116,90,.28); border-width:1px; }
-.orbit-wrap.is-dots .orbit-avatar { width:30px; height:30px; border-width:2px; }
+.orbit-wrap.is-dots .orbit-avatar { width:30px; height:30px; border-width:2.5px; }
 .orbit-wrap.is-dots .orbit-avatar span.name-tag { top:32px; font-size:8.5px; }
