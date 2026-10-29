@@ -355,22 +355,23 @@
 }
 
 /* Event chips */
-.cal-tags-desktop { display:flex; flex-direction:column; gap:3px; min-height:0; overflow:hidden; }
+.cal-tags-desktop { display:flex; flex-direction:column; gap:4px; min-height:0; overflow:hidden; }
 .cal-dots { display:flex; gap:3px; margin-top:2px; }
 .cal-tag {
-  display:flex; align-items:center; gap:5px; border:0; cursor:pointer;
-  border-radius:14px; padding:4px 8px; font-size:11px; font-weight:600;
+  display:flex; align-items:center; gap:6px; border:1px solid rgba(23,36,59,.07); cursor:pointer;
+  border-radius:14px; padding:5px 9px; font-size:12px; font-weight:700;
   color:#17243B; text-align:left; line-height:1.2;
   overflow:hidden; white-space:nowrap;
+  box-shadow:0 1px 2px rgba(120,96,76,.07);
 }
 .cal-tag span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
-.cal-tag-more { background:var(--cream); color:#6B7280; justify-content:center; }
+.cal-tag-more { background:var(--cream); color:#6B7280; justify-content:center; font-weight:600; }
 /* bảng màu pastel theo loại sự kiện */
-.cal-tag.tone-pink, .strip-chip.tone-pink { background:#F9E0E4; }
-.cal-tag.tone-green, .strip-chip.tone-green { background:#E2EEE1; }
-.cal-tag.tone-purple, .strip-chip.tone-purple { background:#ECE5F8; }
-.cal-tag.tone-blue, .strip-chip.tone-blue { background:#E3EBFA; }
-.cal-tag.tone-orange, .strip-chip.tone-orange { background:#FBE9D8; }
+.cal-tag.tone-pink, .strip-chip.tone-pink { background:#F7D1D8; border-left:3px solid #D98FA0; }
+.cal-tag.tone-green, .strip-chip.tone-green { background:#D3E8D1; border-left:3px solid #7FAD7C; }
+.cal-tag.tone-purple, .strip-chip.tone-purple { background:#DDD2F4; border-left:3px solid #9A7FD4; }
+.cal-tag.tone-blue, .strip-chip.tone-blue { background:#D2E0F7; border-left:3px solid #7E9ED4; }
+.cal-tag.tone-orange, .strip-chip.tone-orange { background:#F7D9B8; border-left:3px solid #D99A4F; }
 
 /* Chi tiết sự kiện */
 .event-detail .ed-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
@@ -426,18 +427,19 @@
 .ev-ic { display:block; flex:0 0 auto; object-fit:contain; }
 .cal-tag .ev-ic { width:15px; height:15px; }
 .strip-chip .ev-ic { width:22px; height:22px; }
-.cal-tag.tone-peach, .strip-chip.tone-peach { background:#FBE6D6; }
-.cal-tag.tone-mint, .strip-chip.tone-mint { background:#DFF0E8; }
-.cal-tag.tone-lilac, .strip-chip.tone-lilac { background:#E9E4F9; }
-.cal-tag.tone-slate, .strip-chip.tone-slate { background:#E4EAF1; }
-.cal-tag.tone-cream, .strip-chip.tone-cream { background:#F6EFE4; }
+.cal-tag.tone-peach, .strip-chip.tone-peach { background:#F6D7B8; border-left:3px solid #D29752; }
+.cal-tag.tone-mint, .strip-chip.tone-mint { background:#C7E6D6; border-left:3px solid #6CA98B; }
+.cal-tag.tone-lilac, .strip-chip.tone-lilac { background:#DCD2F0; border-left:3px solid #9880C9; }
+.cal-tag.tone-slate, .strip-chip.tone-slate { background:#CDDAE6; border-left:3px solid #6E8CA6; }
+.cal-tag.tone-cream, .strip-chip.tone-cream { background:#EEE2C9; border-left:3px solid #B39A6C; }
 
-/* Bộ chọn loại sự kiện: lưới icon 5 cột */
-.ev-picker { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-.ev-opt { position:relative; cursor:pointer; }
+/* Bộ chọn loại sự kiện: lưới icon 5 cột, các ô cao bằng nhau trong từng hàng */
+.ev-picker { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; align-items:stretch; }
+.ev-opt { position:relative; cursor:pointer; display:flex; }
 .ev-opt input { position:absolute; opacity:0; pointer-events:none; }
 .ev-opt-in {
-  display:flex; flex-direction:column; align-items:center; gap:4px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  width:100%; height:100%; box-sizing:border-box;
   padding:8px 4px 7px; border-radius:16px; border:1.5px solid transparent;
   background:var(--cream); transition:border-color .16s, box-shadow .16s, transform .16s;
 }
@@ -452,28 +454,27 @@
 .ev-opt input:focus-visible + .ev-opt-in { outline:2px solid #E3A46B; outline-offset:2px; }
 
 /* ============================================================
-   Home: ô dạng bóng mây thay cho ô vuông
+   Home: ô dạng mây thật (ảnh pastel do người dùng cung cấp)
    ============================================================ */
-.card.cloud, .occasion-card.cloud {
+.occasion-card.cloud {
   position:relative; background:transparent !important; border:0 !important;
   box-shadow:none !important; border-radius:0 !important;
-  padding:26px 26px 24px;
+  aspect-ratio: 6 / 5; padding:26px 14px 20px;
 }
-.card.cloud::before, .occasion-card.cloud::before {
-  content:""; position:absolute; inset:-6px -4px; z-index:0;
-  background:var(--cloud-fill, #FFF8F2);
-  -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 180' preserveAspectRatio='none'><g fill='%23000'><circle cx='78' cy='104' r='56'/><circle cx='150' cy='70' r='68'/><circle cx='226' cy='106' r='54'/><rect x='66' y='96' width='172' height='74' rx='34'/></g></svg>");
-  mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 180' preserveAspectRatio='none'><g fill='%23000'><circle cx='78' cy='104' r='56'/><circle cx='150' cy='70' r='68'/><circle cx='226' cy='106' r='54'/><rect x='66' y='96' width='172' height='74' rx='34'/></g></svg>");
-  -webkit-mask-size:100% 100%; mask-size:100% 100%;
-  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-  filter:drop-shadow(0 8px 18px rgba(150,116,90,.13));
+.occasion-card.cloud::before {
+  content:""; position:absolute; inset:-14px -10px; z-index:0;
+  background-image:var(--cloud-img);
+  background-repeat:no-repeat; background-position:center; background-size:100% 100%;
+  filter:drop-shadow(0 10px 16px rgba(150,116,90,.14));
 }
-.card.cloud > *, .occasion-card.cloud > * { position:relative; z-index:1; }
-.occasion-card.cloud.tone-pink { --cloud-fill:#FDE9EC; }
-.occasion-card.cloud.tone-purple { --cloud-fill:#EDE7F9; }
-.occasion-card.cloud.tone-blue { --cloud-fill:#E6EEFB; }
-.occasion-card.cloud.tone-green { --cloud-fill:#E5F1E4; }
-.occasion-card.cloud.tone-orange { --cloud-fill:#FBEBD9; }
+.occasion-card.cloud > * { position:relative; z-index:1; }
+.occasion-card.cloud .ic { background:transparent !important; }
+
+/* Card thường (ô vuông bo góc) không còn dùng kiểu mây nữa */
+.card.cloud {
+  background:var(--card); border:1px solid var(--border);
+  box-shadow:var(--shadow-card); border-radius:var(--radius-l);
+}
 
 /* ============================================================
    Trang cá nhân: cột "Mọi người" + các khối dạng thẻ

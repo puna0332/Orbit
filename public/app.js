@@ -48,6 +48,15 @@
     var c = EV_BY_KEY[kind];
     return c ? c.tone : (TONE[kind] || 'tone-cream');
   }
+  // Ảnh mây pastel thật (10 màu) dùng làm nền thẻ dịp sắp tới trên Home
+  var CLOUD_IMG = {
+    'tone-pink': 'cloud-02-rose.png', 'tone-purple': 'cloud-04-lavender.png',
+    'tone-blue': 'cloud-05-skyblue.png', 'tone-green': 'cloud-07-mint.png',
+    'tone-orange': 'cloud-01-peach.png', 'tone-peach': 'cloud-01-peach.png',
+    'tone-mint': 'cloud-07-mint.png', 'tone-lilac': 'cloud-06-lilac.png',
+    'tone-slate': 'cloud-09-powderblue.png', 'tone-cream': 'cloud-03-cream.png'
+  };
+  function cloudImg(tone) { return CLOUD_IMG[tone] || 'cloud-01-peach.png'; }
   var REL_LABEL = { family: 'Gia đình', soulmate: 'Tri kỉ', closefriend: 'Bạn thân', friend: 'Bạn', coworker: 'Đồng nghiệp', other: 'Khác' };
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
@@ -554,14 +563,14 @@
     var occBody;
     if (hasOccasions) {
       occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
-        return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
+        return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '" style="--cloud-img:url(assets/clouds/' + cloudImg(o.tone) + ')">' +
           '<div class="ic">' + evTile(o.kind, 52) + '</div><div class="t">' + esc(o.title) + '</div>' +
           '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
       }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '"><div class="ic">' + evTile('birthday', 52) + '</div>' +
+          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '" style="--cloud-img:url(assets/clouds/' + cloudImg('tone-purple') + ')"><div class="ic">' + evTile('birthday', 52) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
