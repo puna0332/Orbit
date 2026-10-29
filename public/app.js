@@ -829,11 +829,11 @@
       '<div class="pd-id">' +
       '<h2>' + esc(p.name) + (p.favorite ? ' <span class="pd-star">★</span>' : '') + '</h2>' +
       '<div class="meta">' + relDurationLabel(p) + '</div>' +
-      '<div class="quick-actions">' +
-      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 22) + '</button>' +
-      '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '" title="Yêu thích">' + (p.favorite ? '💖' : '🤍') + '</button>' +
-      '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">' + ic('leaf', 22) + '</button>' +
-      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">' + ic('plane', 22) + '</button>' +
+      '<div class="quick-actions pd-actions">' +
+      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '">' + ic('cake', 20) + '<span>Sinh nhật</span></button>' +
+      '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '">' + (p.favorite ? '💖' : '🤍') + '<span>' + (p.favorite ? 'Bỏ thích' : 'Yêu thích') + '</span></button>' +
+      '<button class="tone-blue" data-action="quick-note-focus">' + ic('leaf', 20) + '<span>Ghi chú</span></button>' +
+      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '">' + ic('plane', 20) + '<span>Kỷ niệm</span></button>' +
       '</div></div>' +
       (p.quote ? '<div class="pd-quote">' + esc(p.quote) + '<span class="sp">✦</span></div>' : '') +
       '</div>' +

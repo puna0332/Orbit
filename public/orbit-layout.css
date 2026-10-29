@@ -592,13 +592,13 @@
 }
 .pd-avatar:hover { transform:scale(1.03); box-shadow:0 8px 22px rgba(120,90,70,.22); }
 .pd-avatar .av-img { width:100%; height:100%; object-fit:cover; display:block; }
-.pd-id { min-width:0; flex:1 1 220px; padding-top:50px; }
+.pd-id { min-width:0; flex:1 1 440px; padding-top:50px; }
 .pd-id h2 { margin:0; font-size:var(--text-xl); color:var(--ink); }
 .pd-id .meta { font-size:var(--text-sm); color:var(--ink-muted); margin-top:2px; }
 .pd-star { color:#E8A33D; }
 .pd-id .quick-actions { margin:12px 0 0; display:flex; gap:8px; }
 .pd-quote {
-  flex:1 1 240px; align-self:center; position:relative; margin-top:50px;
+  flex:1 1 200px; max-width:300px; align-self:center; position:relative; margin-top:50px;
   background:#FBE7EA; border-radius:18px; padding:14px 34px 14px 18px;
   font-size:13.5px; font-style:italic; color:#7C4B55; line-height:1.45;
 }
@@ -612,6 +612,25 @@
 }
 .pd-block .section-head { margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; }
 .pd-block .section-head h2 { font-size:15px; margin:0; }
+/* Nút "+ Thêm": dạng viên thuốc bo tròn thay vì nút chữ trơ */
+.pd-block .section-head .link-more {
+  border:0; cursor:pointer; font-family:inherit;
+  background:#F3E3D6; color:#7A5B45; font-size:12px; font-weight:700;
+  border-radius:999px; padding:6px 13px; line-height:1;
+}
+.pd-block .section-head .link-more:hover { background:#EDD6C4; }
+
+/* 4 nút hành động có chú thích chữ để biết bấm vào làm gì */
+.pd-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.pd-actions button {
+  display:inline-flex; align-items:center; gap:6px; width:auto; height:auto;
+  border:0; cursor:pointer; font-family:inherit; white-space:nowrap;
+  border-radius:999px; padding:8px 13px 8px 10px;
+  font-size:12px; font-weight:700; color:#4A4038;
+  transition:transform .14s, filter .14s;
+}
+.pd-actions button:hover { transform:translateY(-1px); filter:brightness(.97); }
+.pd-actions button img, .pd-actions button svg { flex:0 0 auto; }
 .pd-block .memory-grid { grid-template-columns:repeat(4,1fr); gap:10px; margin-top:0; }
 .pd-block .memory-tile {
   aspect-ratio:3/4; border-radius:14px; padding:10px; font-size:12px;
@@ -631,28 +650,53 @@
 }
 
 @media (min-width:900px) {
-  .page-people:has(.pd-shell) { padding:18px 24px 24px; }
-  .page-people:has(.pd-shell) > .view-inner { max-width:none; width:100%; margin:0; }
+  /* Ba cột phẳng sát nhau, chỉ cách nhau bằng một vách ngăn 1px, cao hết màn */
+  .page-people:has(.pd-shell) { padding:0; height:100dvh; overflow:hidden; }
+  .page-people:has(.pd-shell) > .view-inner { max-width:none; width:100%; margin:0; padding:0; height:100%; }
   .pd-shell {
-    grid-template-columns:272px auto minmax(0,1fr);
-    align-items:start; gap:14px 0;
+    --pd-side-w:288px;
+    grid-template-columns:var(--pd-side-w) minmax(0,1fr);
+    align-items:stretch; gap:0; height:100dvh; position:relative;
   }
-  .pd-side { position:sticky; top:0; margin-right:14px; }
-  .pd-list { flex-direction:column; overflow-x:visible; gap:2px; max-height:calc(100dvh - 190px); overflow-y:auto; }
+  /* Cột danh bạ: trải hết chiều cao, không bo góc, không bóng */
+  .pd-side {
+    border:0; border-right:1px solid var(--border); border-radius:0;
+    box-shadow:none; background:var(--card);
+    height:100dvh; padding:18px 14px; display:flex; flex-direction:column; min-height:0;
+  }
+  .pd-list {
+    flex:1 1 auto; flex-direction:column; overflow-x:visible; gap:2px;
+    max-height:none; overflow-y:auto; min-height:0;
+  }
   .pd-person { min-width:0; }
   .pd-name b { max-width:none; }
-  /* Nút thu gọn dán sát mép trái panel, không trôi lơ lửng giữa khoảng trống */
+  .pd-add { flex:0 0 auto; }
+  /* Nút thu gọn KHÔNG chiếm cột riêng: nó là nút tròn nhỏ đè lên chính vách
+     ngăn, nên giữa danh bạ và trang cá nhân chỉ còn đúng một đường kẻ 1px. */
   .pd-side-toggle {
-    position:sticky; top:18px; flex-direction:column; gap:8px; padding:14px 7px;
-    writing-mode:vertical-rl; margin-right:-1px;
-    border-radius:14px 0 0 14px; border-right:0; box-shadow:-2px 2px 8px rgba(150,116,90,.08);
+    position:absolute; z-index:5; top:50%; left:var(--pd-side-w);
+    transform:translate(-50%, -50%);
+    width:28px; height:28px; padding:0; margin:0; gap:0;
+    writing-mode:horizontal-tb; align-items:center; justify-content:center;
+    border:1px solid var(--border); border-radius:50%;
+    background:var(--card); color:#8A7566; font-size:13px;
+    box-shadow:0 2px 6px rgba(150,116,90,.14);
   }
+  .pd-side-toggle span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .pd-side-toggle i { font-size:14px; }
+  .pd-shell.side-collapsed .pd-side-toggle { left:0; }
+  .pd-side-toggle:hover { background:#FDF3EA; }
   .pd-side-toggle i { writing-mode:horizontal-tb; }
-  .pd-shell.side-collapsed { grid-template-columns:auto minmax(0,1fr); }
+  .pd-shell.side-collapsed { grid-template-columns:minmax(0,1fr); }
   .pd-shell.side-collapsed .pd-side { display:none; }
+  /* Panel hồ sơ: phẳng, cuộn riêng, các khối bo tròn chỉ nằm BÊN TRONG */
+  .pd-panel {
+    border:0; border-radius:0; box-shadow:none; background:var(--card);
+    height:100dvh; overflow-y:auto; padding:18px 18px 28px 26px;
+  }
   /* Desktop luôn thấy danh bạ nên nút "‹" trên ảnh bìa là thừa và dễ nhầm với nút thu gọn */
   .pd-back { display:none; }
-  .pd-cover { height:230px; border-radius:20px; }
+  .pd-cover { height:288px; border-radius:20px; }
   .pd-grid { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:12px; }
 }
 @media (max-width:899px) {
