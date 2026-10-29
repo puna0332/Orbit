@@ -698,11 +698,35 @@
       }
       rings.length = k;   // chỉ vẽ đúng số vòng đang dùng
     } else {
+      /* "Tất cả" phải giãn như các bộ lọc khác, nhưng vẫn giữ đúng tầng quan hệ:
+         gia đình ở trong, bạn bè ở ngoài, vòng trống giữa hai tầng là hợp lý.
+         Vấn đề cũ: autoRingFor trả về đúng MỘT vòng cho nhóm bạn nên toàn bộ bạn
+         bè dồn vào vòng 99%. Giờ nhóm nào đông thì trải sang vòng ngoài kế tiếp,
+         chia theo chu vi; nhóm ít thì nằm yên vòng của nó. */
+      var groups = {};
       people.forEach(function (p) {
-        var idx = autoRingFor(p) - 1;
-        // vòng đầy thì đẩy ra vòng ngoài kế tiếp
-        while (idx < 5 && rings[idx].length >= RING_CAP[idx]) idx++;
-        rings[idx].push(p);
+        var r = autoRingFor(p);
+        (groups[r] = groups[r] || []).push(p);
+      });
+      Object.keys(groups).map(Number).sort(function (a, b) { return a - b; }).forEach(function (r) {
+        var list = groups[r].slice().sort(function (a, b) { return (a.closeness || 3) - (b.closeness || 3); });
+        var allowed = r >= 6 ? [4, 5] : [r - 1, r];   // chỉ trải RA NGOÀI, không kéo vào trong
+        if (list.length <= 8) allowed = [r >= 6 ? 5 : r - 1];  // ít người -> đúng một vòng
+        var totalPct = 0;
+        allowed.forEach(function (i) { totalPct += RING_PCT[i]; });
+        var used = 0;
+        allowed.forEach(function (i, s) {
+          var take = (s === allowed.length - 1) ? list.length - used
+            : Math.max(1, Math.round(list.length * RING_PCT[i] / totalPct));
+          rings[i] = rings[i].concat(list.slice(used, used + take));
+          used += take;
+        });
+      });
+      // vòng nào vượt sức chứa thì đẩy tiếp ra ngoài
+      rings.forEach(function (list, i) {
+        if (i < 5 && list.length > RING_CAP[i]) {
+          rings[i + 1] = rings[i + 1].concat(list.splice(RING_CAP[i]));
+        }
       });
     }
     var scene = '';
@@ -722,7 +746,11 @@
           '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });
     });
-    return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
+    /* Sức chứa: stage gốc (danh bạ mở) chỉ đủ cho ~17 người trên một vòng mà không
+       chồng nhau — hai vòng liền kề chỉ cách 41px trong khi avatar 56px. Vượt ngưỡng
+       đó thì phải dùng layout thu gọn (avatar nhỏ + stage rộng) mới đủ chỗ. */
+    var tight = compact || (!orbitCollapsed && people.length > 17);
+    return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + (tight && !compact ? ' is-tight' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
       '<div class="orbit-pan" id="orbitPan"><div class="orbit-stage">' + scene +
       '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
       '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
@@ -792,6 +820,12 @@
     var split = document.querySelector('.people-split');
     if (!split) return;
     split.classList.toggle('contacts-collapsed', orbitCollapsed);
+    /* Đổi bề rộng khung là đổi sức chứa -> phải cập nhật layout thu gọn ngay,
+       không chờ render lại (render chỉ chạy khi dữ liệu/route đổi). */
+    var wrap = document.querySelector('.orbit-wrap');
+    if (wrap && !wrap.classList.contains('is-filtered')) {
+      wrap.classList.toggle('is-tight', !orbitCollapsed && wrap.querySelectorAll('.orbit-avatar').length > 17);
+    }
     var panel = document.getElementById('contactsPanel');
     if (panel) panel.inert = orbitCollapsed && window.innerWidth >= 900;
     document.querySelectorAll('[data-action="toggle-orbit"]').forEach(function (b) {

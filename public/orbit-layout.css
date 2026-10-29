@@ -222,14 +222,19 @@
   .orbit-avatar span.name-tag { top:57px; font-size:11px; }
   .orbit-center { width:86px; height:86px; }
 
-  /* ===== Orbit khi ĐANG LỌC — layout riêng, không đụng bản gốc ===== */
-  .people-split:not(.contacts-collapsed):has(.orbit-wrap.is-filtered) .orbit-pan { right:calc(46% + 40px); }
-  .people-orbit-col .orbit-wrap.is-filtered .orbit-stage {
-    width:min(calc(100% - 64px), 80dvh, 760px); height:min(calc(100% - 64px), 80dvh, 760px);
+  /* ===== Layout thu gọn: dùng khi ĐANG LỌC, hoặc khi "Tất cả" đông tới mức
+     stage gốc không còn đủ chỗ (avatar 56px sẽ chồng lên nhau) ===== */
+  .people-split:not(.contacts-collapsed):has(.orbit-wrap.is-filtered) .orbit-pan,
+  .people-split:not(.contacts-collapsed):has(.orbit-wrap.is-tight) .orbit-pan { right:calc(46% + 40px); }
+  .people-orbit-col .orbit-wrap.is-filtered .orbit-stage,
+  .people-orbit-col .orbit-wrap.is-tight .orbit-stage {
+    width:min(calc(100% - 76px), 80dvh, 760px); height:min(calc(100% - 76px), 80dvh, 760px);
   }
-  .orbit-wrap.is-filtered .orbit-avatar { width:42px; height:42px; }
-  .orbit-wrap.is-filtered .orbit-avatar span.name-tag { top:44px; font-size:10px; }
-  .orbit-wrap.is-filtered .orbit-avatar { border-width:2.5px; }
+  .orbit-wrap.is-filtered .orbit-avatar,
+  .orbit-wrap.is-tight .orbit-avatar { width:42px; height:42px; border-width:2.5px; }
+  .orbit-wrap.is-filtered .orbit-avatar span.name-tag,
+  .orbit-wrap.is-tight .orbit-avatar span.name-tag { top:44px; font-size:10px; }
+  .orbit-wrap.is-tight .orbit-center { width:70px; height:70px; }
 
   /* Nút +,-,⊙,⏸ gói trong một KHUNG dọc, dịch lên trên (ô xanh người dùng khoanh) */
   .orbit-zoom {
