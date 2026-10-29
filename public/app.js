@@ -57,7 +57,35 @@
     'tone-slate': 'cloud-09-powderblue.png', 'tone-cream': 'cloud-03-cream.png'
   };
   function cloudImg(tone) { return CLOUD_IMG[tone] || 'cloud-01-peach.png'; }
-  var REL_LABEL = { family: 'Gia đình', soulmate: 'Tri kỉ', closefriend: 'Bạn thân', friend: 'Bạn', coworker: 'Đồng nghiệp', other: 'Khác' };
+  /* 5 nhóm quan hệ. Muốn thêm loại mới chỉ cần thêm một dòng ở đây — form thêm
+     người, bộ lọc và Cài đặt -> Quỹ đạo đều đọc chung danh sách này. */
+  var REL_TYPES = [
+    { k: 'family', label: 'Gia đình' },
+    { k: 'love', label: 'Tình yêu' },
+    { k: 'friend', label: 'Bạn bè' },
+    { k: 'acquaintance', label: 'Người quen' },
+    { k: 'other', label: 'Khác' }
+  ];
+  var REL_LABEL = (function () {
+    var m = {};
+    REL_TYPES.forEach(function (r) { m[r.k] = r.label; });
+    m.soulmate = 'Tình yêu'; m.closefriend = 'Bạn bè'; m.coworker = 'Người quen';   // dữ liệu cũ
+    return m;
+  })();
+  var REL_MIGRATE = { soulmate: 'love', closefriend: 'friend', coworker: 'acquaintance' };
+  var PRIORITIES = [
+    { k: 'highest', label: 'Cao nhất' },
+    { k: 'high', label: 'Cao' },
+    { k: 'medium', label: 'Trung bình' },
+    { k: 'low', label: 'Thấp' }
+  ];
+  var DEFAULT_PRIORITY = { family: 'highest', love: 'high', friend: 'medium', acquaintance: 'low', other: 'low' };
+  function defaultSettings() {
+    return {
+      theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn',
+      relationPriority: JSON.parse(JSON.stringify(DEFAULT_PRIORITY)), groups: []
+    };
+  }
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
 
@@ -175,13 +203,13 @@
       onboardingSlide: 0,
       people: people,
       events: events,
-      settings: { theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
+      settings: defaultSettings()
     };
   }
   function emptyState(keepSettings) {
     return {
       onboardingDone: true, onboardingSlide: 0, people: [], events: [],
-      settings: keepSettings || { theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn' }
+      settings: keepSettings || defaultSettings()
     };
   }
 
@@ -198,6 +226,15 @@
         // Thiết kế gốc là giao diện SÁNG. Theme 'system' khiến máy đang dark-mode
         // hiển thị nền đen, lệch hẳn mockup -> migrate sang 'light'; chỉ tối khi user tự chọn.
         if (parsed.settings && parsed.settings.theme === 'system') parsed.settings.theme = 'light';
+        if (!parsed.settings) parsed.settings = defaultSettings();
+        var st = parsed.settings;
+        if (!st.relationPriority) st.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+        if (!Array.isArray(st.groups)) st.groups = [];
+        (parsed.people || []).forEach(function (p) {
+          if (REL_MIGRATE[p.relationship]) p.relationship = REL_MIGRATE[p.relationship];
+          if (!REL_LABEL[p.relationship]) p.relationship = 'other';
+          if (!Array.isArray(p.groups)) p.groups = [];
+        });
         return parsed;
       }
     } catch (e) { /* ignore corrupt storage */ }
@@ -233,7 +270,10 @@
   function navigate(path) { location.hash = '#/' + path; render(); }
 
   var peopleViewMode = 'orbit';
-  var peopleFilter = 'all';
+  var peopleRelSel = [];      // chọn nhiều mối quan hệ; rỗng = tất cả
+  var peopleGroupSel = [];    // chọn nhiều nhóm; rỗng = tất cả
+  var peopleFavOnly = false;
+  var openAddPersonRel = 'friend';
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
@@ -278,7 +318,7 @@
   function defaultOrbitScale() {
     if (window.innerWidth < 900) return 1.0;
     // Orbit gốc (Tất cả) giữ đúng khung cũ; chế độ lọc có layout riêng nên cần lùi nhẹ
-    if (peopleFilter === 'all') return 1.05;
+    if (!hasActiveFilter()) return 1.05;
     return orbitCollapsed ? 1.05 : 0.95;
   }
   function resetOrbitView() { orbitView = { scale: defaultOrbitScale(), x: 0, y: 0 }; applyOrbitView(); }
@@ -322,7 +362,8 @@
       var st = document.querySelector('.orbit-stage');
       if (!st) return;
       var b = st.getBoundingClientRect();
-      var ring = Math.min(5, Math.max(1, Math.round(Math.hypot(e.clientX - (b.left + b.width / 2), e.clientY - (b.top + b.height / 2)) / (b.width / 2) * 5.2)));
+      var ringTotals = document.querySelectorAll('.orbit-ring').length || 6;
+      var ring = Math.min(ringTotals, Math.max(1, Math.round(Math.hypot(e.clientX - (b.left + b.width / 2), e.clientY - (b.top + b.height / 2)) / (b.width / 2) * (ringTotals + 0.2))));
       vp.dataset.dropRing = ring;
       document.querySelectorAll('.orbit-ring').forEach(function (r) {
         r.classList.toggle('drop-target', Number(r.dataset.ring) === ring);
@@ -652,7 +693,36 @@
   }
 
   /* ---------------------------- People / Orbit ---------------------------- */
-  function pillBtn(key, label) { return '<button class="pill ' + (peopleFilter === key ? 'active' : '') + '" data-action="set-filter" data-filter="' + key + '">' + label + '</button>'; }
+  /* Bộ lọc: chọn được nhiều mối quan hệ và nhiều nhóm; cả hai rỗng = tất cả.
+     Chọn cả hai thì giao nhau (phải khớp cả quan hệ lẫn nhóm). */
+  function hasActiveFilter() {
+    return peopleRelSel.length > 0 || peopleGroupSel.length > 0 || peopleFavOnly;
+  }
+  function relChip(r) {
+    var on = peopleRelSel.indexOf(r.k) > -1;
+    return '<button class="pill' + (on ? ' active' : '') + '" data-action="toggle-rel-filter" data-rel="' + r.k + '" aria-pressed="' + on + '">' + r.label + '</button>';
+  }
+  function groupChip(g) {
+    var on = peopleGroupSel.indexOf(g.id) > -1;
+    return '<button class="pill' + (on ? ' active' : '') + '" data-action="toggle-group-filter" data-gid="' + esc(g.id) + '" aria-pressed="' + on + '">' + esc(g.name) + '</button>';
+  }
+  function personMatchesFilters(p) {
+    if (peopleRelSel.length && peopleRelSel.indexOf(p.relationship) < 0) return false;
+    if (peopleGroupSel.length) {
+      var gs = p.groups || [], hit = false;
+      for (var i = 0; i < peopleGroupSel.length; i++) { if (gs.indexOf(peopleGroupSel[i]) > -1) { hit = true; break; } }
+      if (!hit) return false;
+    }
+    if (peopleFavOnly && !p.favorite) return false;
+    return true;
+  }
+  function groupNames(ids) {
+    var all = (state.settings.groups || []);
+    return (ids || []).map(function (id) {
+      var g = all.filter(function (x) { return x.id === id; })[0];
+      return g ? g.name : '';
+    }).filter(Boolean);
+  }
 
   /* Avatar: ưu tiên ảnh người dùng tải lên (p.photo = dataURL), sau đó tới avatar
      chọn từ bộ element (p.avatar = 'av-07'), cuối cùng mới fallback chữ cái. */
@@ -666,104 +736,118 @@
     return (p.photo || p.avatar) ? 'background:transparent;' : 'background:' + avatarColor(p.id) + ';';
   }
 
-  // Sức chứa từng vòng: 8, 10, 14, 20, 28 (mỗi vòng cộng thêm 2 so với mức tăng trước)
-  var RING_CAP = [8, 10, 14, 20, 28, 38];
-  var RING_PCT = [24, 39, 54, 69, 84, 99];
-  // Vòng tự động: gia đình -> 1-2, người yêu/bạn thân -> 2-3, còn lại -> 4+
-  function autoRingFor(p) {
-    if (p.ring) return Math.min(6, Math.max(1, Number(p.ring)));
-    // Gia đình -> 1-2; Tri kỉ -> 3-4; Bạn thân -> 4-5; Bạn & còn lại -> vòng 5-6 đổ ra
-    if (p.relationship === 'family') return p.closeness === 1 ? 1 : 2;
-    if (p.relationship === 'soulmate') return 3;
-    if (p.relationship === 'closefriend') return 4;
-    if (p.relationship === 'friend') return 6;
-    return 6;
+  /* ===== Quỹ đạo: số vòng theo sĩ số (rule người dùng đặt) ===== */
+  function ringCountFor(n) {
+    if (n <= 3) return 1;
+    if (n <= 8) return 2;
+    if (n <= 18) return 3;
+    if (n <= 32) return 4;
+    if (n <= 50) return 5;
+    if (n <= 72) return 6;
+    if (n <= 98) return 7;
+    if (n <= 150) return 8;
+    return 9;                       // 151–300 và 301–500
+  }
+  /* Đường kính từng vòng: trải đều tới 99%. Từ 98 người trở lên thì thu hẹp lại
+     một chút để nhường chỗ cho các chấm nhỏ. */
+  function ringPcts(k, dotMode) {
+    var out = [];
+    for (var i = 0; i < k; i++) {
+      if (k === 1) { out.push(58); continue; }
+      out.push(Math.round((dotMode ? 18 : 0) + (99 - (dotMode ? 18 : 0)) * (i + 1) / k));
+    }
+    return out;
+  }
+  /* Hạng ưu tiên: gia đình luôn gần tâm nhất, còn lại theo Cài đặt -> Quỹ đạo */
+  var PRIORITY_RANK = { highest: 0, high: 1, medium: 2, low: 3 };
+  function relRank(rel) {
+    if (rel === 'family') return -1;
+    var pr = (state.settings && state.settings.relationPriority) || DEFAULT_PRIORITY;
+    var lvl = pr[rel] || 'low';
+    return PRIORITY_RANK[lvl] === undefined ? 3 : PRIORITY_RANK[lvl];
+  }
+  /* Chia người vào vòng: người bị kéo tay giữ nguyên vòng đã đặt, số còn lại
+     xếp theo thứ tự ưu tiên rồi chia theo chu vi (vòng rộng nhận nhiều hơn). */
+  function layoutOrbit(people) {
+    var n = people.length;
+    var k = ringCountFor(n);
+    var dotMode = n >= 98;
+    var pcts = ringPcts(k, dotMode);
+    var rings = [];
+    for (var i = 0; i < k; i++) rings.push([]);
+    var auto = [];
+    people.forEach(function (p) {
+      if (p.ring && Number(p.ring) >= 1) rings[Math.min(k, Number(p.ring)) - 1].push(p);
+      else auto.push(p);
+    });
+    auto.sort(function (a, b) {
+      return relRank(a.relationship) - relRank(b.relationship) ||
+        (a.closeness || 3) - (b.closeness || 3) ||
+        (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0) ||
+        String(a.name).localeCompare(String(b.name), 'vi');
+    });
+    var total = pcts.reduce(function (s, v) { return s + v; }, 0);
+    var targets = pcts.map(function (v) { return Math.round(n * v / total); });
+    var diff = n - targets.reduce(function (s, v) { return s + v; }, 0);
+    targets[targets.length - 1] = Math.max(0, targets[targets.length - 1] + diff);
+    var idx = 0;
+    for (var r = 0; r < k; r++) {
+      var need = Math.max(0, targets[r] - rings[r].length);
+      for (var j = 0; j < need && idx < auto.length; j++) rings[r].push(auto[idx++]);
+    }
+    while (idx < auto.length) rings[k - 1].push(auto[idx++]);
+    return { rings: rings, pcts: pcts, k: k, dotMode: dotMode };
   }
   function renderOrbit(people, compact) {
-    var rings = [[], [], [], [], [], []];
-    var pcts = RING_PCT.slice();
-    if (compact && people.length) {
-      /* Lọc một nhóm: KHÔNG nhồi cả nhóm vào mấy vòng trong cùng (vòng 24% mà
-         chứa 8 người thì avatar chồng lên nhau). Chọn số vòng theo sĩ số, trải
-         đều ra tới vòng ngoài cùng, rồi chia người theo chu vi — vòng càng rộng
-         nhận càng nhiều — nên không vòng nào bị díu và không phí bán kính. */
-      var n = people.length;
-      var k = n <= 3 ? 1 : n <= 8 ? 2 : n <= 18 ? 3 : n <= 32 ? 4 : 5;
-      pcts = [];
-      for (var s = 0; s < k; s++) pcts.push(k === 1 ? 58 : Math.round(99 * (s + 1) / k));
-      var totalPct = pcts.reduce(function (a, b) { return a + b; }, 0);
-      var ordered = people.slice().sort(function (a, b) {
-        return autoRingFor(a) - autoRingFor(b) || (a.closeness || 3) - (b.closeness || 3);
-      });
-      var used = 0;
-      for (var s2 = 0; s2 < k; s2++) {
-        var take = s2 === k - 1
-          ? Math.max(0, n - used)
-          : Math.max(1, Math.round(n * pcts[s2] / totalPct));
-        rings[s2] = ordered.slice(used, used + take);
-        used += rings[s2].length;
-      }
-      rings.length = k;   // chỉ vẽ đúng số vòng đang dùng
-    } else {
-      /* "Tất cả" phải giãn như các bộ lọc khác, nhưng vẫn giữ đúng tầng quan hệ:
-         gia đình ở trong, bạn bè ở ngoài, vòng trống giữa hai tầng là hợp lý.
-         Vấn đề cũ: autoRingFor trả về đúng MỘT vòng cho nhóm bạn nên toàn bộ bạn
-         bè dồn vào vòng 99%. Giờ nhóm nào đông thì trải sang vòng ngoài kế tiếp,
-         chia theo chu vi; nhóm ít thì nằm yên vòng của nó. */
-      var groups = {};
-      people.forEach(function (p) {
-        var r = autoRingFor(p);
-        (groups[r] = groups[r] || []).push(p);
-      });
-      Object.keys(groups).map(Number).sort(function (a, b) { return a - b; }).forEach(function (r) {
-        var list = groups[r].slice().sort(function (a, b) { return (a.closeness || 3) - (b.closeness || 3); });
-        var allowed = r >= 6 ? [4, 5] : [r - 1, r];   // chỉ trải RA NGOÀI, không kéo vào trong
-        if (list.length <= 8) allowed = [r >= 6 ? 5 : r - 1];  // ít người -> đúng một vòng
-        var totalPct = 0;
-        allowed.forEach(function (i) { totalPct += RING_PCT[i]; });
-        var used = 0;
-        allowed.forEach(function (i, s) {
-          var take = (s === allowed.length - 1) ? list.length - used
-            : Math.max(1, Math.round(list.length * RING_PCT[i] / totalPct));
-          rings[i] = rings[i].concat(list.slice(used, used + take));
-          used += take;
-        });
-      });
-      // vòng nào vượt sức chứa thì đẩy tiếp ra ngoài
-      rings.forEach(function (list, i) {
-        if (i < 5 && list.length > RING_CAP[i]) {
-          rings[i + 1] = rings[i + 1].concat(list.splice(RING_CAP[i]));
-        }
-      });
-    }
+    var lay = layoutOrbit(people);
+    var rings = lay.rings, pcts = lay.pcts, dotMode = lay.dotMode;
     var scene = '';
     rings.forEach(function (list, r) {
-      var ri = r;
-      var diameter = pcts[r], period = 90 + r * 40;
-      scene += '<div class="orbit-ring" data-ring="' + (ri + 1) + '" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
+      var d = pcts[r], period = 90 + r * 40;
+      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + d + '%;height:' + d + '%"></div>';
+      if (dotMode) {
+        /* Từ 98 người: phần lớn chỉ là chấm nhỏ; chỉ gia đình và người có dấu sao
+           được vẽ avatar kèm tên. Đặt tĩnh theo góc để vài trăm phần tử vẫn nhẹ. */
+        scene += '<div class="orbit-static" style="width:' + d + '%;height:' + d + '%">';
+        list.forEach(function (p, i) {
+          /* Lệch góc mỗi vòng để avatar/chấm không xếp thành cột thẳng đứng
+             theo trục 12 giờ - 6 giờ (trước đây nhãn chồng lên nhau). */
+          var ang = ((i + 0.5) / Math.max(list.length, 1)) * Math.PI * 2 - Math.PI / 2 + r * 0.62;
+          var pos = 'left:' + (50 + 50 * Math.cos(ang)).toFixed(2) + '%;top:' + (50 + 50 * Math.sin(ang)).toFixed(2) + '%;';
+          if (p.relationship === 'family' || p.favorite) {
+            scene += '<button class="orbit-avatar orbit-static-av' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + pos + avatarStyle(p) + '" aria-label="Chọn ' + esc(p.name) + '">' +
+              '<span class="av-wrap">' + avatarInner(p) + '</span>' + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button>';
+          } else {
+            scene += '<i class="orbit-member-dot" data-action="focus-person" data-pid="' + esc(p.id) + '" title="' + esc(p.name) + '" style="' + pos + 'background:' + avatarColor(p.id) + '"></i>';
+          }
+        });
+        scene += '</div>';
+        return;
+      }
       list.forEach(function (p, i) {
-        var delay = -(i / Math.max(list.length, 1) + ri * 0.11) * period;
-        scene += '<div class="orbit-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
+        var delay = -(i / Math.max(list.length, 1) + r * 0.11) * period;
+        scene += '<div class="orbit-track" style="width:' + d + '%;height:' + d + '%;--period:' + period + 's;--phase:' + delay + 's">' +
           '<button class="orbit-avatar orbit-traveler' + (orbitFocus === p.id ? ' focused' : '') + '" data-action="focus-person" data-pid="' + esc(p.id) + '" style="' + avatarStyle(p) + '" aria-label="Chọn ' + esc(p.name) + '">' +
           '<span class="av-wrap">' + avatarInner(p) + '</span>' + (p.favorite ? '<span class="fav-dot">★</span>' : '') + '<span class="name-tag">' + esc(p.name) + '</span></button></div>';
       });
       ['#DFA8B9', '#B5CBB3', '#E8C076', '#A9BFD9'].forEach(function (color, i) {
-        var delay = -(i / 4 + ri * 0.17) * period;
-        scene += '<div aria-hidden="true" class="orbit-track orbit-dust-track" style="width:' + diameter + '%;height:' + diameter + '%;--period:' + period + 's;--phase:' + delay + 's">' +
+        var delay = -(i / 4 + r * 0.17) * period;
+        scene += '<div aria-hidden="true" class="orbit-track orbit-dust-track" style="width:' + d + '%;height:' + d + '%;--period:' + period + 's;--phase:' + delay + 's">' +
           '<i class="orbit-dust" style="background:' + color + ';width:' + (5 + i * 2) + 'px;height:' + (5 + i * 2) + 'px"></i></div>';
       });
     });
     /* Sức chứa: stage gốc (danh bạ mở) chỉ đủ cho ~17 người trên một vòng mà không
        chồng nhau — hai vòng liền kề chỉ cách 41px trong khi avatar 56px. Vượt ngưỡng
        đó thì phải dùng layout thu gọn (avatar nhỏ + stage rộng) mới đủ chỗ. */
-    var tight = compact || (!orbitCollapsed && people.length > 17);
-    return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + (tight && !compact ? ' is-tight' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
+    var tight = compact || (!orbitCollapsed && people.length > 17) || people.length >= 98;
+    return '<div class="orbit-wrap' + (compact ? ' is-filtered' : '') + (dotMode ? ' is-dots' : '') + (tight && !compact ? ' is-tight' : '') + '"><div class="orbit-viewport' + (orbitMotionPaused ? ' motion-paused' : '') + '" id="orbitViewport" aria-label="Bản đồ mối quan hệ, kéo để di chuyển, cuộn để phóng to">' +
       '<div class="orbit-pan" id="orbitPan"><div class="orbit-stage">' + scene +
       '<div class="orbit-center" title="Bạn"><img class="av-img" src="assets/avatars/av-01.png" alt="Bạn"></div></div></div>' +
       '<div class="orbit-zoom"><button data-action="orbit-zoom" data-dz="1" aria-label="Phóng to">+</button>' +
       '<button data-action="orbit-zoom" data-dz="-1" aria-label="Thu nhỏ">−</button>' +
       '<button data-action="orbit-reset" aria-label="Về toàn cảnh" title="Về toàn cảnh">⊙</button>' +
-      '<button data-action="orbit-motion" aria-label="Tạm dừng chuyển động" aria-pressed="' + orbitMotionPaused + '">' + (orbitMotionPaused ? '▷' : 'Ⅱ') + '</button></div>' +
+      '<button data-action="orbit-motion" aria-label="Tạm dừng chuyển động" aria-pressed="' + orbitMotionPaused + '">' + (orbitMotionPaused ? '▷' : 'Ⅱ') + '</button>' +
+      '<button data-action="reset-orbit-layout" aria-label="Đặt lại quỹ đạo" title="Đặt lại quỹ đạo theo mức ưu tiên">⟲</button></div>' +
       renderOrbitFocusCard() + '</div></div>';
   }
 
@@ -777,7 +861,8 @@
     var mems = (p.memories || []).map(function (m) { return m.caption; }).filter(Boolean);
     var memText = mems.length ? (mems.length > 1 ? mems[0] + ' +' + (mems.length - 1) : mems[0]) : 'Chưa có kỷ niệm';
     var chips = '';
-    for (var i = 1; i <= 6; i++) {
+    var ringTotals = ringCountFor(state.people.length);
+    for (var i = 1; i <= ringTotals; i++) {
       chips += '<button class="ring-chip' + (p.ring === i ? ' on' : '') + '" data-action="move-person" data-pid="' + esc(p.id) + '" data-ring="' + i + '">Vòng ' + i + '</button>';
     }
     return '<div class="orbit-focus-card" role="dialog" aria-label="Thông tin ' + esc(p.name) + '">' +
@@ -786,6 +871,7 @@
       '<button class="fc-close" data-action="close-focus" aria-label="Đóng">✕</button></div>' +
       '<div class="fc-facts">' +
       '<div class="fc-fact"><span>Mối quan hệ</span><b>' + esc(REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
+      ((p.groups || []).length ? '<div class="fc-fact"><span>Nhóm</span><b>' + esc(groupNames(p.groups).join(', ')) + '</b></div>' : '') +
       '<div class="fc-fact"><span>Sinh nhật</span><b>' + esc(bdayText) + '</b></div>' +
       '<div class="fc-fact"><span>Ký ức nổi bật</span><b>' + esc(memText) + '</b></div>' +
       '</div>' +
@@ -854,20 +940,24 @@
   }
   function renderPeople() {
     ensureContactAvatars();
-    var filtered = state.people.filter(function (p) { return peopleFilter === 'all' || p.relationship === peopleFilter; });
-    var listed = searchPeople(peopleViewMode === 'favorite' ? filtered.filter(function (p) { return p.favorite; }) : filtered);
+    var filtered = state.people.filter(personMatchesFilters);
+    var listed = searchPeople(filtered);
     return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người</h1>' +
       '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
       '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
-      '<section class="people-orbit-col">' + renderOrbit(filtered, peopleFilter !== 'all') + '</section>' +
+      '<section class="people-orbit-col">' + renderOrbit(filtered, hasActiveFilter()) + '</section>' +
       '<button class="contacts-tab" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
       '<span>' + (orbitCollapsed ? 'Danh bạ' : 'Thu gọn') + '</span><i aria-hidden="true">' + (orbitCollapsed ? '‹' : '›') + '</i></button>' +
       '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
       '<div class="contacts-panel-head"><b>Liên lạc <span>' + listed.length + '</span></b></div>' +
       '<label class="search-pill"><span aria-hidden="true">⌕</span>' +
       '<input id="peopleSearch" type="search" aria-label="Tìm người" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></label>' +
-      '<div class="filter-pills">' + pillBtn('all', 'Tất cả') + pillBtn('family', 'Gia đình') + pillBtn('friend', 'Bạn bè') + pillBtn('coworker', 'Đồng nghiệp') +
-      '<button class="pill ' + (peopleViewMode === 'favorite' ? 'active' : '') + '" data-action="set-view-mode" data-mode="' + (peopleViewMode === 'favorite' ? 'list' : 'favorite') + '">★ Yêu thích</button></div>' +
+      '<div class="filter-block"><span class="filter-label">Mối quan hệ</span><div class="filter-pills">' +
+      '<button class="pill' + (!hasActiveFilter() ? ' active' : '') + '" data-action="clear-filters">Tất cả</button>' +
+      REL_TYPES.map(relChip).join('') +
+      '<button class="pill' + (peopleFavOnly ? ' active' : '') + '" data-action="toggle-fav-filter" aria-pressed="' + peopleFavOnly + '">★ Yêu thích</button></div></div>' +
+      ((state.settings.groups || []).length ? '<div class="filter-block"><span class="filter-label">Nhóm</span><div class="filter-pills">' +
+        (state.settings.groups || []).map(groupChip).join('') + '</div></div>' : '') +
       renderPeopleGrid(listed) + '</section></div>';
   }
 
@@ -959,7 +1049,8 @@
       '<div class="section-head"><h2>Thông tin nhanh</h2></div>' +
       '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">❤️</span> Mức độ <b>' + (p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết') + '</b></div>' +
-      '<div class="quickinfo-row"><span class="ic">🏷️</span> Nhóm <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
+      '<div class="quickinfo-row"><span class="ic">🏷️</span> Mối quan hệ <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
+      ((p.groups || []).length ? '<div class="quickinfo-row"><span class="ic">📁</span> Nhóm <b>' + esc(groupNames(p.groups).join(', ')) + '</b></div>' : '') +
       '</section>' +
 
       '<section class="pd-block">' +
@@ -1112,6 +1203,8 @@
       settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
       settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
       settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
+      settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo', 'Mức ưu tiên xếp vòng theo mối quan hệ') +
+      settingsRow('groups', ic('people', 24), 'tone-mint', 'Nhóm', 'Tự tạo nhóm để lọc và sắp xếp') +
       settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu', 'Sao lưu và quản lý dữ liệu') +
       settingsRow('account', ic('avatar', 26), 'tone-blue', 'Tài khoản', 'Thông tin cá nhân, bảo mật') +
       '</div>';
@@ -1120,6 +1213,8 @@
 
   function renderSettingsSub(key) {
     if (key === 'appearance') return subAppearance();
+    if (key === 'orbit') return subOrbit();
+    if (key === 'groups') return subGroups();
     if (key === 'ai') return subAI();
     if (key === 'data') return subData();
     if (key === 'account') return subAccount();
@@ -1133,6 +1228,35 @@
         '<input type="radio" name="theme" value="' + val + '" ' + (cur === val ? 'checked' : '') + ' data-action="settings-theme" data-theme="' + val + '"> ' + label + '</label>';
     }
     return backBtn() + '<h1 class="page-title">Chế độ hiển thị</h1><div class="radio-group">' + opt('light', '☀️ Sáng') + opt('dark', '🌙 Tối') + opt('system', '💻 Theo hệ thống') + '</div>';
+  }
+  function subOrbit() {
+    var pr = state.settings.relationPriority || DEFAULT_PRIORITY;
+    var rows = REL_TYPES.map(function (r) {
+      var opts = PRIORITIES.map(function (p) {
+        return '<option value="' + p.k + '"' + ((pr[r.k] || DEFAULT_PRIORITY[r.k]) === p.k ? ' selected' : '') + '>' + p.label + '</option>';
+      }).join('');
+      return '<div class="priority-row"><span>' + r.label + '</span>' +
+        '<select data-action="set-priority" data-rel="' + r.k + '" aria-label="Ưu tiên ' + r.label + '">' + opts + '</select></div>';
+    }).join('');
+    return backBtn() + '<h1 class="page-title">Quỹ đạo</h1>' +
+      '<div class="card" style="padding:16px;">' +
+      '<p class="muted" style="margin:0 0 12px;">Gia đình luôn nằm ở vòng gần tâm nhất. Các nhóm còn lại xếp theo mức ưu tiên bên dưới — mức cao hơn thì gần tâm hơn.</p>' +
+      rows + '</div>' +
+      '<div class="gap-note">Số vòng tự đổi theo sĩ số. Từ 98 người trở lên, quỹ đạo chuyển sang dạng chấm và chỉ hiện avatar của gia đình và người có dấu ★.</div>' +
+      '<button class="btn btn-block" data-action="reset-orbit-layout" style="margin-top:16px;">Đặt lại quỹ đạo</button>';
+  }
+  function subGroups() {
+    var gs = state.settings.groups || [];
+    var list = gs.length ? gs.map(function (g) {
+      var count = state.people.filter(function (p) { return (p.groups || []).indexOf(g.id) > -1; }).length;
+      return '<div class="group-row"><div class="t"><b>' + esc(g.name) + '</b><span>' + count + ' người</span></div>' +
+        '<button class="link-more" data-action="delete-group" data-gid="' + esc(g.id) + '">Xoá</button></div>';
+    }).join('') : '<p class="muted" style="margin:0;">Chưa có nhóm nào. Tạo nhóm để gom người theo lớp học, công ty, chuyến đi…</p>';
+    return backBtn() + '<h1 class="page-title">Nhóm</h1>' +
+      '<div class="card" style="padding:16px;">' + list + '</div>' +
+      '<form id="form-add-group" style="margin-top:16px;">' +
+      '<div class="field"><label>Tên nhóm mới</label><input type="text" name="name" placeholder="Vd: Đại học, Công ty cũ…" required></div>' +
+      '<button class="btn btn-primary btn-block" type="submit">Tạo nhóm</button></form>';
   }
   function subAI() {
     var on = state.settings.aiEnabled;
@@ -1255,13 +1379,25 @@
     );
   }
   function openAddPersonModal() {
+    var gs = state.settings.groups || [];
+    var relPicked = openAddPersonRel || 'friend';
+    var relHtml = REL_TYPES.map(function (r, i) {
+      return '<label class="chip-radio' + (r.k === relPicked ? ' on' : '') + '">' +
+        '<input type="radio" name="relationship" value="' + r.k + '"' + (r.k === relPicked ? ' checked' : '') + '>' +
+        '<span>' + r.label + '</span></label>';
+    }).join('');
+    var groupHtml = gs.map(function (g) {
+      return '<label class="chip-check"><input type="checkbox" name="groups" value="' + esc(g.id) + '"><span>' + esc(g.name) + '</span></label>';
+    }).join('');
     openModal(
       '<div class="modal-sheet"><div class="modal-head"><h3>Thêm người mới</h3><button data-action="close-modal">✕</button></div>' +
       '<form id="form-add-person">' +
       '<div class="field"><label>Tên</label><input type="text" name="name" required placeholder="Vd: Hoa"></div>' +
-      '<div class="field"><label>Mối quan hệ</label><select name="relationship">' +
-      '<option value="family">Gia đình</option><option value="friend" selected>Bạn bè</option>' +
-      '<option value="coworker">Đồng nghiệp</option><option value="soulmate">Tri kỉ</option><option value="closefriend">Bạn thân</option><option value="friend">Bạn</option><option value="coworker">Đồng nghiệp</option><option value="other">Khác</option></select></div>' +
+      '<div class="field"><label>Mối quan hệ</label><div class="chip-picker rel-picker">' + relHtml + '</div></div>' +
+      '<div class="field"><label>Nhóm <em class="field-hint">không bắt buộc, chọn nhiều được</em></label>' +
+      '<div class="chip-picker group-picker">' + groupHtml +
+      '<span class="new-group-row"><input type="text" id="new-group-name" placeholder="Nhóm mới…">' +
+      '<button type="button" class="chip-add" data-action="new-group-inline">+ Tạo</button></span></div></div>' +
       '<div class="field"><label>Mức độ thân thiết</label><select name="closeness">' +
       '<option value="1">Thân nhất</option><option value="2" selected>Thân</option><option value="3">Quen biết</option></select></div>' +
       '<div class="field"><label>Ngày sinh (không bắt buộc)</label><input type="date" name="birthday"></div>' +
@@ -1330,6 +1466,39 @@
   }
   /* Xoá riêng danh bạ, giữ cài đặt. Sự kiện gắn với người bị xoá cũng dọn theo
      để không còn sự kiện trỏ tới id đã mất. */
+  /* Đặt lại quỹ đạo: bỏ mọi vòng người dùng đã kéo tay, xếp lại theo mức ưu tiên */
+  function resetOrbitLayout() {
+    var had = state.people.filter(function (p) { return p.ring; }).length;
+    state.people.forEach(function (p) { delete p.ring; });
+    save(); render();
+    showToast(had ? 'Đã đặt lại quỹ đạo cho ' + had + ' người' : 'Quỹ đạo đã đúng thứ tự ưu tiên');
+  }
+  function createGroup(name) {
+    var n = (name || '').trim();
+    if (!n) return null;
+    var g = { id: uid('g'), name: n };
+    state.settings.groups = state.settings.groups || [];
+    state.settings.groups.push(g);
+    save();
+    return g;
+  }
+  function deleteGroup(gid) {
+    var g = (state.settings.groups || []).filter(function (x) { return x.id === gid; })[0];
+    if (!g) return;
+    if (!confirm('Xoá nhóm "' + g.name + '"? Người trong nhóm không bị xoá.')) return;
+    state.settings.groups = (state.settings.groups || []).filter(function (x) { return x.id !== gid; });
+    state.people.forEach(function (p) {
+      if (Array.isArray(p.groups)) p.groups = p.groups.filter(function (x) { return x !== gid; });
+    });
+    peopleGroupSel = peopleGroupSel.filter(function (x) { return x !== gid; });
+    save(); render(); showToast('Đã xoá nhóm');
+  }
+  function setRelationPriority(rel, level) {
+    state.settings.relationPriority = state.settings.relationPriority || JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+    state.settings.relationPriority[rel] = level;
+    save();
+    showToast('Đã đổi mức ưu tiên');
+  }
   function wipePeople() {
     if (!confirm('Xoá toàn bộ liên hệ? Sự kiện gắn với những người này cũng bị xoá. Không thể hoàn tác.')) return;
     var ids = {};
@@ -1411,7 +1580,35 @@
       case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
       case 'pick-avatar': setPersonAvatar(t.dataset.id, t.dataset.av); break;
       case 'clear-avatar': clearPersonAvatar(t.dataset.id); break;
-      case 'set-filter': peopleFilter = t.dataset.filter; render(); break;
+      case 'toggle-rel-filter': {
+        var rel = t.dataset.rel, ri = peopleRelSel.indexOf(rel);
+        if (ri > -1) peopleRelSel.splice(ri, 1); else peopleRelSel.push(rel);
+        render(); break;
+      }
+      case 'toggle-group-filter': {
+        var gid = t.dataset.gid, gi = peopleGroupSel.indexOf(gid);
+        if (gi > -1) peopleGroupSel.splice(gi, 1); else peopleGroupSel.push(gid);
+        render(); break;
+      }
+      case 'toggle-fav-filter': peopleFavOnly = !peopleFavOnly; render(); break;
+      case 'clear-filters': peopleRelSel = []; peopleGroupSel = []; peopleFavOnly = false; render(); break;
+      case 'reset-orbit-layout': resetOrbitLayout(); break;
+      case 'delete-group': deleteGroup(t.dataset.gid); break;
+      case 'new-group-inline': {
+        var gi2 = document.getElementById('new-group-name');
+        var nm = (gi2 && gi2.value || '').trim();
+        if (!nm) { if (gi2) gi2.focus(); return; }
+        var ng = createGroup(nm);
+        var box = document.querySelector('.group-picker');
+        if (ng && box) {
+          var lab = document.createElement('label');
+          lab.className = 'chip-check';
+          lab.innerHTML = '<input type="checkbox" name="groups" value="' + esc(ng.id) + '" checked><span>' + esc(ng.name) + '</span>';
+          box.insertBefore(lab, box.querySelector('.new-group-row'));
+        }
+        if (gi2) gi2.value = '';
+        break;
+      }
       case 'toggle-favorite': toggleFavorite(t.dataset.id); break;
       case 'delete-person': if (confirm('Xoá liên hệ này?')) deletePerson(t.dataset.id); break;
       case 'toggle-reminder': toggleReminder(t.dataset.pid, t.dataset.rid); break;
@@ -1439,6 +1636,13 @@
   }
   function onGlobalSubmit(e) {
     var form = e.target;
+    if (form.id === 'form-add-group') {
+      e.preventDefault();
+      var gname = (new FormData(form).get('name') || '').trim();
+      if (!gname) return;
+      createGroup(gname); render(); showToast('Đã tạo nhóm ' + gname);
+      return;
+    }
     if (form.id === 'form-add-person') {
       e.preventDefault();
       var fd = new FormData(form);
@@ -1447,6 +1651,7 @@
       var birthdayRaw = fd.get('birthday');
       var birthday = birthdayRaw ? toMMDD(new Date(birthdayRaw + 'T00:00:00')) : '';
       var p = mkPerson(name, fd.get('relationship'), Number(fd.get('closeness')), false, birthday, null, '', '');
+      p.groups = (fd.getAll('groups') || []).filter(Boolean);
       state.people.push(p); save(); closeModal(); showToast('Đã thêm ' + name); navigate('people');
     } else if (form.id === 'form-add-event') {
       e.preventDefault();
@@ -1460,6 +1665,15 @@
     }
   }
 
+  function onGlobalChange(e) {
+    var el = e.target;
+    if (!el || !el.dataset) return;
+    if (el.dataset.action === 'set-priority') {
+      setRelationPriority(el.dataset.rel, el.value);
+      render();
+    }
+  }
+
   /* ---------------------------- init ---------------------------- */
   function init() {
     applyTheme();
@@ -1470,6 +1684,7 @@
     if (!location.hash) location.hash = state.onboardingDone ? '#/home' : '#/onboarding';
     document.addEventListener('click', onGlobalClick);
     document.addEventListener('submit', onGlobalSubmit);
+    document.addEventListener('change', onGlobalChange);
     window.addEventListener('hashchange', render);
     render();
   }
