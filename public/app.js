@@ -452,6 +452,13 @@
   }
 
   function render() {
+    /* Trang mời công khai: người nhận không cần (và không nên) đi qua onboarding */
+    var pre = currentRoute();
+    if (pre[0] === 'memory' && pre[1] === 'invite' && pre[2]) {
+      document.getElementById('app').innerHTML = renderInvitePage(pre[2]);
+      loadInvitePage(pre[2]);
+      return;
+    }
     if (!state.onboardingDone) {
       document.getElementById('app').innerHTML = renderOnboarding();
       return;
@@ -1004,8 +1011,14 @@
   function renderPersonDetail(id) {
     var p = state.people.find(function (x) { return x.id === id; });
     if (!p) return '<p>Không tìm thấy người này.</p><a class="btn btn-ghost" href="#/people">‹ Quay lại</a>';
-    var mems = p.memories || [];
-    var memTiles = mems.slice(0, 3).map(function (m) { return '<div class="memory-tile" style="background:' + m.color + ';">' + esc(m.caption) + '</div>'; }).join('');
+    var mems = (p.memories || []).filter(function (m) { return !m.hidden; });
+    var memTiles = mems.slice(0, 3).map(function (m) {
+      if (m.type === 'guest_message') {
+        return '<button class="memory-tile guest" data-action="open-guest-memory" data-id="' + esc(p.id) + '" data-mid="' + esc(m.id) + '" style="background:' + (m.color || '#F6E2E4') + ';">' +
+          '<span class="mem-badge">Lời nhắn gửi đến bạn</span>' + esc(m.caption) + '</button>';
+      }
+      return '<div class="memory-tile" style="background:' + m.color + ';">' + esc(m.caption) + '</div>';
+    }).join('');
     var extra = mems.length > 3
       ? '<div class="memory-tile" style="background:#999;"><div class="more-badge">+' + (mems.length - 3) + '</div></div>'
       : '<div class="memory-tile add" data-action="add-memory" data-id="' + p.id + '">+</div>';
@@ -1058,7 +1071,9 @@
       '<div class="pd-grid">' +
       '<div class="pd-col">' +
       '<section class="pd-block">' +
-      '<div class="section-head"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
+      '<div class="section-head"><h2>Kỷ niệm</h2><div class="head-actions">' +
+      '<button class="link-more invite-btn" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
+      '<button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div></div>' +
       '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
 
       '<section class="pd-block">' +
@@ -1220,6 +1235,324 @@
     );
   }
 
+  /* ==================== Gửi một kỷ niệm (invite link) ==================== */
+
+  var OWNER_KEY = 'orbit_owner_v1';
+
+  function b64urlFrom(bytes) {
+    var s = '';
+    var arr = new Uint8Array(bytes);
+    for (var i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  /* Danh tính chủ Orbit chỉ nằm trên máy này: id ngẫu nhiên 128-bit + secret.
+     Không có đăng nhập, nên đây là thứ duy nhất chứng minh quyền đọc hộp thư. */
+  function ownerIdentity() {
+    try {
+      var raw = localStorage.getItem(OWNER_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && o.id && o.secret) return o;
+      }
+    } catch (e) {}
+    var rnd = new Uint8Array(48);
+    (window.crypto || window.msCrypto).getRandomValues(rnd);
+    var ident = { id: b64urlFrom(rnd.subarray(0, 16)), secret: b64urlFrom(rnd.subarray(16, 48)) };
+    try { localStorage.setItem(OWNER_KEY, JSON.stringify(ident)); } catch (e) {}
+    return ident;
+  }
+
+  function apiCall(path, method, body) {
+    var opts = { method: method || 'GET', headers: {} };
+    if (body) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(path, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, data: j }; });
+    });
+  }
+
+  var inviteShare = null;   // { token, url, personId, expiresAt }
+
+  function openInviteModal(pid) {
+    var p = state.people.find(function (x) { return x.id === pid; });
+    if (!p) return;
+    var ident = ownerIdentity();
+    openModal('<div class="modal-sheet invite-sheet"><div class="modal-head"><h3>Mời gửi kỷ niệm</h3>' +
+      '<button data-action="close-modal">✕</button></div><div class="invite-loading">Đang tạo link…</div></div>');
+    apiCall('/api/invite', 'POST', {
+      ownerId: ident.id, ownerSecret: ident.secret,
+      ownerName: (state.settings.profileName || 'Bạn'),
+      personId: p.id, personName: p.name
+    }).then(function (res) {
+      if (!res.ok) { openModal('<div class="modal-sheet"><div class="modal-head"><h3>Không tạo được link</h3>' +
+        '<button data-action="close-modal">✕</button></div><p class="muted">Lỗi ' + res.status + '. Thử lại sau nhé.</p></div>'); return; }
+      var url = location.origin + res.data.path;
+      inviteShare = { token: res.data.token, url: url, personId: p.id, expiresAt: res.data.expiresAt };
+      var qrSvg = '';
+      try {
+        var qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+        qrSvg = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+      } catch (e) { qrSvg = ''; }
+      var days = Math.max(1, Math.round((Date.parse(res.data.expiresAt) - Date.now()) / 864e5));
+      openModal('<div class="modal-sheet invite-sheet">' +
+        '<div class="modal-head"><h3>Mời ' + esc(p.name) + ' gửi kỷ niệm</h3><button data-action="close-modal">✕</button></div>' +
+        '<p class="invite-lead">Gửi link này cho ' + esc(p.name) + '. Họ mở là viết được ngay — không cần tài khoản, không thấy dữ liệu nào khác của bạn.</p>' +
+        '<div class="invite-qr">' + qrSvg + '</div>' +
+        '<label class="invite-link-label">Link mời</label>' +
+        '<div class="invite-link"><input id="invite-url" type="text" readonly value="' + esc(url) + '">' +
+        '<button class="btn btn-primary" data-action="copy-invite">Sao chép</button></div>' +
+        '<div class="invite-actions">' +
+        '<button class="btn btn-ghost" data-action="share-invite">Chia sẻ…</button>' +
+        '<button class="btn btn-ghost danger-ghost" data-action="revoke-invite">Thu hồi link</button></div>' +
+        '<p class="invite-note">Link chỉ nhận được <b>một</b> lời nhắn, hết hạn sau ' + days + ' ngày. Bạn có thể tạo link mới bất cứ lúc nào.</p>' +
+        '</div>');
+    }).catch(function () {
+      openModal('<div class="modal-sheet"><div class="modal-head"><h3>Mất kết nối</h3>' +
+        '<button data-action="close-modal">✕</button></div><p class="muted">Không gọi được máy chủ. Kiểm tra mạng rồi thử lại.</p></div>');
+    });
+  }
+
+  function copyInviteLink() {
+    var inp = document.getElementById('invite-url');
+    if (!inp) return;
+    inp.select(); inp.setSelectionRange(0, 99999);
+    var done = function () { showToast('Đã sao chép link'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(inp.value).then(done, function () { document.execCommand('copy'); done(); });
+    } else { document.execCommand('copy'); done(); }
+  }
+
+  /* ---------------------- Hộp thư kỷ niệm nhận được ---------------------- */
+
+  var inboxSyncAt = 0;
+  function syncInbox(force) {
+    var ident = ownerIdentity();
+    var now = Date.now();
+    if (!force && now - inboxSyncAt < 45000) return Promise.resolve();
+    inboxSyncAt = now;
+    return apiCall('/api/inbox?owner=' + encodeURIComponent(ident.id) + '&secret=' + encodeURIComponent(ident.secret))
+      .then(function (res) {
+        if (!res.ok || !res.data.memories) return;
+        var changed = false;
+        res.data.memories.forEach(function (m) {
+          var person = state.people.filter(function (x) { return x.id === m.personId; })[0];
+          if (!person) return;                       // người đã bị xoá -> bỏ qua
+          person.memories = person.memories || [];
+          var exists = person.memories.some(function (x) { return x.id === m.id; });
+          if (exists) return;
+          person.memories.push({
+            id: m.id, caption: m.content, color: '#F6E2E4',
+            type: 'guest_message', images: m.images || [], createdAt: m.createdAt,
+            source: m.source, hidden: !!m.hidden
+          });
+          logActivity(person, 'Nhận một lời nhắn từ link mời');
+          changed = true;
+        });
+        if (changed) { save(); render(); }
+      })
+      .catch(function () { /* offline: để lần sau */ });
+  }
+
+  function openGuestMemory(pid, mid) {
+    var p = state.people.find(function (x) { return x.id === pid; });
+    if (!p) return;
+    var m = (p.memories || []).filter(function (x) { return x.id === mid; })[0];
+    if (!m) return;
+    var imgs = (m.images || []).map(function (src) {
+      return '<img class="gm-img" src="' + src + '" alt="">';
+    }).join('');
+    var when = m.createdAt ? timeAgo(m.createdAt) : '';
+    openModal('<div class="modal-sheet guest-sheet"><div class="modal-head"><h3>Lời nhắn gửi đến bạn</h3>' +
+      '<button data-action="close-modal">✕</button></div>' +
+      '<div class="gm-body">' + esc(m.caption).replace(/\n/g, '<br>') + '</div>' +
+      (imgs ? '<div class="gm-imgs">' + imgs + '</div>' : '') +
+      '<p class="gm-meta">Nhận ' + esc(when) + ' · từ link mời dành cho ' + esc(p.name) + '</p>' +
+      '<div class="gm-actions">' +
+      '<button class="btn btn-ghost" data-action="hide-guest-memory" data-id="' + esc(pid) + '" data-mid="' + esc(mid) + '">Ẩn khỏi Kỷ niệm</button>' +
+      '<button class="btn btn-ghost danger-ghost" data-action="delete-guest-memory" data-id="' + esc(pid) + '" data-mid="' + esc(mid) + '">Xoá</button>' +
+      '</div></div>');
+  }
+
+  function guestMemoryAction(action, pid, mid) {
+    var p = state.people.find(function (x) { return x.id === pid; });
+    if (!p) return;
+    var ident = ownerIdentity();
+    apiCall('/api/memory/' + encodeURIComponent(mid) + '/' + action, 'POST',
+      { ownerId: ident.id, ownerSecret: ident.secret, hidden: true }).then(function (res) {
+        if (!res.ok) { showToast('Không thực hiện được, thử lại sau'); return; }
+        if (action === 'delete') {
+          p.memories = (p.memories || []).filter(function (x) { return x.id !== mid; });
+        } else {
+          (p.memories || []).forEach(function (x) { if (x.id === mid) x.hidden = true; });
+        }
+        save(); closeModal(); render(); showToast(action === 'delete' ? 'Đã xoá lời nhắn' : 'Đã ẩn lời nhắn');
+      }).catch(function () { showToast('Mất kết nối'); });
+  }
+
+  /* ---------------------- Trang công khai cho người nhận ---------------------- */
+
+  function renderInvitePage(token) {
+    return '<div class="invite-page" id="invitePage">' +
+      '<div class="invite-bg" aria-hidden="true"></div>' +
+      '<div class="invite-card" id="inviteCard"><div class="invite-state">Đang mở lời mời…</div></div></div>';
+  }
+
+  function loadInvitePage(token) {
+    var card = document.getElementById('inviteCard');
+    if (!card) return;
+    apiCall('/api/invite/' + encodeURIComponent(token)).then(function (res) {
+      var d = res.data || {};
+      if (!res.ok && d.status !== 'used') return inviteStateCard('missing');
+      if (d.status !== 'open') return inviteStateCard(d.status);
+      card.innerHTML = inviteFormHtml(d);
+      bindInviteForm(token, d);
+    }).catch(function () { inviteStateCard('offline'); });
+  }
+
+  function inviteStateCard(state) {
+    var card = document.getElementById('inviteCard');
+    if (!card) return;
+    var map = {
+      used: ['Lời mời này đã được sử dụng 🌙', 'Mỗi link chỉ nhận một lời nhắn. Nếu bạn muốn gửi thêm, hãy xin người ấy một link mới nhé.'],
+      expired: ['Lời mời đã hết hạn', 'Link mời chỉ sống 30 ngày. Bạn nhắn người ấy tạo link mới nhé.'],
+      revoked: ['Lời mời đã được thu hồi', 'Người tạo link đã thu hồi lời mời này.'],
+      missing: ['Không tìm thấy lời mời', 'Link có thể sai hoặc đã bị xoá.'],
+      offline: ['Không kết nối được', 'Kiểm tra mạng rồi mở lại link nhé.']
+    };
+    var m = map[state] || map.missing;
+    card.innerHTML = '<div class="invite-state"><div class="st-emoji">✨</div><h1>' + m[0] + '</h1><p>' + m[1] + '</p></div>';
+  }
+
+  function inviteFormHtml(d) {
+    var max = d.maxContent || 500;
+    var hints = ['Một kỷ niệm đáng nhớ', 'Một lời chúc', 'Điều mình trân trọng ở bạn', 'Một câu nhắn ngẫu hứng'];
+    return '<div class="invite-head">' +
+      '<p class="invite-from">Gửi ' + esc(d.personName || 'bạn') + '</p>' +
+      '<h1>Một lời nhắn, một kỷ niệm ✨</h1>' +
+      '<p class="invite-sub">Có điều gì bạn muốn nhắn gửi, hay một kỷ niệm mà hai người từng có? Hãy để lại một chút yêu thương tại đây nhé.</p></div>' +
+      '<form id="form-invite-memory" novalidate>' +
+      '<div class="field"><textarea id="invite-text" name="content" maxlength="' + max + '" rows="5" placeholder="Viết một chút…"></textarea>' +
+      '<div class="invite-count"><span id="invite-count">0</span>/' + max + '</div></div>' +
+      '<div class="invite-hints">' + hints.map(function (h) {
+        return '<button type="button" class="hint-chip" data-action="invite-hint" data-hint="' + esc(h) + '">' + h + '</button>';
+      }).join('') + '</div>' +
+      '<div class="invite-attach"><label class="attach-btn">📎 Đính kèm ảnh<input id="invite-files" type="file" accept="image/*" multiple hidden></label>' +
+      '<span class="attach-note" id="attach-note">Tối đa 3 ảnh</span></div>' +
+      '<div class="invite-thumbs" id="invite-thumbs"></div>' +
+      '<button type="submit" class="btn btn-primary btn-block invite-send" id="invite-send">Gửi kỷ niệm ✨</button>' +
+      '<p class="invite-error" id="invite-error" hidden></p>' +
+      '</form>';
+  }
+
+  function bindInviteForm(token, d) {
+    var ta = document.getElementById('invite-text');
+    var count = document.getElementById('invite-count');
+    var files = document.getElementById('invite-files');
+    var thumbs = document.getElementById('invite-thumbs');
+    var note = document.getElementById('attach-note');
+    var errBox = document.getElementById('invite-error');
+    var picked = [];
+
+    ta.addEventListener('input', function () { count.textContent = ta.value.length; });
+
+    files.addEventListener('change', function () {
+      var list = Array.prototype.slice.call(files.files || []).slice(0, 3 - picked.length);
+      list.forEach(function (file) {
+        if (!/^image\//.test(file.type)) return;
+        compressImage(file).then(function (dataUrl) {
+          if (!dataUrl || picked.length >= 3) return;
+          picked.push(dataUrl);
+          renderThumbs();
+        });
+      });
+      files.value = '';
+    });
+
+    function renderThumbs() {
+      thumbs.innerHTML = picked.map(function (src, i) {
+        return '<span class="thumb"><img src="' + src + '" alt=""><button type="button" data-action="invite-remove-photo" data-i="' + i + '">✕</button></span>';
+      }).join('');
+      note.textContent = picked.length + '/3 ảnh';
+    }
+
+    var form = document.getElementById('form-invite-memory');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var content = ta.value.trim();
+      errBox.hidden = true;
+      if (!content) { errBox.textContent = 'Bạn viết một chút gì đó trước nhé.'; errBox.hidden = false; ta.focus(); return; }
+      var btn = document.getElementById('invite-send');
+      btn.disabled = true; btn.textContent = 'Đang gửi…';
+      apiCall('/api/invite/' + encodeURIComponent(token), 'POST', { content: content, images: picked })
+        .then(function (res) {
+          if (res.ok) return showInviteSuccess();
+          var map = {
+            used: 'Lời mời này vừa được dùng rồi.', expired: 'Lời mời đã hết hạn.',
+            revoked: 'Lời mời đã bị thu hồi.', rate_limited: 'Bạn gửi hơi nhanh, thử lại sau ít phút nhé.',
+            too_many_images: 'Chỉ đính kèm được tối đa 3 ảnh.', bad_image: 'Có ảnh không đọc được, thử ảnh khác nhé.',
+            too_long: 'Lời nhắn dài quá ' + (d.maxContent || 500) + ' ký tự.'
+          };
+          errBox.textContent = map[res.data && res.data.error] || 'Gửi không thành công, thử lại nhé.';
+          errBox.hidden = false;
+          btn.disabled = false; btn.textContent = 'Gửi kỷ niệm ✨';
+        })
+        .catch(function () {
+          errBox.textContent = 'Mất kết nối. Thử lại khi có mạng nhé.';
+          errBox.hidden = false;
+          btn.disabled = false; btn.textContent = 'Gửi kỷ niệm ✨';
+        });
+    });
+
+    document.getElementById('invitePage').addEventListener('click', function (e) {
+      var t = e.target.closest('[data-action]');
+      if (!t) return;
+      if (t.dataset.action === 'invite-hint') {
+        ta.value = t.dataset.hint ? (ta.value ? ta.value + ' ' : '') + t.dataset.hint : ta.value;
+        count.textContent = ta.value.length; ta.focus();
+      }
+      if (t.dataset.action === 'invite-remove-photo') {
+        picked.splice(Number(t.dataset.i), 1); renderThumbs();
+      }
+    });
+  }
+
+  function showInviteSuccess() {
+    var card = document.getElementById('inviteCard');
+    if (!card) return;
+    card.innerHTML = '<div class="invite-state success">' +
+      '<div class="stars" aria-hidden="true">' + '<i></i><i></i><i></i><i></i><i></i><i></i>' + '</div>' +
+      '<div class="st-emoji">✨</div>' +
+      '<h1>Kỷ niệm của bạn đã được gửi đi ✨</h1>' +
+      '<p>Một ngôi sao nhỏ vừa được lưu vào Orbit của người ấy.</p></div>';
+  }
+
+  /* Nén ảnh phía client để không đẩy file thô lên (giới hạn 400KB/ảnh ở server) */
+  function compressImage(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1000;
+          var scale = Math.min(1, max / Math.max(img.width, img.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          var q = 0.72, out = cv.toDataURL('image/jpeg', q);
+          var tries = 0;
+          while (out.length > 360 * 1024 && tries < 4) {
+            q -= 0.12; tries++;
+            out = cv.toDataURL('image/jpeg', Math.max(0.3, q));
+          }
+          resolve(out);
+        };
+        img.onerror = function () { resolve(null); };
+        img.src = reader.result;
+      };
+      reader.onerror = function () { resolve(null); };
+      reader.readAsDataURL(file);
+    });
+  }
+
   /* ---------------------------- Settings ---------------------------- */
   function settingsRow(key, icon, tone, title, sub) {
     return '<a class="settings-row card" href="#/settings/' + key + '"><div class="ic-wrap ' + tone + '">' + icon + '</div>' +
@@ -1367,7 +1700,7 @@
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
-  function finishOnboarding() { state.onboardingDone = true; save(); navigate('home'); }
+  function finishOnboarding() { state.onboardingDone = true; save(); navigate('home'); syncInbox(true); }
   function tryContactsImport() {
     if ('contacts' in navigator && 'ContactsManager' in window) {
       navigator.contacts.select(['name', 'tel'], { multiple: true }).then(function (contacts) {
@@ -1641,6 +1974,29 @@
       case 'quick-birthday': quickActionBirthday(t.dataset.id); break;
       case 'quick-note-focus': var ta = document.getElementById('notes-area'); if (ta) ta.focus(); break;
       case 'add-memory': addMemoryPrompt(t.dataset.id); break;
+      case 'invite-memory': openInviteModal(t.dataset.id); break;
+      case 'copy-invite': copyInviteLink(); break;
+      case 'share-invite':
+        if (inviteShare && navigator.share) {
+          navigator.share({ title: 'Một lời nhắn cho bạn', text: 'Gửi bạn một lời mời nhỏ trên Orbit', url: inviteShare.url })
+            .catch(function () {});
+        } else { copyInviteLink(); }
+        break;
+      case 'revoke-invite':
+        if (!inviteShare) break;
+        if (!confirm('Thu hồi link này? Người nhận sẽ không mở được nữa.')) break;
+        (function () {
+          var ident = ownerIdentity();
+          apiCall('/api/invite/' + encodeURIComponent(inviteShare.token) + '/revoke', 'POST',
+            { ownerId: ident.id, ownerSecret: ident.secret }).then(function (res) {
+              showToast(res.ok ? 'Đã thu hồi link' : 'Không thu hồi được');
+              if (res.ok) closeModal();
+            }).catch(function () { showToast('Mất kết nối'); });
+        })();
+        break;
+      case 'open-guest-memory': openGuestMemory(t.dataset.id, t.dataset.mid); break;
+      case 'hide-guest-memory': guestMemoryAction('hide', t.dataset.id, t.dataset.mid); break;
+      case 'delete-guest-memory': guestMemoryAction('delete', t.dataset.id, t.dataset.mid); break;
       case 'open-all-upcoming': openAllUpcomingModal(); break;
       case 'cal-prev': calMonthOffset--; render(); break;
       case 'cal-next': calMonthOffset++; render(); break;
@@ -1706,12 +2062,19 @@
       var mq = window.matchMedia('(prefers-color-scheme: dark)');
       if (mq.addEventListener) mq.addEventListener('change', function () { if (state.settings.theme === 'system') applyTheme(); });
     }
+    /* Link chia sẻ dạng /memory/invite/<token> (không dấu #) -> chuyển về route hash */
+    var pm = /^\/memory\/invite\/([A-Za-z0-9_-]+)\/?$/.exec(location.pathname);
+    if (pm) history.replaceState(null, '', '/#/memory/invite/' + pm[1]);
     if (!location.hash) location.hash = state.onboardingDone ? '#/home' : '#/onboarding';
     document.addEventListener('click', onGlobalClick);
     document.addEventListener('submit', onGlobalSubmit);
     document.addEventListener('change', onGlobalChange);
     window.addEventListener('hashchange', render);
     render();
+    /* loadState luôn đưa về onboarding nên không thể chờ cờ onboardingDone ở đây;
+       hộp thư chỉ đọc, gọi sớm cũng không hại gì. */
+    syncInbox(true);
+    setInterval(function () { syncInbox(false); }, 60000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
