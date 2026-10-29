@@ -145,9 +145,12 @@
   }
 
   /* ---------------------------- data model ---------------------------- */
-  function mkPerson(name, rel, closeness, favorite, birthdayMMDD, sinceYear, quote, notes) {
+  /* Bỏ "mức độ thân thiết": thứ tự trong một nhóm giờ do mức ưu tiên của nhóm
+     quan hệ + dấu ★ quyết định, nên không còn trường closeness nữa. Tham số cũ
+     vẫn nhận cho tương thích với các lời gọi cũ nhưng không lưu vào dữ liệu. */
+  function mkPerson(name, rel, _closeness, favorite, birthdayMMDD, sinceYear, quote, notes) {
     return {
-      id: uid('p'), name: name, relationship: rel, closeness: closeness, favorite: !!favorite,
+      id: uid('p'), name: name, relationship: rel, favorite: !!favorite,
       birthday: birthdayMMDD || '', since: sinceYear || null, quote: quote || '', notes: notes || '',
       memories: [], favoriteTag: false,
       reminders: birthdayMMDD ? [{ id: uid('rm'), label: 'Sinh nhật', mmdd: birthdayMMDD, enabled: true }] : [],
@@ -234,6 +237,7 @@
           if (REL_MIGRATE[p.relationship]) p.relationship = REL_MIGRATE[p.relationship];
           if (!REL_LABEL[p.relationship]) p.relationship = 'other';
           if (!Array.isArray(p.groups)) p.groups = [];
+          if ('closeness' in p) delete p.closeness;
         });
         return parsed;
       }
@@ -782,7 +786,6 @@
     });
     auto.sort(function (a, b) {
       return relRank(a.relationship) - relRank(b.relationship) ||
-        (a.closeness || 3) - (b.closeness || 3) ||
         (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0) ||
         String(a.name).localeCompare(String(b.name), 'vi');
     });
@@ -967,8 +970,6 @@
     if (p.since) {
       var years = new Date().getFullYear() - Number(p.since);
       if (years > 0) bits.push('bên nhau ' + years + ' năm');
-    } else {
-      bits.push(p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết');
     }
     return bits.join(' · ');
   }
@@ -1048,7 +1049,6 @@
       '<section class="pd-block">' +
       '<div class="section-head"><h2>Thông tin nhanh</h2></div>' +
       '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
-      '<div class="quickinfo-row"><span class="ic">❤️</span> Mức độ <b>' + (p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">🏷️</span> Mối quan hệ <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
       ((p.groups || []).length ? '<div class="quickinfo-row"><span class="ic">📁</span> Nhóm <b>' + esc(groupNames(p.groups).join(', ')) + '</b></div>' : '') +
       '</section>' +
@@ -1398,8 +1398,6 @@
       '<div class="chip-picker group-picker">' + groupHtml +
       '<span class="new-group-row"><input type="text" id="new-group-name" placeholder="Nhóm mới…">' +
       '<button type="button" class="chip-add" data-action="new-group-inline">+ Tạo</button></span></div></div>' +
-      '<div class="field"><label>Mức độ thân thiết</label><select name="closeness">' +
-      '<option value="1">Thân nhất</option><option value="2" selected>Thân</option><option value="3">Quen biết</option></select></div>' +
       '<div class="field"><label>Ngày sinh (không bắt buộc)</label><input type="date" name="birthday"></div>' +
       '<button type="submit" class="btn btn-primary btn-block">Thêm vào Orbit</button></form></div>'
     );
@@ -1650,7 +1648,7 @@
       if (!name) return;
       var birthdayRaw = fd.get('birthday');
       var birthday = birthdayRaw ? toMMDD(new Date(birthdayRaw + 'T00:00:00')) : '';
-      var p = mkPerson(name, fd.get('relationship'), Number(fd.get('closeness')), false, birthday, null, '', '');
+      var p = mkPerson(name, fd.get('relationship'), null, false, birthday, null, '', '');
       p.groups = (fd.getAll('groups') || []).filter(Boolean);
       state.people.push(p); save(); closeModal(); showToast('Đã thêm ' + name); navigate('people');
     } else if (form.id === 'form-add-event') {
