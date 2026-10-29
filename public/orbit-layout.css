@@ -213,13 +213,27 @@
       radial-gradient(circle at 56% 54%, rgba(246,226,228,.20) 0%, rgba(246,226,228,0) 62%),
       radial-gradient(ellipse at 48% 46%, #FFFDFB 0%, var(--cream) 74%);
   }
-  .people-orbit-col .orbit-pan { right:46%; }
+  /* Chừa thêm 40px để vòng ngoài không chui xuống tab "Thu gọn" */
+  .people-orbit-col .orbit-pan { right:calc(46% + 40px); }
   .contacts-collapsed .orbit-pan { right:0; }
-  .orbit-stage { width:min(96vw,124dvh,1120px); height:min(96vw,124dvh,1120px); }
-  .people-split:not(.contacts-collapsed) .orbit-stage { width:min(34vw,66dvh,520px); height:min(34vw,66dvh,520px); }
+  /* Stage phải LỌT trong khung nhìn: 124dvh làm vòng ngoài bị cắt trên/dưới.
+     Chừa ~8% cho bán kính avatar + nhãn tên. */
+  .orbit-stage { width:min(92vw,80dvh,1000px); height:min(92vw,80dvh,1000px); }
+  /* Mở danh bạ: .orbit-pan chỉ còn 54% bề ngang -> stage cũ 520px quá bé so với
+     khung ~810px, nên orbit co cụm giữa canvas trống. Nới ra cho lấp đầy. */
+  /* Ràng theo BỀ NGANG KHUNG (100% của .orbit-pan) chứ không theo vw: ở 1366/1440
+     cách tính vw cũ vẫn rộng hơn khung nên vòng ngoài lòi sang danh bạ. */
+  .people-split:not(.contacts-collapsed) .orbit-stage {
+    width:min(calc(100% - 64px), 80dvh, 760px); height:min(calc(100% - 64px), 80dvh, 760px);
+  }
+
+  /* Thu gọn danh bạ -> canvas rộng, avatar không cần nhỏ như khi panel mở */
   .orbit-avatar { width:42px; height:42px; }
   .orbit-avatar span.name-tag { top:44px; font-size:10px; }
+  .people-split.contacts-collapsed .orbit-avatar { width:54px; height:54px; }
+  .people-split.contacts-collapsed .orbit-avatar span.name-tag { top:56px; font-size:11px; }
   .orbit-center { width:70px; height:70px; }
+  .people-split.contacts-collapsed .orbit-center { width:88px; height:88px; }
 
   /* Nút +,-,⊙,⏸ gói trong một KHUNG dọc, dịch lên trên (ô xanh người dùng khoanh) */
   .orbit-zoom {

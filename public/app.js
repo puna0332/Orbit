@@ -672,35 +672,41 @@
   }
   function renderOrbit(people, compact) {
     var rings = [[], [], [], [], [], []];
-    /* Khi đang lọc (vd chỉ xem "Bạn bè") thì cả nhóm đều rơi vào vòng ngoài nên
-       vòng 1-2-3 trống trơn. Dồn cả nhóm vào trong, giữ nguyên thứ tự thân thiết. */
-    var shift = 0;
+    var pcts = RING_PCT.slice();
     if (compact && people.length) {
-      var minRing = 6;
-      people.forEach(function (p) { minRing = Math.min(minRing, autoRingFor(p)); });
-      shift = minRing - 1;
+      /* Lọc một nhóm: KHÔNG nhồi cả nhóm vào mấy vòng trong cùng (vòng 24% mà
+         chứa 8 người thì avatar chồng lên nhau). Chọn số vòng theo sĩ số, trải
+         đều ra tới vòng ngoài cùng, rồi chia người theo chu vi — vòng càng rộng
+         nhận càng nhiều — nên không vòng nào bị díu và không phí bán kính. */
+      var n = people.length;
+      var k = n <= 3 ? 1 : n <= 8 ? 2 : n <= 18 ? 3 : n <= 32 ? 4 : 5;
+      pcts = [];
+      for (var s = 0; s < k; s++) pcts.push(k === 1 ? 58 : Math.round(99 * (s + 1) / k));
+      var totalPct = pcts.reduce(function (a, b) { return a + b; }, 0);
+      var ordered = people.slice().sort(function (a, b) {
+        return autoRingFor(a) - autoRingFor(b) || (a.closeness || 3) - (b.closeness || 3);
+      });
+      var used = 0;
+      for (var s2 = 0; s2 < k; s2++) {
+        var take = s2 === k - 1
+          ? Math.max(0, n - used)
+          : Math.max(1, Math.round(n * pcts[s2] / totalPct));
+        rings[s2] = ordered.slice(used, used + take);
+        used += rings[s2].length;
+      }
+      rings.length = k;   // chỉ vẽ đúng số vòng đang dùng
+    } else {
+      people.forEach(function (p) {
+        var idx = autoRingFor(p) - 1;
+        // vòng đầy thì đẩy ra vòng ngoài kế tiếp
+        while (idx < 5 && rings[idx].length >= RING_CAP[idx]) idx++;
+        rings[idx].push(p);
+      });
     }
-    var ordered = compact
-      ? people.slice().sort(function (a, b) {
-          return autoRingFor(a) - autoRingFor(b) || (a.closeness || 3) - (b.closeness || 3);
-        })
-      : people;
-    ordered.forEach(function (p) {
-      var idx = autoRingFor(p) - 1 - shift;
-      if (idx < 0) idx = 0;
-      // vòng đầy thì đẩy ra vòng ngoài kế tiếp
-      while (idx < 5 && rings[idx].length >= RING_CAP[idx]) idx++;
-      rings[idx].push(p);
-    });
     var scene = '';
-    /* Khi lọc: bỏ hẳn những vòng không có ai, và kéo các vòng còn lại vào trong
-       theo thứ tự liền nhau để không chừa vòng rỗng giữa chừng. */
-    var slots = [];
-    rings.forEach(function (list, r) { if (!compact || list.length) slots.push(r); });
-    slots.forEach(function (r, slot) {
-      var list = rings[r];
-      var ri = compact ? slot : r;
-      var diameter = RING_PCT[ri], period = 90 + ri * 40;
+    rings.forEach(function (list, r) {
+      var ri = r;
+      var diameter = pcts[r], period = 90 + r * 40;
       scene += '<div class="orbit-ring" data-ring="' + (ri + 1) + '" style="width:' + diameter + '%;height:' + diameter + '%"></div>';
       list.forEach(function (p, i) {
         var delay = -(i / Math.max(list.length, 1) + ri * 0.11) * period;
