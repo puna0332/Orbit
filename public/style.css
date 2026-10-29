@@ -86,7 +86,8 @@ body {
   background: var(--cream);
   color: var(--ink);
   font-family: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  letter-spacing: .1px;
+  font-weight: 500;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   transition: background .25s ease, color .25s ease;
 }

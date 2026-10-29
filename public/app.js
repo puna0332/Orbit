@@ -20,7 +20,34 @@
     return '<img class="ev-tile" src="assets/events/' + name + '.png" alt="" width="' + size + '" height="' + size + '">';
   }
   var TONE = { birthday: 'tone-pink', trip: 'tone-blue', memory: 'tone-green', meeting: 'tone-purple', work: 'tone-orange', workshop: 'tone-blue', custom: 'tone-purple' };
-  var TONE_DOT = { 'tone-pink': '#B5505E', 'tone-blue': '#3D63A8', 'tone-green': '#3E7A4C', 'tone-purple': '#6A50B0', 'tone-orange': '#B6702A' };
+  var TONE_DOT = { 'tone-pink': '#B5505E', 'tone-blue': '#3D63A8', 'tone-green': '#3E7A4C', 'tone-purple': '#6A50B0', 'tone-orange': '#B6702A', 'tone-peach': '#C2764A', 'tone-mint': '#3E8A72', 'tone-lilac': '#6B5DB8', 'tone-slate': '#4A6076', 'tone-cream': '#8A7A66' };
+
+  /* Bộ 10 icon sự kiện của app (tách từ element sheet) */
+  var EVENT_CATS = [
+    { k: 'birthday', label: 'Sinh nhật', img: 'ev-01-birthday.png', tone: 'tone-pink' },
+    { k: 'memory',   label: 'Kỷ niệm & Hẹn hò', img: 'ev-02-memory.png', tone: 'tone-green' },
+    { k: 'family',   label: 'Gia đình', img: 'ev-03-family.png', tone: 'tone-peach' },
+    { k: 'friends',  label: 'Tụ tập & Bạn bè', img: 'ev-04-friends.png', tone: 'tone-orange' },
+    { k: 'trip',     label: 'Đi ăn & Đi chơi', img: 'ev-05-trip.png', tone: 'tone-blue' },
+    { k: 'fun',      label: 'Giải trí', img: 'ev-06-fun.png', tone: 'tone-purple' },
+    { k: 'health',   label: 'Tập luyện & Sức khỏe', img: 'ev-07-health.png', tone: 'tone-mint' },
+    { k: 'study',    label: 'Học tập & Deadline', img: 'ev-08-study.png', tone: 'tone-lilac' },
+    { k: 'work',     label: 'Công việc', img: 'ev-09-work.png', tone: 'tone-slate' },
+    { k: 'other',    label: 'Khác', img: 'ev-10-other.png', tone: 'tone-cream' }
+  ];
+  var EV_BY_KEY = {};
+  EVENT_CATS.forEach(function (c) { EV_BY_KEY[c.k] = c; });
+  // Loại cũ (meeting/workshop/custom) vẫn dùng icon riêng cho tới khi người dùng đổi
+  var LEGACY_EV = { meeting: 'ev-04-friends.png', workshop: 'ev-08-study.png', custom: 'ev-10-other.png' };
+  function evIcon(kind, size) {
+    var c = EV_BY_KEY[kind];
+    var src = c ? c.img : (LEGACY_EV[kind] || 'ev-10-other.png');
+    return '<img class="ev-ic" src="assets/event-icons/' + src + '" alt="" width="' + size + '" height="' + size + '">';
+  }
+  function evTone(kind) {
+    var c = EV_BY_KEY[kind];
+    return c ? c.tone : (TONE[kind] || 'tone-cream');
+  }
   var REL_LABEL = { family: 'Gia đình', soulmate: 'Tri kỉ', closefriend: 'Bạn thân', friend: 'Bạn', coworker: 'Đồng nghiệp', other: 'Khác' };
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
@@ -397,9 +424,28 @@
       orbitView.y += dy * 0.22;
       orbitView.scale += (targetScale - orbitView.scale) * 0.12;
       applyOrbitView();
+      placeFocusCard(av);
       orbitFocusRAF = requestAnimationFrame(tick);
     };
     orbitFocusRAF = requestAnimationFrame(tick);
+  }
+
+  /* Thẻ thông tin nằm NGAY CẠNH avatar được chọn và bám theo nó khi map quay.
+     Trên mobile vẫn là bottom sheet nên chỉ chạy ở desktop. */
+  function placeFocusCard(av) {
+    if (window.innerWidth < 900) return;
+    var card = document.querySelector('.orbit-focus-card');
+    if (!card) return;
+    if (!card._w) { card._w = card.offsetWidth; card._h = card.offsetHeight; }
+    var w = card._w, h = card._h, gap = 18;
+    var ab = av.getBoundingClientRect();
+    var x = ab.right + gap;
+    if (x + w > window.innerWidth - 16) x = ab.left - w - gap;
+    if (x < 16) x = Math.max(16, Math.min(window.innerWidth - w - 16, ab.right + gap));
+    var y = ab.top + ab.height / 2 - h / 2;
+    y = Math.max(16, Math.min(window.innerHeight - h - 16, y));
+    card.style.transform = 'translate3d(' + Math.round(x) + 'px,' + Math.round(y) + 'px,0)';
+    card.classList.add('anchored');
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
@@ -508,14 +554,14 @@
     var occBody;
     if (hasOccasions) {
       occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
-        return '<a class="occasion-card ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
+        return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '">' +
           '<div class="ic">' + evTile(o.kind, 52) + '</div><div class="t">' + esc(o.title) + '</div>' +
           '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
       }).join('') + '</div>';
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card tone-purple" href="#/people/' + p.id + '"><div class="ic">' + evTile('birthday', 52) + '</div>' +
+          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '"><div class="ic">' + evTile('birthday', 52) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
@@ -732,49 +778,84 @@
   function renderPersonDetail(id) {
     var p = state.people.find(function (x) { return x.id === id; });
     if (!p) return '<p>Không tìm thấy người này.</p><a class="btn btn-ghost" href="#/people">‹ Quay lại</a>';
-    var color = avatarColor(p.id);
     var mems = p.memories || [];
     var memTiles = mems.slice(0, 3).map(function (m) { return '<div class="memory-tile" style="background:' + m.color + ';">' + esc(m.caption) + '</div>'; }).join('');
     var extra = mems.length > 3
       ? '<div class="memory-tile" style="background:#999;"><div class="more-badge">+' + (mems.length - 3) + '</div></div>'
       : '<div class="memory-tile add" data-action="add-memory" data-id="' + p.id + '">+</div>';
 
+    // Cột "Mọi người" bên trái như mockup
+    var peopleCol = state.people.map(function (q) {
+      return '<a class="pd-person' + (q.id === p.id ? ' on' : '') + '" href="#/people/' + q.id + '">' +
+        '<span class="avatar" style="' + avatarStyle(q) + '">' + avatarInner(q) + '</span>' +
+        '<span class="pd-name"><b>' + esc(q.name) + '</b><em>' + esc(REL_LABEL[q.relationship] || 'Khác') + '</em></span>' +
+        (q.favorite ? '<span class="pd-fav">★</span>' : '') + '</a>';
+    }).join('');
+
     return (
-      '<div class="detail-cover"><button data-action="nav" data-to="people">‹</button><button data-action="toast" data-msg="Thêm tuỳ chọn — demo">⋯</button></div>' +
-      '<div class="detail-profile">' +
-      '<button class="avatar avatar-edit" data-action="open-avatar-picker" data-id="' + p.id + '" style="' + avatarStyle(p) + '" title="Đổi ảnh đại diện">' +
+      '<div class="pd-layout">' +
+      '<aside class="pd-side">' +
+      '<div class="pd-side-head"><h2>Mọi người</h2><span class="pd-count">' + state.people.length + '</span></div>' +
+      '<div class="pd-list">' + peopleCol + '</div>' +
+      '<a class="pd-add" href="#" data-action="open-add-person">＋ Thêm người</a>' +
+      '</aside>' +
+
+      '<div class="pd-main">' +
+      '<div class="pd-cover">' +
+      '<button class="pd-back" data-action="nav" data-to="people" aria-label="Quay lại">‹</button>' +
+      '<button class="pd-more" data-action="toast" data-msg="Thêm tuỳ chọn — demo" aria-label="Tuỳ chọn">⋯</button>' +
+      '<span class="pd-cover-star s1">✦</span><span class="pd-cover-star s2">✧</span><span class="pd-cover-star s3">✦</span>' +
+      '</div>' +
+
+      '<div class="pd-head">' +
+      '<button class="avatar avatar-edit pd-avatar" data-action="open-avatar-picker" data-id="' + p.id + '" style="' + avatarStyle(p) + '" title="Đổi ảnh đại diện">' +
       avatarInner(p) + '<span class="edit-badge">✎</span></button>' +
-      '<h2>' + esc(p.name) + (p.favorite ? ' ★' : '') + '</h2><div class="meta">' + relDurationLabel(p) + '</div></div>' +
+      '<div class="pd-title"><h2>' + esc(p.name) + (p.favorite ? ' <span class="pd-star">★</span>' : '') + '</h2>' +
+      '<div class="meta">' + relDurationLabel(p) + '</div></div>' +
       '<div class="quick-actions">' +
-      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 24) + '</button>' +
+      '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 22) + '</button>' +
       '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '" title="Yêu thích">' + (p.favorite ? '💖' : '🤍') + '</button>' +
-      '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">' + ic('leaf', 24) + '</button>' +
-      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">' + ic('plane', 24) + '</button></div>' +
+      '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">' + ic('leaf', 22) + '</button>' +
+      '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">' + ic('plane', 22) + '</button>' +
+      '</div></div>' +
+
       (p.quote ? '<div class="quote-box">' + esc(p.quote) + '</div>' : '') +
-      '<div class="detail-grid"><div>' +
-      '<div class="section-head" style="margin-top:0;"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
-      '<div class="memory-grid">' + memTiles + extra + '</div>' +
-      '<div class="section-head"><h2>Ghi chú</h2></div>' +
-      '<textarea id="notes-area" style="width:100%;min-height:90px;padding:12px;border-radius:var(--radius-m);border:1px solid var(--border);background:var(--cream);color:var(--ink);font-size:var(--text-base);" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea>' +
-      '<div class="section-head"><h2>Hoạt động</h2></div>' +
-      '<div class="card" style="padding:12px 16px;">' +
+
+      '<div class="pd-grid">' +
+      '<div class="pd-col">' +
+      '<section class="card pd-card">' +
+      '<div class="section-head" style="margin:0 0 12px;"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
+      '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
+
+      '<section class="card pd-card">' +
+      '<div class="section-head" style="margin:0 0 10px;"><h2>Ghi chú</h2></div>' +
+      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
+
+      '<section class="card pd-card">' +
+      '<div class="section-head" style="margin:0 0 10px;"><h2>Hoạt động gần đây</h2></div>' +
       ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
         return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
-      }).join('') || '<p class="muted">Chưa có hoạt động.</p>') +
-      '</div></div><div>' +
-      '<div class="card quickinfo-card">' +
-      '<div class="quickinfo-row"><span class="ic">' + ic('cake', 20) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
+      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
+      '</section></div>' +
+
+      '<div class="pd-col">' +
+      '<section class="card pd-card">' +
+      '<div class="section-head" style="margin:0 0 12px;"><h2>Thông tin nhanh</h2></div>' +
+      '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">❤️</span> Mức độ <b>' + (p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết') + '</b></div>' +
-      '<div class="quickinfo-row"><span class="ic">🏷️</span> Nhóm <b>' + REL_LABEL[p.relationship] + '</b></div></div>' +
-      '<div class="section-head" style="margin-top:0;"><h2>Nhắc nhở</h2></div>' +
-      '<div class="card reminders-card">' +
+      '<div class="quickinfo-row"><span class="ic">🏷️</span> Nhóm <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
+      '</section>' +
+
+      '<section class="card pd-card">' +
+      '<div class="section-head" style="margin:0 0 10px;"><h2>Nhắc nhở</h2></div>' +
       ((p.reminders || []).map(function (r) {
         return '<div class="reminder-row"><div class="t">' + esc(r.label) + '<span>' + (r.mmdd ? formatMMDD(r.mmdd) : (r.date || '')) + '</span></div>' +
           '<button class="toggle ' + (r.enabled ? 'on' : '') + '" data-action="toggle-reminder" data-pid="' + p.id + '" data-rid="' + r.id + '"></button></div>';
-      }).join('') || '<p class="muted">Chưa có nhắc nhở.</p>') +
-      '<button class="btn btn-text" data-action="add-reminder-inline" data-pid="' + p.id + '" style="margin-top:8px;">+ Thêm nhắc nhở</button></div>' +
+      }).join('') || '<p class="muted" style="margin:0;">Chưa có nhắc nhở.</p>') +
+      '<button class="btn btn-text" data-action="add-reminder-inline" data-pid="' + p.id + '" style="margin-top:8px;">+ Thêm nhắc nhở</button>' +
+      '</section>' +
       '<button class="btn btn-danger btn-block" data-action="delete-person" data-id="' + p.id + '">Xoá liên hệ</button>' +
-      '</div></div>'
+      '</div></div></div></div>'
     );
   }
 
@@ -792,16 +873,16 @@
   function eventsOnDate(iso, mmdd) {
     var out = [];
     state.people.forEach(function (p) {
-      if (p.birthday === mmdd) out.push({ title: 'Sinh nhật ' + p.name, icon: ICONS.birthday, tone: TONE.birthday, kind: 'birthday', date: iso, personName: p.name, time: '', location: '', note: '' });
+      if (p.birthday === mmdd) out.push({ title: 'Sinh nhật ' + p.name, kind: 'birthday', date: iso, personName: p.name, time: '', location: '', note: '' });
     });
     state.events.forEach(function (ev) {
       var pm = ev.personId ? state.people.find(function (x) { return x.id === ev.personId; }) : null;
       var base = { date: iso, note: ev.note || '', location: ev.location || '', time: ev.time || '', personName: pm ? pm.name : '' };
       if (ev.type === 'memory') {
-        if (ev.annMMDD === mmdd) out.push(Object.assign({ title: ev.title, icon: ICONS.memory, tone: TONE.memory, kind: 'memory' }, base));
+        if (ev.annMMDD === mmdd) out.push(Object.assign({ title: ev.title, kind: 'memory' }, base));
         return;
       }
-      if (ev.date === iso) out.push(Object.assign({ title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom, kind: ev.type }, base));
+      if (ev.date === iso) out.push(Object.assign({ title: ev.title, kind: ev.type }, base));
     });
     return out;
   }
@@ -819,7 +900,7 @@
     if (e.note) rows.push(['Ghi chú', e.note]);
     openModal(
       '<div class="modal-card event-detail">' +
-      '<div class="ed-head"><span class="cal-tag ' + e.tone + '">' + ic(e.icon, 15) + '<span>' + esc(e.title) + '</span></span>' +
+      '<div class="ed-head"><span class="cal-tag ' + evTone(e.kind) + '">' + evIcon(e.kind, 26) + '<span>' + esc(e.title) + '</span></span>' +
       '<button class="btn-icon" data-action="close-modal" aria-label="Đóng">✕</button></div>' +
       '<div class="ed-rows">' + rows.map(function (r) {
         return '<div class="ed-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
@@ -852,14 +933,14 @@
       var isSel = selIso === iso;
       // tối đa 2 chip + "+N" còn lại
       var chips = dayEvents.slice(0, 2).map(function (e, idx) {
-        return '<button class="cal-tag ' + e.tone + '" data-action="open-event" data-date="' + iso + '" data-idx="' + idx + '">' + ic(e.icon, 13) + '<span>' + esc(e.title) + '</span></button>';
+        return '<button class="cal-tag ' + evTone(e.kind) + '" data-action="open-event" data-date="' + iso + '" data-idx="' + idx + '">' + evIcon(e.kind, 14) + '<span>' + esc(e.title) + '</span></button>';
       }).join('');
       var rest = dayEvents.length - Math.min(2, dayEvents.length);
       if (rest > 0) chips += '<span class="cal-tag cal-tag-more">+' + rest + '</span>';
       cellsHtml += '<div class="cal-cell' + (outside ? ' outside' : '') + (isToday ? ' today' : '') + (isSel ? ' selected' : '') + '" data-action="select-day" data-date="' + iso + '" role="button" tabindex="0">' +
         '<span class="daynum">' + cellDate.getDate() + '</span>' +
         '<div class="cal-tags-desktop">' + chips + '</div>' +
-        '<div class="cal-dots">' + dayEvents.slice(0, 3).map(function (e) { return '<span class="cal-dot" style="background:' + dotColor(e.tone) + '"></span>'; }).join('') + '</div>' +
+        '<div class="cal-dots">' + dayEvents.slice(0, 3).map(function (e) { return '<span class="cal-dot" style="background:' + dotColor(evTone(e.kind)) + '"></span>'; }).join('') + '</div>' +
         '</div>';
     }
 
@@ -869,8 +950,8 @@
     var stripDate = (selIso === todayIso ? 'Hôm nay · ' : DOW[(dd.getDay() + 6) % 7] + ', ') + dd.getDate() + '/' + (dd.getMonth() + 1);
     var MAX_CHIPS = 3;
     var stripChips = selEvents.slice(0, MAX_CHIPS).map(function (e, idx) {
-      return '<button class="strip-chip ' + e.tone + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
-        ic(e.icon, 14) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
+      return '<button class="strip-chip ' + evTone(e.kind) + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
+        evIcon(e.kind, 22) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
     }).join('');
     var restCount = Math.max(0, selEvents.length - MAX_CHIPS);
     var strip = '';
@@ -882,8 +963,8 @@
         '</div></div>';
       if (calStripMore && restCount) {
         strip += '<div class="strip-panel">' + selEvents.map(function (e, idx) {
-          return '<button class="strip-chip ' + e.tone + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
-            ic(e.icon, 14) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
+          return '<button class="strip-chip ' + evTone(e.kind) + '" data-action="open-event" data-date="' + selIso + '" data-idx="' + idx + '">' +
+            evIcon(e.kind, 22) + '<span>' + esc(e.title) + '</span>' + (e.time ? '<em>' + esc(e.time) + '</em>' : '') + '</button>';
         }).join('') + '</div>';
       }
     }
@@ -1071,10 +1152,13 @@
       '<div class="modal-sheet"><div class="modal-head"><h3>Thêm sự kiện</h3><button data-action="close-modal">✕</button></div>' +
       '<form id="form-add-event">' +
       '<div class="field"><label>Tiêu đề</label><input type="text" name="title" required placeholder="Vd: Họp nhóm"></div>' +
-      '<div class="field"><label>Loại</label><select name="type">' +
-      '<option value="meeting">Họp / gặp mặt</option><option value="trip">Chuyến đi</option>' +
-      '<option value="work">Công việc</option><option value="workshop">Workshop</option><option value="custom">Khác</option></select></div>' +
+      '<div class="field"><label>Loại sự kiện</label>' +
+      '<div class="ev-picker">' + EVENT_CATS.map(function (c, i) {
+        return '<label class="ev-opt ' + c.tone + '"><input type="radio" name="type" value="' + c.k + '"' + (i === 0 ? ' checked' : '') + '>' +
+          '<span class="ev-opt-in"><img src="assets/event-icons/' + c.img + '" alt=""><em>' + c.label + '</em></span></label>';
+      }).join('') + '</div></div>' +
       '<div class="field"><label>Ngày</label><input type="date" name="date" value="' + (dateIso || todayISO()) + '" required></div>' +
+      '<div class="field"><label>Giờ (không bắt buộc)</label><input type="time" name="time"></div>' +
       '<div class="field"><label>Địa điểm (không bắt buộc)</label><input type="text" name="location" placeholder="Vd: Quán cà phê"></div>' +
       '<button type="submit" class="btn btn-primary btn-block">Lưu sự kiện</button></form></div>'
     );
@@ -1223,6 +1307,7 @@
       if (!title) return;
       var ev = mkEvent(title, fd2.get('type'), fd2.get('date'));
       ev.location = fd2.get('location') || '';
+      ev.time = fd2.get('time') || '';
       state.events.push(ev); save(); closeModal(); showToast('Đã thêm sự kiện'); render();
     }
   }
