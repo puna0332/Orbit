@@ -793,7 +793,7 @@
       ? '<div class="memory-tile" style="background:#999;"><div class="more-badge">+' + (mems.length - 3) + '</div></div>'
       : '<div class="memory-tile add" data-action="add-memory" data-id="' + p.id + '">+</div>';
 
-    // Cột "Mọi người" bên trái như mockup
+    var collapsed = !!state.settings.pdSideCollapsed;
     var peopleCol = state.people.map(function (q) {
       return '<a class="pd-person' + (q.id === p.id ? ' on' : '') + '" href="#/people/' + q.id + '">' +
         '<span class="avatar" style="' + avatarStyle(q) + '">' + avatarInner(q) + '</span>' +
@@ -801,62 +801,70 @@
         (q.favorite ? '<span class="pd-fav">★</span>' : '') + '</a>';
     }).join('');
 
+    var cover = p.cover ? esc(p.cover) : 'assets/cover-default-wide.jpg';
+    var coverTall = p.coverTall ? esc(p.coverTall) : 'assets/cover-default-tall.jpg';
+
     return (
-      '<div class="pd-layout">' +
-      '<aside class="pd-side">' +
+      '<div class="pd-shell' + (collapsed ? ' side-collapsed' : '') + '">' +
+
+      '<aside class="pd-side" id="pdSide"' + (collapsed ? ' inert' : '') + '>' +
       '<div class="pd-side-head"><h2>Mọi người</h2><span class="pd-count">' + state.people.length + '</span></div>' +
       '<div class="pd-list">' + peopleCol + '</div>' +
       '<a class="pd-add" href="#" data-action="open-add-person">＋ Thêm người</a>' +
       '</aside>' +
 
-      '<div class="pd-main">' +
-      '<div class="pd-cover">' +
+      '<button class="pd-side-toggle" data-action="toggle-pd-side" aria-expanded="' + (!collapsed) + '" ' +
+      'aria-controls="pdSide" title="' + (collapsed ? 'Mở danh bạ' : 'Thu gọn danh bạ') + '">' +
+      '<i>' + (collapsed ? '›' : '‹') + '</i><span>Mọi người</span></button>' +
+
+      '<div class="pd-panel">' +
+      '<div class="pd-cover" style="--pd-cover:url(\'' + cover + '\');--pd-cover-tall:url(\'' + coverTall + '\')">' +
       '<button class="pd-back" data-action="nav" data-to="people" aria-label="Quay lại">‹</button>' +
       '<button class="pd-more" data-action="toast" data-msg="Thêm tuỳ chọn — demo" aria-label="Tuỳ chọn">⋯</button>' +
-      '<span class="pd-cover-star s1">✦</span><span class="pd-cover-star s2">✧</span><span class="pd-cover-star s3">✦</span>' +
       '</div>' +
 
       '<div class="pd-head">' +
-      '<button class="avatar avatar-edit pd-avatar" data-action="open-avatar-picker" data-id="' + p.id + '" style="' + avatarStyle(p) + '" title="Đổi ảnh đại diện">' +
-      avatarInner(p) + '<span class="edit-badge">✎</span></button>' +
-      '<div class="pd-title"><h2>' + esc(p.name) + (p.favorite ? ' <span class="pd-star">★</span>' : '') + '</h2>' +
-      '<div class="meta">' + relDurationLabel(p) + '</div></div>' +
+      '<button class="pd-avatar" data-action="open-avatar-picker" data-id="' + p.id + '" style="' + avatarStyle(p) + '" title="Đổi ảnh đại diện" aria-label="Đổi ảnh đại diện của ' + esc(p.name) + '">' +
+      avatarInner(p) + '</button>' +
+      '<div class="pd-id">' +
+      '<h2>' + esc(p.name) + (p.favorite ? ' <span class="pd-star">★</span>' : '') + '</h2>' +
+      '<div class="meta">' + relDurationLabel(p) + '</div>' +
       '<div class="quick-actions">' +
       '<button class="tone-pink" data-action="quick-birthday" data-id="' + p.id + '" title="Sinh nhật">' + ic('cake', 22) + '</button>' +
       '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '" title="Yêu thích">' + (p.favorite ? '💖' : '🤍') + '</button>' +
       '<button class="tone-blue" data-action="quick-note-focus" title="Ghi chú">' + ic('leaf', 22) + '</button>' +
       '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '" title="Thêm kỷ niệm">' + ic('plane', 22) + '</button>' +
       '</div></div>' +
-
-      (p.quote ? '<div class="quote-box">' + esc(p.quote) + '</div>' : '') +
+      (p.quote ? '<div class="pd-quote">' + esc(p.quote) + '<span class="sp">✦</span></div>' : '') +
+      '</div>' +
 
       '<div class="pd-grid">' +
       '<div class="pd-col">' +
-      '<section class="card pd-card">' +
-      '<div class="section-head" style="margin:0 0 12px;"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
+      '<section class="pd-block">' +
+      '<div class="section-head"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
       '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
 
-      '<section class="card pd-card">' +
-      '<div class="section-head" style="margin:0 0 10px;"><h2>Ghi chú</h2></div>' +
+      '<section class="pd-block">' +
+      '<div class="section-head"><h2>Ghi chú</h2></div>' +
       '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
 
-      '<section class="card pd-card">' +
-      '<div class="section-head" style="margin:0 0 10px;"><h2>Hoạt động gần đây</h2></div>' +
+      '<section class="pd-block">' +
+      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
       ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
         return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
       }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
       '</section></div>' +
 
       '<div class="pd-col">' +
-      '<section class="card pd-card">' +
-      '<div class="section-head" style="margin:0 0 12px;"><h2>Thông tin nhanh</h2></div>' +
+      '<section class="pd-block">' +
+      '<div class="section-head"><h2>Thông tin nhanh</h2></div>' +
       '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">❤️</span> Mức độ <b>' + (p.closeness === 1 ? 'Thân nhất' : p.closeness === 2 ? 'Thân' : 'Quen biết') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">🏷️</span> Nhóm <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
       '</section>' +
 
-      '<section class="card pd-card">' +
-      '<div class="section-head" style="margin:0 0 10px;"><h2>Nhắc nhở</h2></div>' +
+      '<section class="pd-block">' +
+      '<div class="section-head"><h2>Nhắc nhở</h2></div>' +
       ((p.reminders || []).map(function (r) {
         return '<div class="reminder-row"><div class="t">' + esc(r.label) + '<span>' + (r.mmdd ? formatMMDD(r.mmdd) : (r.date || '')) + '</span></div>' +
           '<button class="toggle ' + (r.enabled ? 'on' : '') + '" data-action="toggle-reminder" data-pid="' + p.id + '" data-rid="' + r.id + '"></button></div>';
@@ -1239,6 +1247,9 @@
         if (orbitJustDragged) { orbitJustDragged = false; break; }
         navigate(t.dataset.to); break;
       case 'select-day': calSelectedDay = t.dataset.date; calStripMore = false; render(); break;
+      case 'toggle-pd-side':
+        state.settings.pdSideCollapsed = !state.settings.pdSideCollapsed;
+        save(); render(); break;
       case 'open-event': openEventDetail(t.dataset.date, Number(t.dataset.idx)); break;
       case 'toggle-strip-more': calStripMore = !calStripMore; render(); break;
       case 'focus-person':

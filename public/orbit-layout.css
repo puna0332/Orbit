@@ -508,12 +508,15 @@
 }
 
 /* ============================================================
-   Trang cá nhân: cột "Mọi người" + các khối dạng thẻ
+   Trang cá nhân: 2 vùng — danh bạ (thu gọn được) + panel hồ sơ
+   Panel hồ sơ là MỘT mặt phẳng liền, bên trong mới là các khối bo tròn.
    ============================================================ */
-.pd-layout { display:grid; grid-template-columns:1fr; gap:18px; }
+.pd-shell { display:grid; grid-template-columns:1fr; gap:14px; position:relative; }
+
+/* --- Vùng danh bạ --- */
 .pd-side {
-  background:#FFFFFF; border:1px solid #EBDDD2; border-radius:22px;
-  padding:14px 12px; align-self:start;
+  background:#fff; border:1px solid #EBDDD2; border-radius:22px;
+  padding:14px 12px; align-self:start; min-width:0;
   box-shadow:0 2px 10px rgba(150,116,90,.07);
 }
 .pd-side-head { display:flex; align-items:center; justify-content:space-between; margin:2px 4px 10px; }
@@ -542,90 +545,129 @@
   color:#8A6A55; text-decoration:none; padding:8px; border-radius:14px;
   border:1px dashed #E7D3C6; background:#FFF9F5;
 }
-.pd-main { min-width:0; }
 
-/* Ảnh bìa trang cá nhân */
+/* --- Nút thu gọn / mở danh bạ (trạng thái được lưu lại) --- */
+.pd-side-toggle {
+  display:flex; align-items:center; gap:6px; cursor:pointer; font-family:inherit;
+  border:1px solid #EBDDD2; background:#fff; color:#7A5B45;
+  font-size:12.5px; font-weight:700; border-radius:999px; padding:8px 14px;
+  box-shadow:0 2px 8px rgba(150,116,90,.09); align-self:start;
+}
+.pd-side-toggle:hover { background:#FDF3EA; }
+.pd-side-toggle i { font-style:normal; font-size:14px; line-height:1; }
+
+/* --- Panel hồ sơ: một mặt phẳng liền (panel giữ nền trắng duy nhất) --- */
+.pd-panel {
+  background:#fff; border:1px solid #EBDDD2; border-radius:24px;
+  padding:12px; min-width:0;
+  box-shadow:0 4px 18px rgba(150,116,90,.08);
+  display:flex; flex-direction:column; gap:12px;
+}
+
+/* Ảnh bìa mặc định */
 .pd-cover {
-  position:relative; height:150px; border-radius:22px; overflow:hidden;
-  background:linear-gradient(160deg,#2b2f55,#6b4a7a 55%,#e49a66);
+  position:relative; height:150px; border-radius:18px; overflow:hidden; flex:0 0 auto;
+  background-image:var(--pd-cover); background-size:cover; background-position:center 32%;
+  background-color:#E9D8E4;
 }
-.pd-cover::before {
-  content:""; position:absolute; inset:0;
-  background:url('assets/home-art-mobile.png') center 18% / cover no-repeat;
-  opacity:.9;
-}
-.pd-cover::after {
-  content:""; position:absolute; inset:0;
-  background:linear-gradient(180deg, rgba(43,47,85,.12) 0%, rgba(43,47,85,0) 45%, rgba(255,255,255,.28) 100%);
-}
-.pd-cover > * { position:relative; z-index:2; }
 .pd-back, .pd-more {
   position:absolute; top:12px; width:34px; height:34px; border-radius:50%;
-  border:0; background:rgba(255,255,255,.28); color:#fff; font-size:17px;
-  cursor:pointer; backdrop-filter:blur(6px);
+  border:0; background:rgba(255,255,255,.3); color:#fff; font-size:17px;
+  cursor:pointer; backdrop-filter:blur(6px); z-index:2;
 }
 .pd-back { left:12px; }
 .pd-more { right:12px; }
-.pd-cover-star { position:absolute; color:#FFF3D6; opacity:.85; text-shadow:0 0 10px rgba(255,235,190,.9); }
-.pd-cover-star.s1 { top:22px; right:70px; font-size:13px; }
-.pd-cover-star.s2 { top:52px; right:104px; font-size:9px; opacity:.6; }
-.pd-cover-star.s3 { top:96px; left:64px; font-size:11px; opacity:.55; }
 
-/* Thẻ hồ sơ: một khối trắng gọn, không đè lên chữ phía dưới */
+/* Khối danh tính: avatar đè mép dưới ảnh bìa, KHÔNG có badge bút */
 .pd-head {
-  display:flex; align-items:center; gap:14px;
-  margin:-38px 0 0; padding:14px 18px;
-  position:relative; z-index:3; flex-wrap:wrap;
-  background:#fff; border:1px solid #EFE2D8; border-radius:20px;
-  box-shadow:0 6px 20px rgba(150,116,90,.10);
+  display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;
+  margin:-46px 0 0; padding:0 8px 2px; position:relative; z-index:3;
 }
-.pd-avatar { width:76px; height:76px; border-radius:50%; border:4px solid #FFF8F2; box-shadow:0 6px 18px rgba(120,90,70,.18); }
-.pd-title { min-width:0; flex:1; }
-.pd-title h2 { margin:0; font-size:var(--text-xl); color:var(--ink); }
+.pd-avatar {
+  width:88px; height:88px; border-radius:50%; flex:0 0 auto; padding:0;
+  border:4px solid #FFFDFB; box-shadow:0 6px 18px rgba(120,90,70,.16);
+  overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:24px;
+  transition:transform .16s, box-shadow .16s;
+}
+.pd-avatar:hover { transform:scale(1.03); box-shadow:0 8px 22px rgba(120,90,70,.22); }
+.pd-avatar .av-img { width:100%; height:100%; object-fit:cover; display:block; }
+.pd-id { min-width:0; flex:1 1 220px; padding-top:50px; }
+.pd-id h2 { margin:0; font-size:var(--text-xl); color:var(--ink); }
+.pd-id .meta { font-size:var(--text-sm); color:var(--ink-muted); margin-top:2px; }
 .pd-star { color:#E8A33D; }
-.pd-head .quick-actions { margin:0; }
-.pd-main > .quote-box { margin:14px 0 0; }
-.pd-grid { display:grid; grid-template-columns:1fr; gap:14px; margin-top:16px; }
-.pd-col { display:flex; flex-direction:column; gap:14px; min-width:0; }
-.pd-card { padding:16px 18px; border-radius:20px; }
-.pd-card .section-head h2 { font-size:15px; }
-/* Ô kỷ niệm: khổ dọc như ảnh chụp, to hơn để chứa ảnh.
-   4 cột để 3 ảnh + ô "+" nằm gọn một hàng, không bỏ trống nửa khối. */
-.pd-card .memory-grid { grid-template-columns:repeat(4,1fr); gap:10px; margin-top:0; }
-.pd-card .memory-tile {
-  aspect-ratio:3/4; border-radius:16px; padding:10px; font-size:12px;
+.pd-id .quick-actions { margin:12px 0 0; display:flex; gap:8px; }
+.pd-quote {
+  flex:1 1 240px; align-self:center; position:relative; margin-top:50px;
+  background:#FBE7EA; border-radius:18px; padding:14px 34px 14px 18px;
+  font-size:13.5px; font-style:italic; color:#7C4B55; line-height:1.45;
+}
+.pd-quote .sp { position:absolute; right:14px; bottom:10px; font-style:normal; color:#E3A1AE; }
+
+/* --- Các khối bo tròn BÊN TRONG panel --- */
+.pd-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+.pd-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.pd-block {
+  background:#FBF2E8; border:0; border-radius:18px; padding:14px 16px;
+}
+.pd-block .section-head { margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; }
+.pd-block .section-head h2 { font-size:15px; margin:0; }
+.pd-block .memory-grid { grid-template-columns:repeat(4,1fr); gap:10px; margin-top:0; }
+.pd-block .memory-tile {
+  aspect-ratio:3/4; border-radius:14px; padding:10px; font-size:12px;
   align-items:flex-end; text-shadow:0 1px 3px rgba(0,0,0,.45);
 }
-.pd-card .memory-tile::after {
+.pd-block .memory-tile::after {
   content:""; position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,.34) 100%);
 }
-.pd-card .memory-tile > * { position:relative; z-index:1; }
-.pd-card .memory-tile.add { aspect-ratio:3/4; font-size:26px; }
-.pd-card .memory-tile.add::after { display:none; }
-.pd-card #notes-area {
+.pd-block .memory-tile > * { position:relative; z-index:1; }
+.pd-block .memory-tile.add { aspect-ratio:3/4; font-size:26px; }
+.pd-block .memory-tile.add::after { display:none; }
+.pd-block #notes-area {
   width:100%; min-height:96px; padding:12px 14px; border-radius:14px;
   border:1px solid var(--border); background:#FFFBF7; color:var(--ink);
   font-family:inherit; font-size:var(--text-sm); resize:vertical;
 }
 
 @media (min-width:900px) {
-  /* Trang cá nhân dùng trọn bề ngang, không bó trong cột 1040px */
-  .page-people:has(.pd-layout) { padding:18px 24px 24px; }
-  .page-people:has(.pd-layout) > .view-inner { max-width:none; width:100%; margin:0; }
-  .pd-layout { grid-template-columns:258px minmax(0,1fr); gap:22px; align-items:start; }
-  .pd-side { position:sticky; top:0; }
-  .pd-list { flex-direction:column; overflow-x:visible; gap:2px; max-height:calc(100dvh - 220px); overflow-y:auto; }
+  .page-people:has(.pd-shell) { padding:18px 24px 24px; }
+  .page-people:has(.pd-shell) > .view-inner { max-width:none; width:100%; margin:0; }
+  .pd-shell {
+    grid-template-columns:272px auto minmax(0,1fr);
+    align-items:start; gap:14px 0;
+  }
+  .pd-side { position:sticky; top:0; margin-right:14px; }
+  .pd-list { flex-direction:column; overflow-x:visible; gap:2px; max-height:calc(100dvh - 190px); overflow-y:auto; }
   .pd-person { min-width:0; }
   .pd-name b { max-width:none; }
-  /* cao hơn để thẻ hồ sơ đè lên mà không che mặt nhân vật trong tranh */
-  .pd-cover { height:230px; }
-  .pd-grid { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:18px; }
+  /* Nút thu gọn dán sát mép trái panel, không trôi lơ lửng giữa khoảng trống */
+  .pd-side-toggle {
+    position:sticky; top:18px; flex-direction:column; gap:8px; padding:14px 7px;
+    writing-mode:vertical-rl; margin-right:-1px;
+    border-radius:14px 0 0 14px; border-right:0; box-shadow:-2px 2px 8px rgba(150,116,90,.08);
+  }
+  .pd-side-toggle i { writing-mode:horizontal-tb; }
+  .pd-shell.side-collapsed { grid-template-columns:auto minmax(0,1fr); }
+  .pd-shell.side-collapsed .pd-side { display:none; }
+  /* Desktop luôn thấy danh bạ nên nút "‹" trên ảnh bìa là thừa và dễ nhầm với nút thu gọn */
+  .pd-back { display:none; }
+  .pd-cover { height:230px; border-radius:20px; }
+  .pd-grid { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:12px; }
 }
 @media (max-width:899px) {
-  .pd-cover { height:132px; border-radius:18px; }
-  .pd-head { margin:-30px 0 0 12px; gap:11px; }
-  .pd-avatar { width:66px; height:66px; }
-  .pd-title h2 { font-size:var(--text-lg); }
+  .pd-shell { gap:10px; }
+  .pd-shell.side-collapsed .pd-side { display:none; }
+  .pd-side-toggle { justify-self:start; }
+  .pd-panel { padding:10px; border-radius:20px; }
+  .pd-cover {
+    height:210px; background-image:var(--pd-cover-tall, var(--pd-cover));
+    background-position:center 28%;
+  }
+  .pd-head { margin:-40px 0 0; gap:12px; }
+  .pd-avatar { width:74px; height:74px; font-size:20px; }
+  .pd-id { padding-top:42px; flex-basis:100%; }
+  .pd-id h2 { font-size:var(--text-lg); }
+  .pd-quote { margin-top:4px; flex-basis:100%; }
+  .pd-block .memory-grid { grid-template-columns:repeat(2,1fr); }
 }
-
