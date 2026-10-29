@@ -129,6 +129,13 @@
   function mkEvent(title, type, date) { return { id: uid('ev'), title: title, type: type, date: date, location: '' }; }
 
   function seedState() {
+    /* Bản gốc có 8 nhân vật mẫu (Linh, Bố, Mẹ, Minh, Trân, Lan, Quân, Hà) để demo.
+       Người dùng muốn tự phân loại lại nên cài mới giờ bắt đầu trắng. */
+    var st = emptyState();
+    st.onboardingDone = false;
+    return st;
+  }
+  function seedStateLegacy() {
     var today = todayISO();
     var mmddPlus = function (days) { return toMMDD(addDays(today, days)); };
     var isoPlus = function (days) { return toISO(addDays(today, days)); };
@@ -1154,6 +1161,8 @@
       '<div class="ic-wrap tone-green">⬇️</div><div class="t"><b>Xuất dữ liệu (.json)</b><span>Tải toàn bộ người, sự kiện, ghi chú</span></div><div class="chev">›</div></button>' +
       '<button class="settings-row card" style="width:100%;border:none;text-align:left;background:var(--card);cursor:pointer;color:inherit;font:inherit;" data-action="import-data">' +
       '<div class="ic-wrap tone-blue">⬆️</div><div class="t"><b>Nhập lại dữ liệu</b><span>Từ file .json đã xuất trước đó</span></div><div class="chev">›</div></button>' +
+      '<button class="settings-row card" style="width:100%;border:none;text-align:left;background:var(--card);cursor:pointer;color:inherit;font:inherit;" data-action="wipe-people">' +
+      '<div class="ic-wrap" style="background:var(--pink);color:var(--danger);">👥</div><div class="t"><b style="color:var(--danger);">Xoá tất cả liên hệ</b><span>Giữ lại cài đặt, sự kiện và ghi chú chung</span></div><div class="chev">›</div></button>' +
       '<button class="settings-row card" style="width:100%;border:none;text-align:left;background:var(--card);cursor:pointer;color:inherit;font:inherit;" data-action="wipe-data">' +
       '<div class="ic-wrap" style="background:var(--pink);color:var(--danger);">🗑️</div><div class="t"><b style="color:var(--danger);">Xoá toàn bộ dữ liệu</b><span>Không thể hoàn tác</span></div><div class="chev">›</div></button>' +
       '</div><input type="file" id="import-file-input" accept="application/json" style="display:none;">' +
@@ -1319,6 +1328,17 @@
     var a = document.createElement('a'); a.href = url; a.download = 'orbit-data.json'; a.click();
     URL.revokeObjectURL(url); showToast('Đã xuất dữ liệu');
   }
+  /* Xoá riêng danh bạ, giữ cài đặt. Sự kiện gắn với người bị xoá cũng dọn theo
+     để không còn sự kiện trỏ tới id đã mất. */
+  function wipePeople() {
+    if (!confirm('Xoá toàn bộ liên hệ? Sự kiện gắn với những người này cũng bị xoá. Không thể hoàn tác.')) return;
+    var ids = {};
+    state.people.forEach(function (p) { ids[p.id] = 1; });
+    var removed = state.people.length;
+    state.people = [];
+    state.events = state.events.filter(function (ev) { return !(ev.personId && ids[ev.personId]); });
+    save(); render(); showToast('Đã xoá ' + removed + ' liên hệ');
+  }
   function wipeData() {
     if (!confirm('Xoá toàn bộ dữ liệu? Không thể hoàn tác.')) return;
     state = emptyState(state.settings); save(); navigate('home'); showToast('Đã xoá toàn bộ dữ liệu');
@@ -1409,6 +1429,7 @@
       case 'export-data': exportData(); break;
       case 'import-data': var inp = document.getElementById('import-file-input'); if (inp) inp.click(); break;
       case 'wipe-data': wipeData(); break;
+      case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
       case 'onboard-next': onboardNext(); break;
       case 'onboard-dot': state.onboardingSlide = Number(t.dataset.i); save(); render(); break;
