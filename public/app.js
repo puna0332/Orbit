@@ -751,6 +751,38 @@
     if (peopleFavOnly && !p.favorite) return false;
     return true;
   }
+  /* Bảng thống kê: bao nhiêu liên kết, chia theo mối quan hệ */
+  function connectionStats() {
+    var counts = {};
+    REL_TYPES.forEach(function (r) { counts[r.k] = 0; });
+    state.people.forEach(function (p) {
+      counts[p.relationship] = (counts[p.relationship] || 0) + 1;
+    });
+    return {
+      total: state.people.length,
+      groups: (state.settings.groups || []).length,
+      counts: counts,
+      max: Math.max.apply(null, REL_TYPES.map(function (r) { return counts[r.k] || 0; }).concat([1]))
+    };
+  }
+  function statsCardHtml() {
+    var s = connectionStats();
+    if (!s.total) return '';
+    var rows = REL_TYPES.map(function (r) {
+      var n = s.counts[r.k] || 0;
+      var w = Math.round((n / s.max) * 100);
+      return '<div class="stats-row' + (n ? '' : ' is-zero') + '">' +
+        '<span class="stats-dot" style="background:' + ringColor(r.k) + '"></span>' +
+        '<span class="stats-label">' + r.label + '</span>' +
+        '<span class="stats-bar"><i style="width:' + w + '%;background:' + ringColor(r.k) + '"></i></span>' +
+        '<b class="stats-num">' + n + '</b></div>';
+    }).join('');
+    return '<details class="stats-card"' + (window.innerWidth >= 900 ? ' open' : '') + '>' +
+      '<summary><span>Thống kê liên kết</span>' +
+      '<em>' + s.total + ' liên kết · ' + s.groups + ' nhóm</em></summary>' +
+      '<div class="stats-rows">' + rows + '</div></details>';
+  }
+
   function groupNames(ids) {
     var all = (state.settings.groups || []);
     return (ids || []).map(function (id) {
@@ -838,7 +870,8 @@
     var scene = '';
     rings.forEach(function (list, r) {
       var d = pcts[r], period = 90 + r * 40;
-      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + d + '%;height:' + d + '%"></div>';
+      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + d + '%;height:' + d + '%">' +
+        '<span class="orbit-ring-num" aria-hidden="true">' + (r + 1) + '</span></div>';
       if (dotMode) {
         /* Từ 98 người: phần lớn chỉ là chấm nhỏ; chỉ gia đình và người có dấu sao
            được vẽ avatar kèm tên. Đặt tĩnh theo góc để vài trăm phần tử vẫn nhẹ. */
@@ -987,6 +1020,7 @@
       '<span>' + (orbitCollapsed ? 'Danh bạ' : 'Thu gọn') + '</span><i aria-hidden="true">' + (orbitCollapsed ? '‹' : '›') + '</i></button>' +
       '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +
       '<div class="contacts-panel-head"><b>Liên lạc <span>' + listed.length + '</span></b></div>' +
+      statsCardHtml() +
       '<label class="search-pill"><span aria-hidden="true">⌕</span>' +
       '<input id="peopleSearch" type="search" aria-label="Tìm người" placeholder="Tìm người…" value="' + esc(peopleQuery) + '"></label>' +
       '<div class="filter-block"><span class="filter-label">Mối quan hệ</span><div class="filter-pills">' +
@@ -1068,31 +1102,23 @@
       (p.quote ? '<div class="pd-quote">' + esc(p.quote) + '<span class="sp">✦</span></div>' : '') +
       '</div>' +
 
+      '<nav class="pd-tabs" aria-label="Mục hồ sơ">' +
+      '<button class="pd-tab on" data-action="pd-tab" data-target="pdIntro">Giới thiệu</button>' +
+      '<button class="pd-tab" data-action="pd-tab" data-target="pdMemories">Kỷ niệm <span>' + mems.length + '</span></button>' +
+      '<button class="pd-tab" data-action="pd-tab" data-target="pdNotes">Ghi chú</button>' +
+      '<button class="pd-tab" data-action="pd-tab" data-target="pdActivity">Hoạt động</button>' +
+      '</nav>' +
+
       '<div class="pd-grid">' +
-      '<div class="pd-col">' +
-      '<section class="pd-block">' +
-      '<div class="section-head"><h2>Kỷ niệm</h2><div class="head-actions">' +
-      '<button class="link-more invite-btn" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
-      '<button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div></div>' +
-      '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
 
-      '<section class="pd-block">' +
-      '<div class="section-head"><h2>Ghi chú</h2></div>' +
-      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
-
-      '<section class="pd-block">' +
-      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
-      ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
-        return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
-      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
-      '</section></div>' +
-
-      '<div class="pd-col">' +
-      '<section class="pd-block">' +
-      '<div class="section-head"><h2>Thông tin nhanh</h2></div>' +
+      /* Cột trái kiểu Facebook: phần "Giới thiệu" đứng trước, hồ sơ cá nhân gọn lại */
+      '<div class="pd-col pd-col-intro">' +
+      '<section class="pd-block" id="pdIntro">' +
+      '<div class="section-head"><h2>Giới thiệu</h2></div>' +
       '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">🏷️</span> Mối quan hệ <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
       ((p.groups || []).length ? '<div class="quickinfo-row"><span class="ic">📁</span> Nhóm <b>' + esc(groupNames(p.groups).join(', ')) + '</b></div>' : '') +
+      (p.since ? '<div class="quickinfo-row"><span class="ic">✦</span> Quen từ <b>' + esc(String(p.since)) + '</b></div>' : '') +
       '</section>' +
 
       '<section class="pd-block">' +
@@ -1104,7 +1130,28 @@
       '<button class="btn btn-text" data-action="add-reminder-inline" data-pid="' + p.id + '" style="margin-top:8px;">+ Thêm nhắc nhở</button>' +
       '</section>' +
       '<button class="btn btn-danger btn-block" data-action="delete-person" data-id="' + p.id + '">Xoá liên hệ</button>' +
-      '</div></div></div></div>'
+      '</div>' +
+
+      /* Cột phải: dòng kỷ niệm như newsfeed */
+      '<div class="pd-col pd-col-feed">' +
+      '<section class="pd-block" id="pdMemories">' +
+      '<div class="section-head"><h2>Kỷ niệm</h2><div class="head-actions">' +
+      '<button class="link-more invite-btn" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
+      '<button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div></div>' +
+      '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
+
+      '<section class="pd-block" id="pdNotes">' +
+      '<div class="section-head"><h2>Ghi chú</h2></div>' +
+      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
+
+      '<section class="pd-block" id="pdActivity">' +
+      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
+      ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
+        return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
+      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
+      '</section></div>' +
+      '</div></div></div>'
+
     );
   }
 
@@ -1975,6 +2022,12 @@
       case 'quick-note-focus': var ta = document.getElementById('notes-area'); if (ta) ta.focus(); break;
       case 'add-memory': addMemoryPrompt(t.dataset.id); break;
       case 'invite-memory': openInviteModal(t.dataset.id); break;
+      case 'pd-tab': {
+        var target = document.getElementById(t.dataset.target);
+        document.querySelectorAll('.pd-tab').forEach(function (b) { b.classList.toggle('on', b === t); });
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      }
       case 'copy-invite': copyInviteLink(); break;
       case 'share-invite':
         if (inviteShare && navigator.share) {

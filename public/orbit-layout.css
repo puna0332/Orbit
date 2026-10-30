@@ -718,7 +718,9 @@
   }
   .pd-side-toggle span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .pd-side-toggle i { font-size:14px; }
-  .pd-shell.side-collapsed .pd-side-toggle { left:0; }
+  /* Khi đã thu gọn, tab phải nằm TRỌN trong khung: trước đây left:0 + translateX(-50%)
+     làm một nửa nút lòi ra ngoài panel nên gần như không bấm được. */
+  .pd-shell.side-collapsed .pd-side-toggle { left:18px; }
   .pd-side-toggle:hover { background:#FDF3EA; }
   .pd-side-toggle i { writing-mode:horizontal-tb; }
   .pd-shell.side-collapsed { grid-template-columns:minmax(0,1fr); }
@@ -952,3 +954,49 @@
   .invite-head h1 { font-size:21px; }
   .invite-qr svg { width:150px; height:150px; }
 }
+
+
+/* ===== Hồ sơ kiểu Facebook: thanh tab + cột Giới thiệu ===== */
+.pd-tabs {
+  display:flex; gap:2px; padding:6px 16px 0; background:var(--card);
+  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:6;
+}
+.pd-tab {
+  border:0; background:transparent; font:inherit; font-size:13.5px; font-weight:700;
+  color:#8C8078; padding:11px 14px 12px; border-radius:10px 10px 0 0; cursor:pointer;
+  transition:background .15s, color .15s;
+}
+.pd-tab:hover { background:#FBF2E8; color:#3D342D; }
+.pd-tab.on { color:#17243B; box-shadow: inset 0 -3px 0 #E2A275; }
+.pd-tab span {
+  font-size:11px; font-weight:700; background:#F3E3D6; color:#7A5B45;
+  border-radius:999px; padding:1px 6px; margin-left:3px;
+}
+.pd-col-intro { order:1; }
+.pd-col-feed { order:2; }
+
+/* ===== Số thứ tự vòng trên quỹ đạo ===== */
+.orbit-ring-num {
+  position:absolute; left:85.4%; top:14.6%; transform:translate(-50%,-50%);
+  min-width:19px; height:19px; padding:0 5px; border-radius:999px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700; color:#8A7566;
+  background:rgba(253,244,236,.95); border:1px solid rgba(226,196,172,.9);
+  box-shadow:0 1px 3px rgba(150,116,90,.14); pointer-events:none;
+}
+.orbit-wrap.is-dots .orbit-ring-num { min-width:16px; height:16px; font-size:9px; }
+
+/* ===== Bảng thống kê liên kết ===== */
+.stats-card { margin:2px 0 12px; background:#FBF2E8; border-radius:16px; padding:10px 12px; }
+.stats-card summary { display:flex; align-items:baseline; justify-content:space-between; gap:8px; cursor:pointer; list-style:none; }
+.stats-card summary::-webkit-details-marker { display:none; }
+.stats-card summary span { font-size:12.5px; font-weight:700; color:#4A4038; }
+.stats-card summary em { font-style:normal; font-size:11px; color:#8C8078; white-space:nowrap; }
+.stats-rows { margin-top:10px; display:flex; flex-direction:column; gap:7px; }
+.stats-row { display:grid; grid-template-columns:9px minmax(56px,auto) 1fr 24px; align-items:center; gap:8px; font-size:11.5px; color:#4A4038; }
+.stats-row.is-zero { opacity:.4; }
+.stats-dot { width:9px; height:9px; border-radius:50%; }
+.stats-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stats-bar { height:6px; background:#EFE2D5; border-radius:999px; overflow:hidden; }
+.stats-bar i { display:block; height:100%; border-radius:999px; }
+.stats-num { text-align:right; font-weight:700; color:#3D342D; }
