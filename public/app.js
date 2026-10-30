@@ -324,8 +324,9 @@
   var peopleGroupSel = [];    // chọn nhiều nhóm; rỗng = tất cả
   var peopleFavOnly = false;
   var openAddPersonRel = 'friend';
-  var pdTab = 'all';        // tab đang chọn ở trang cá nhân
+  var pdTab = 'all';        // tab đang chọn ở trang cá nhân (của người khác)
   var pdTabFor = null;      // hồ sơ đang xem, đổi người thì reset về Tổng
+  var meTab = 'overview';   // tab đang chọn ở Trang cá nhân của chính bạn
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
@@ -1305,62 +1306,100 @@
     return out;
   }
 
+  /* Cùng khung pd-panel/pd-cover/pd-head/pd-tabs/pd-grid dùng cho trang hồ sơ của người
+     khác (renderPersonDetail) — để "Trang cá nhân" của chính bạn trông giống hệt, chỉ
+     khác nội dung (không có danh bạ bên trái vì đây không phải một liên hệ để duyệt). */
+  var ME_TABS = [['overview', 'Tổng quan'], ['messages', 'Lời nhắn'], ['groups', 'Nhóm']];
   function renderMe() {
     var name = state.settings.profileName || 'Bạn';
     var stats = connectionStats();
     var msgs = receivedMessages();
     var groups = state.settings.groups || [];
     var upcoming = getOccasions(30).length;
-    var initial = name.trim().charAt(0).toUpperCase() || 'B';
 
-    var rows = REL_TYPES.map(function (r) {
+    var relRows = REL_TYPES.map(function (r) {
       var n = stats.counts[r.k] || 0;
       if (!n) return '';
       return '<div class="me-rel"><span class="stats-dot" style="background:' + ringColor(r.k) + '"></span>' +
         '<span>' + r.label + '</span><b>' + n + '</b></div>';
     }).join('');
 
-    return '<div class="me-page">' +
-      '<div class="me-cover"></div>' +
-      '<div class="me-head">' +
-      '<div class="me-avatar"><img src="assets/avatars/av-01.png" alt=""></div>' +
-      '<div class="me-id"><h1>' + esc(name) + '</h1>' +
-      '<p>Trang cá nhân của bạn · ' + state.people.length + ' người trong quỹ đạo</p></div>' +
-      '<div class="me-actions">' +
-      '<button class="btn btn-ghost" data-action="edit-me-name">Đổi tên hiển thị</button>' +
-      '<button class="btn btn-primary" data-action="nav" data-to="settings">Cài đặt</button>' +
-      '</div></div>' +
+    function msgRow(x, trimLen) {
+      return '<a class="me-msg" href="#/people/' + x.p.id + '"><img src="' + (x.m.images && x.m.images[0] ? x.m.images[0] : 'assets/avatars/av-01.png') + '" alt="">' +
+        '<div class="t"><b>' + esc(x.p.name) + '</b><span>' + esc((x.m.caption || '').slice(0, trimLen)) + '</span></div>' +
+        '<time>' + (x.m.at ? timeAgo(x.m.at) : '') + '</time></a>';
+    }
 
-      '<div class="me-stats">' +
-      '<div class="me-stat"><b>' + stats.total + '</b><span>Liên kết</span></div>' +
-      '<div class="me-stat"><b>' + stats.groups + '</b><span>Nhóm</span></div>' +
-      '<div class="me-stat"><b>' + msgs.length + '</b><span>Lời nhắn đã nhận</span></div>' +
-      '<div class="me-stat"><b>' + upcoming + '</b><span>Dịp trong 30 ngày</span></div>' +
-      '</div>' +
-
-      '<div class="me-grid">' +
-      '<section class="pd-block"><div class="section-head"><h2>Quỹ đạo của bạn</h2></div>' +
-      (rows ? '<div class="me-rel-list">' + rows + '</div>' : '<p class="muted" style="margin:0;">Chưa có liên kết nào. Thêm người đầu tiên nhé.</p>') +
-      '<a class="me-link" href="#/people">Xem bản đồ quỹ đạo ›</a></section>' +
-
-      '<section class="pd-block"><div class="section-head"><h2>Lời nhắn đã nhận</h2>' +
-      '<span class="count-chip">' + msgs.length + '</span></div>' +
-      (msgs.length ? msgs.slice(0, 5).map(function (x) {
-        return '<a class="me-msg" href="#/people/' + x.p.id + '"><img src="' + (x.m.images && x.m.images[0] ? x.m.images[0] : 'assets/avatars/av-01.png') + '" alt="">' +
-          '<div class="t"><b>' + esc(x.p.name) + '</b><span>' + esc((x.m.caption || '').slice(0, 80)) + '</span></div>' +
-          '<time>' + (x.m.at ? timeAgo(x.m.at) : '') + '</time></a>';
-      }).join('') : '<p class="muted" style="margin:0;">Chưa nhận lời nhắn nào. Mời ai đó gửi kỷ niệm từ trang hồ sơ của họ.</p>') +
-      '</section>' +
-
-      '<section class="pd-block"><div class="section-head"><h2>Nhóm của bạn</h2>' +
-      '<button class="link-more" data-action="nav" data-to="settings/groups">Quản lý</button></div>' +
-      (groups.length ? groups.map(function (g) {
+    var feed;
+    if (meTab === 'messages') {
+      feed = msgs.length ? msgs.map(function (x) { return msgRow(x, 90); }).join('')
+        : '<p class="muted feed-empty">Chưa nhận lời nhắn nào. Mời ai đó gửi kỷ niệm từ trang hồ sơ của họ.</p>';
+    } else if (meTab === 'groups') {
+      feed = groups.length ? groups.map(function (g) {
         var n = state.people.filter(function (p) { return (p.groups || []).indexOf(g.id) > -1; }).length;
         return '<div class="me-group"><span>' + esc(g.name) + '</span><b>' + n + '</b></div>';
-      }).join('') : '<p class="muted" style="margin:0;">Chưa có nhóm nào.</p>') +
+      }).join('') : '<p class="muted feed-empty">Chưa có nhóm nào. Tạo nhóm trong Cài đặt › Quỹ đạo.</p>';
+    } else {
+      feed = msgs.length ? msgs.slice(0, 8).map(function (x) {
+        return '<div class="tl-item"><img class="tl-thumb" src="' + (x.m.images && x.m.images[0] ? x.m.images[0] : 'assets/avatars/av-01.png') + '" alt="">' +
+          '<div class="tl-body"><b>' + esc(x.p.name) + ' đã gửi lời nhắn</b>' + (x.m.caption ? '<span>' + esc(x.m.caption.slice(0, 80)) + '</span>' : '') + '</div>' +
+          '<time class="tl-time">' + (x.m.at ? timeAgo(x.m.at) : '') + '</time></div>';
+      }).join('') : '<p class="muted feed-empty">Chưa có hoạt động nào. Khi ai đó gửi lời nhắn, nó sẽ hiện ở đây.</p>';
+    }
+
+    return (
+      '<div class="pd-panel me-panel">' +
+      '<div class="pd-cover" style="--pd-cover:url(\'assets/cover-default-wide.jpg\');--pd-cover-tall:url(\'assets/cover-default-tall.jpg\')">' +
+      '<button class="pd-more" data-action="nav" data-to="settings" aria-label="Cài đặt">' + ic('settings', 18) + '</button>' +
+      '</div>' +
+
+      '<div class="pd-head">' +
+      '<div class="pd-avatar"><img class="av-img" src="assets/avatars/av-01.png" alt=""></div>' +
+      '<div class="pd-id">' +
+      '<h2>' + esc(name) + '</h2>' +
+      '<div class="meta">' + state.people.length + ' người trong quỹ đạo</div>' +
+      '<div class="quick-actions pd-actions">' +
+      '<button class="tone-pink" data-action="edit-me-name">' + ic('profile', 18) + '<span>Đổi tên</span></button>' +
+      '<button class="tone-blue" data-action="nav" data-to="diary">' + ic('diary', 18) + '<span>Nhật ký</span></button>' +
+      '<button class="tone-purple" data-action="nav" data-to="people">' + ic('people', 18) + '<span>Quỹ đạo</span></button>' +
+      '<button class="tone-green" data-action="nav" data-to="settings">' + ic('settings', 18) + '<span>Cài đặt</span></button>' +
+      '</div></div>' +
+      '<div class="pd-quote">Trang cá nhân của bạn trong Orbit<span class="sp">✦</span></div>' +
+      '</div>' +
+
+      '<nav class="pd-tabs" aria-label="Mục trang cá nhân">' +
+      ME_TABS.map(function (t) {
+        return '<button class="pd-tab' + (meTab === t[0] ? ' on' : '') + '" data-action="me-tab" data-tab="' + t[0] + '">' + t[1] +
+          (t[0] === 'messages' && msgs.length ? '<span class="count-chip">' + msgs.length + '</span>' : '') + '</button>';
+      }).join('') +
+      '</nav>' +
+
+      '<div class="pd-grid">' +
+      '<div class="pd-col pd-col-feed">' + feed + '</div>' +
+
+      '<div class="pd-col pd-col-intro">' +
+      '<section class="pd-block"><div class="section-head"><h2>Thông tin</h2></div>' +
+      '<div class="quickinfo-row"><span class="ic">' + ic('people', 18) + '</span> Liên kết <b>' + stats.total + '</b></div>' +
+      '<div class="quickinfo-row"><span class="ic">📁</span> Nhóm <b>' + stats.groups + '</b></div>' +
+      '<div class="quickinfo-row"><span class="ic">' + ic('bell', 18) + '</span> Lời nhắn đã nhận <b>' + msgs.length + '</b></div>' +
+      '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Dịp trong 30 ngày <b>' + upcoming + '</b></div>' +
       '</section>' +
-      '</div></div>';
+
+      '<section class="pd-block"><div class="section-head"><h2>Quỹ đạo của bạn</h2></div>' +
+      (relRows ? '<div class="me-rel-list">' + relRows + '</div>' : '<p class="muted" style="margin:0;">Chưa có liên kết nào. Thêm người đầu tiên nhé.</p>') +
+      '<a class="me-link" href="#/people">Xem bản đồ quỹ đạo ›</a></section>' +
+
+      (msgs.length ? '<section class="pd-block"><div class="section-head"><h2>Lời nhắn gần đây</h2>' +
+        '<span class="count-chip">' + msgs.length + '</span></div>' +
+        msgs.slice(0, 3).map(function (x) { return msgRow(x, 60); }).join('') +
+        '</section>' : '') +
+      '</div>' +
+      '</div>' +
+      '</div>'
+    );
   }
+
+  
 
   /* Danh sách chủ đề đầy đủ — dùng trong ngăn kéo "Chủ đề" xổ ra từ bên phải màn hình */
   function diaryThemeOptionsHtml(curId) {
@@ -2265,6 +2304,7 @@
       case 'add-memory': addMemoryPrompt(t.dataset.id); break;
       case 'invite-memory': openInviteModal(t.dataset.id); break;
       case 'pd-tab': pdTab = t.dataset.tab || 'all'; render(); break;
+      case 'me-tab': meTab = t.dataset.tab || 'overview'; render(); break;
       case 'hide-home-suggest': state.settings.homeSuggestHidden = true; save(); render(); showToast('Đã ẩn gợi ý — bật lại trong Cài đặt'); break;
       case 'toggle-home-occasions': state.settings.homeOccasions = state.settings.homeOccasions === false; save(); render(); break;
       case 'toggle-home-suggest': state.settings.homeSuggest = state.settings.homeSuggest === false; if (state.settings.homeSuggest) state.settings.homeSuggestHidden = false; save(); render(); break;

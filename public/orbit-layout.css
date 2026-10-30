@@ -1244,25 +1244,8 @@
 }
 .suggest-bar .sb-hide:hover { background:#F3E3D6; color:#7A5B45; }
 
-/* ===== Trang cá nhân của bạn ===== */
-.me-page { max-width:1000px; margin:0 auto; }
-.me-cover {
-  height:190px; border-radius:24px;
-  background-image:url(assets/cover-default-wide.jpg);
-  background-size:cover; background-position:center 70%;
-}
-.me-head { display:flex; align-items:flex-end; gap:16px; margin-top:-42px; padding:0 18px; flex-wrap:wrap; }
-.me-avatar { width:104px; height:104px; border-radius:50%; overflow:hidden; border:4px solid #fff; background:#fff; box-shadow:0 8px 22px rgba(150,116,90,.18); flex:0 0 auto; }
-.me-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
-.me-id { flex:1 1 220px; min-width:0; padding-bottom:4px; }
-.me-id h1 { margin:0; font-size:24px; color:#17243B; }
-.me-id p { margin:2px 0 0; font-size:12.5px; color:#8C8078; }
-.me-actions { display:flex; gap:8px; padding-bottom:4px; }
-.me-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:18px 0 16px; }
-.me-stat { background:#FBF2E8; border-radius:16px; padding:12px 10px; text-align:center; }
-.me-stat b { display:block; font-size:20px; color:#17243B; }
-.me-stat span { font-size:11.5px; color:#8C8078; }
-.me-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; align-items:start; }
+/* ===== Trang cá nhân của bạn: chỉ còn các mảnh dùng riêng (danh sách quỹ đạo, lời nhắn,
+   nhóm) — khung ngoài (cover/avatar/tabs/grid) nay dùng chung .pd-* với hồ sơ người khác */
 .me-rel-list { display:flex; flex-direction:column; gap:7px; }
 .me-rel { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#4A4038; }
 .me-rel b { margin-left:auto; color:#3D342D; }
@@ -1277,9 +1260,15 @@
 .me-group { display:flex; justify-content:space-between; font-size:12.5px; color:#4A4038; padding:6px 0; border-bottom:1px dashed rgba(216,199,184,.7); }
 .me-group:last-child { border-bottom:0; }
 
-@media (max-width:899px){
-  .me-cover { height:140px; border-radius:20px; }
-  .me-avatar { width:84px; height:84px; }
-  .me-stats { grid-template-columns:repeat(2,1fr); }
-  .me-head { padding:0 10px; }
+/* Trang cá nhân của BẠN dùng lại khung pd-panel/pd-cover/pd-head/pd-tabs/pd-grid của hồ sơ
+   người khác để trông giống hệt — nhưng không có danh bạ bên cạnh nên không cần kiểu
+   "toàn màn hình cuộn riêng" (height:100dvh) của trang Mọi người > chi tiết; giữ nó như
+   MỘT thẻ card cuộn theo trang bình thường, ở mọi kích thước màn hình. */
+@media (min-width:900px) {
+  .page-me .pd-panel {
+    height:auto; overflow:visible; border:1px solid #EBDDD2; border-radius:24px;
+    background:#fff; box-shadow:0 4px 18px rgba(150,116,90,.08); padding:18px;
+  }
+  .page-me .pd-col-intro { position:static; max-height:none; overflow:visible; }
 }
+
