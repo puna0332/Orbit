@@ -302,6 +302,8 @@
   var peopleGroupSel = [];    // chọn nhiều nhóm; rỗng = tất cả
   var peopleFavOnly = false;
   var openAddPersonRel = 'friend';
+  var pdTab = 'all';        // tab đang chọn ở trang cá nhân
+  var pdTabFor = null;      // hồ sơ đang xem, đổi người thì reset về Tổng
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
@@ -469,6 +471,7 @@
     if (page === 'onboarding') { page = 'home'; parts = ['home']; }
     if (page === 'home') inner = renderHome();
     else if (page === 'people') inner = parts[1] ? renderPersonDetail(parts[1]) : renderPeople();
+    else if (page === 'diary') inner = renderDiary();
     else if (page === 'calendar') inner = renderCalendar();
     else if (page === 'settings') inner = parts[1] ? renderSettingsSub(parts[1]) : renderSettings();
     else inner = renderHome();
@@ -599,6 +602,7 @@
           '<a class="sidebar-link' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '">' +
             '<span class="ic">' + ic('profile', 24) + '</span>Trang cá nhân</a>' +
           navLink('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
+          navLink('diary', ic('diary', 24), 'Nhật ký', active) +
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
@@ -615,6 +619,7 @@
           bottomItem('home', ic('home', 22), 'Home', active) +
           '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('profile', 24) + '</span><span class="lbl">Hồ sơ</span></a>' +
           bottomItem('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
+          bottomItem('diary', ic('diary', 24), 'Nhật ký', active) +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
           bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
@@ -1062,6 +1067,7 @@
       state.settings.lastPersonId = p.id;
       save();
     }
+    if (p && pdTabFor !== p.id) { pdTab = 'all'; pdTabFor = p.id; }
     if (!p) return '<p>Không tìm thấy người này.</p><a class="btn btn-ghost" href="#/people">‹ Quay lại</a>';
     var mems = (p.memories || []).filter(function (m) { return !m.hidden; });
     var memTiles = mems.slice(0, 3).map(function (m) {
@@ -1125,37 +1131,59 @@
       '</div>' +
 
       '<nav class="pd-tabs" aria-label="Mục hồ sơ">' +
-      '<button class="pd-tab on" data-action="pd-tab" data-target="pdPhotos">Ảnh đăng <span>' + postedPhotos.length + '</span></button>' +
-      '<button class="pd-tab" data-action="pd-tab" data-target="pdDiary">Nhật ký</button>' +
-      '<button class="pd-tab" data-action="pd-tab" data-target="pdActivity">Hoạt động</button>' +
+      (function () {
+        var tabs = [['all', 'Tổng'], ['photos', 'Ảnh đăng'], ['diary', 'Nhật ký'], ['activity', 'Hoạt động']];
+        return tabs.map(function (t) {
+          return '<button class="pd-tab' + (pdTab === t[0] ? ' on' : '') + '" data-action="pd-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+        }).join('');
+      })() +
       '</nav>' +
 
       '<div class="pd-grid">' +
 
-      /* 70% trái: một dòng nội dung liền mạch — ảnh đăng, nhật ký, hoạt động */
+      /* 70% trái: mỗi tab hiện nội dung riêng, tab Tổng trộn theo thời gian */
       '<div class="pd-col pd-col-feed">' +
-      '<div class="pd-feed">' +
+      (function () {
+        var items = [];
+        (p.memories || []).forEach(function (m) {
+          (m.images || []).forEach(function (src, i) {
+            items.push({ kind: 'photo', src: src, caption: m.caption || '', at: m.createdAt || null, key: m.id + '_' + i });
+          });
+        });
+        (p.activity || []).forEach(function (a) {
+          items.push({ kind: 'activity', text: a.text, at: a.at || null, key: a.id });
+        });
+        items.sort(function (x, y) { return (Date.parse(y.at) || 0) - (Date.parse(x.at) || 0); });
 
-      '<section class="pd-feed-sec" id="pdPhotos">' +
-      '<div class="feed-head"><h2>Ảnh đăng</h2><span class="count-chip">' + postedPhotos.length + '</span></div>' +
-      (postedPhotos.length
-        ? '<div class="posted-grid">' + postedPhotos.map(function (src) { return '<img src="' + src + '" alt="">'; }).join('') + '</div>'
-        : '<p class="muted feed-empty">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>') +
-      '</section>' +
+        var photos = items.filter(function (i) { return i.kind === 'photo'; });
 
-      '<section class="pd-feed-sec" id="pdDiary">' +
-      '<div class="feed-head"><h2>Nhật ký</h2><span class="soon-chip">Sắp có</span></div>' +
-      '<p class="muted feed-empty">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>' +
-      '</section>' +
+        function tlRow(it) {
+          var when = it.at ? timeAgo(it.at) : '';
+          if (it.kind === 'photo') {
+            return '<div class="tl-item"><img class="tl-thumb" src="' + esc(it.src) + '" alt="">' +
+              '<div class="tl-body"><b>Ảnh kỷ niệm</b>' + (it.caption ? '<span>' + esc(it.caption) + '</span>' : '') + '</div>' +
+              '<time class="tl-time">' + esc(when) + '</time></div>';
+          }
+          return '<div class="tl-item"><span class="tl-dot"></span>' +
+            '<div class="tl-body"><b>' + esc(it.text) + '</b></div>' +
+            '<time class="tl-time">' + esc(when) + '</time></div>';
+        }
 
-      '<section class="pd-feed-sec" id="pdActivity">' +
-      '<div class="feed-head"><h2>Hoạt động</h2></div>' +
-      ((p.activity || []).slice().reverse().slice(0, 8).map(function (a) {
-        return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
-      }).join('') || '<p class="muted feed-empty">Chưa có hoạt động.</p>') +
-      '</section>' +
-
-      '</div></div>' +
+        if (pdTab === 'photos') {
+          return photos.length
+            ? '<div class="posted-grid">' + photos.map(function (it) { return '<img src="' + esc(it.src) + '" alt="">'; }).join('') + '</div>'
+            : '<p class="muted feed-empty">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>';
+        }
+        if (pdTab === 'diary') {
+          return '<p class="muted feed-empty">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>';
+        }
+        if (pdTab === 'activity') {
+          return items.filter(function (i) { return i.kind === 'activity'; }).map(tlRow).join('') ||
+            '<p class="muted feed-empty">Chưa có hoạt động.</p>';
+        }
+        return items.length ? items.map(tlRow).join('') : '<p class="muted feed-empty">Chưa có gì trong dòng thời gian của ' + esc(p.name) + '.</p>';
+      })() +
+      '</div>' +
 
       /* 30% phải: thông tin — kỷ niệm — ghi chú — nhắc nhở, dính khi cuộn */
       '<div class="pd-col pd-col-intro">' +
@@ -1240,6 +1268,16 @@
         return '<div class="ed-row"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
       }).join('') + '</div></div>'
     );
+  }
+
+  /* Nhật ký: khung trang chờ nội dung (người dùng sẽ bổ sung sau) */
+  function renderDiary() {
+    return '<h1 class="page-title">Nhật ký</h1>' +
+      '<div class="diary-empty">' +
+      '<div class="de-ic"><img src="assets/icons/diary.png" alt=""></div>' +
+      '<h2>Sổ tay của bạn</h2>' +
+      '<p>Nơi ghi lại những dòng nhật ký, cảm xúc và câu chuyện nhỏ trong ngày. Nội dung cho mục này sẽ được bổ sung sau.</p>' +
+      '</div>';
   }
 
   function renderCalendar() {
@@ -2060,12 +2098,7 @@
       case 'quick-note-focus': var ta = document.getElementById('notes-area'); if (ta) ta.focus(); break;
       case 'add-memory': addMemoryPrompt(t.dataset.id); break;
       case 'invite-memory': openInviteModal(t.dataset.id); break;
-      case 'pd-tab': {
-        var target = document.getElementById(t.dataset.target);
-        document.querySelectorAll('.pd-tab').forEach(function (b) { b.classList.toggle('on', b === t); });
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        break;
-      }
+      case 'pd-tab': pdTab = t.dataset.tab || 'all'; render(); break;
       case 'copy-invite': copyInviteLink(); break;
       case 'share-invite':
         if (inviteShare && navigator.share) {

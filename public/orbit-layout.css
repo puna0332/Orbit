@@ -1089,3 +1089,27 @@
 }
 .pd-actions button .ic-img { width:17px; height:17px; }
 .pd-actions .ic-emoji { font-size:14px; }
+
+
+/* ===== Dòng thời gian ở trang cá nhân (tab Tổng) ===== */
+.tl-item {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 2px; border-bottom:1px dashed rgba(216,199,184,.8);
+}
+.tl-item:last-child { border-bottom:0; }
+.tl-thumb { width:54px; height:54px; border-radius:12px; object-fit:cover; flex:0 0 auto; }
+.tl-dot { width:9px; height:9px; border-radius:50%; background:#E2A275; flex:0 0 auto; margin-left:6px; }
+.tl-body { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.tl-body b { font-size:13.5px; font-weight:700; color:#3D342D; }
+.tl-body span { font-size:12px; color:#8C8078; }
+.tl-time { flex:0 0 auto; font-size:11.5px; color:#A08C7C; white-space:nowrap; }
+
+/* ===== Trang Nhật ký (chờ nội dung) ===== */
+.diary-empty {
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:10px; padding:56px 24px; margin-top:8px;
+  background:rgba(255,251,248,.72); border:1px dashed #E8DDD6; border-radius:24px;
+}
+.diary-empty .de-ic img { width:64px; height:64px; opacity:.9; }
+.diary-empty h2 { margin:0; font-size:17px; color:#17243B; }
+.diary-empty p { margin:0; max-width:420px; font-size:13px; line-height:1.6; color:#8C8078; }
