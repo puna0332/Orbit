@@ -113,18 +113,33 @@
     };
   }
   /* Các bộ khung nền (bìa) cho trang Nhật ký — chọn trong Cài đặt › Bìa nhật ký */
+  /* `sheet` = khung TRANG GIẤY nằm lọt trong lòng cuốn sổ đang mở (đơn vị % so với khung
+     ảnh bìa). Đây là chỗ đặt tờ giấy để viết — không phải phủ lên cả cuốn sổ. Bản desktop
+     và mobile là hai bản cắt khác nhau nên mỗi bên có bộ số riêng. */
   var DIARY_THEMES = [
     { id: 'sky', label: 'Trời đêm xanh', shortLabel: 'Trời xanh', swatch: '#AFC9E8',
-      desktop: 'assets/diary/cover-desktop-cut.png', mobile: 'assets/diary/cover-mobile-cut.png' },
+      desktop: 'assets/diary/cover-desktop-cut.png', mobile: 'assets/diary/cover-mobile-cut.png',
+      sheet: { desktop: { l: 7.7, t: 4.0, r: 6.0, b: 10.1 }, mobile: { l: 12.5, t: 3.6, r: 6.4, b: 7.6 } } },
     { id: 'coast', label: 'Biển hoàng hôn', shortLabel: 'Biển hoàng hôn', swatch: '#E0943A',
-      desktop: 'assets/diary/cover-coast-desktop-cut.png', mobile: 'assets/diary/cover-coast-mobile-cut.png' },
+      desktop: 'assets/diary/cover-coast-desktop-cut.png', mobile: 'assets/diary/cover-coast-mobile-cut.png',
+      sheet: { desktop: { l: 7.7, t: 4.0, r: 6.0, b: 10.1 }, mobile: { l: 12.5, t: 3.6, r: 6.4, b: 7.6 } } },
     { id: 'meadow', label: 'Đồng cỏ xanh', shortLabel: 'Đồng cỏ', swatch: '#6FA050',
-      desktop: 'assets/diary/cover-meadow-desktop-cut.png', mobile: 'assets/diary/cover-meadow-mobile-cut.png' },
+      desktop: 'assets/diary/cover-meadow-desktop-cut.png', mobile: 'assets/diary/cover-meadow-mobile-cut.png',
+      sheet: { desktop: { l: 7.7, t: 4.0, r: 6.0, b: 10.1 }, mobile: { l: 12.5, t: 3.6, r: 6.4, b: 7.6 } } },
     { id: 'forest', label: 'Núi rừng hoàng hôn', shortLabel: 'Núi rừng', swatch: '#3F6B8C',
-      desktop: 'assets/diary/cover-forest-desktop-cut.png', mobile: 'assets/diary/cover-forest-mobile-cut.png' },
+      desktop: 'assets/diary/cover-forest-desktop-cut.png', mobile: 'assets/diary/cover-forest-mobile-cut.png',
+      sheet: { desktop: { l: 7.7, t: 4.0, r: 6.0, b: 10.1 }, mobile: { l: 12.5, t: 3.6, r: 6.4, b: 7.6 } } },
     { id: 'sunset', label: 'Hoàng hôn hồng', shortLabel: 'Hoàng hôn', swatch: '#F0B9C7',
-      desktop: 'assets/diary/cover-sunset-desktop-cut.png', mobile: 'assets/diary/cover-sunset-mobile-cut.png' }
+      desktop: 'assets/diary/cover-sunset-desktop-cut.png', mobile: 'assets/diary/cover-sunset-mobile-cut.png',
+      sheet: { desktop: { l: 7.7, t: 4.0, r: 6.0, b: 10.1 }, mobile: { l: 12.5, t: 3.6, r: 6.4, b: 7.6 } } }
   ];
+  /* Khung trang giấy của bìa đang dùng, theo khung nhìn hiện tại */
+  function sheetRect(theme) {
+    var wide = (window.innerWidth || 1024) >= 900;
+    var s = theme && theme.sheet;
+    if (!s) return { l: 7.7, t: 4.0, r: 6.0, b: 10.1 };
+    return (wide ? s.desktop : s.mobile) || s.desktop;
+  }
   function getDiaryTheme() {
     var cur = (state.settings && state.settings.diaryCoverTheme) || 'sky';
     return DIARY_THEMES.find(function (t) { return t.id === cur; }) || DIARY_THEMES[0];
@@ -1529,7 +1544,8 @@
       ? '<textarea class="paper-ink paper-input" id="' + (opts.id || 'diaryText') + '" spellcheck="false" ' +
         'placeholder="Hôm nay của bạn thế nào?">' + esc(opts.text || '') + '</textarea>'
       : '<div class="paper-ink">' + esc(opts.text || '') + '</div>';
-    return '<div class="paper ' + (opts.editable ? 'edit' : 'read') + ' kind-' + paper.kind + (img ? ' has-img' : '') +
+    return '<div class="paper ' + (opts.editable ? 'edit' : 'read') + (paper.inbook ? ' inbook' : '') +
+      ' kind-' + paper.kind + (img ? ' has-img' : '') +
       '" data-paper="' + paper.id + '" style="' + style + '">' +
       (paper.kind === 'rule' || paper.kind === 'dot' ? '<div class="paper-rules" aria-hidden="true"></div>' : '') +
       inner +
@@ -1546,13 +1562,17 @@
       var w = el.clientWidth;
       if (!w) return;
       var edit = el.classList.contains('edit');
+      var inbook = el.classList.contains('inbook');
       var ar = paperAr(paper);
       /* Đổi bề rộng cửa sổ qua mốc 900px thì phải đổi luôn BẢN ẢNH GIẤY (ngang ↔ dọc)
          và tỉ lệ tờ giấy — không cần render lại cả trang. */
       el.style.setProperty('--paper-ar', ar);
       var imgUrl = paperImg(paper);
       el.style.backgroundImage = imgUrl ? 'url("' + imgUrl + '")' : '';
-      if (!edit) {
+      if (inbook) {
+        /* Giấy nằm trong sổ: kích thước do khung .diary-sheet quyết định, không ép tỉ lệ */
+        el.style.minHeight = '';
+      } else if (!edit) {
         /* Trang đọc: thấp nhất ~45% một trang giấy cho gọn; bài dài thì tờ giấy tự giãn
            theo nội dung. Ảnh nền neo mép trên và phủ đúng bề rộng (xem .paper.has-img)
            nên cắt bớt phần dưới KHÔNG làm chữ trôi khỏi đường kẻ. */
@@ -1669,16 +1689,23 @@
     if (diaryDraft) return head + renderDiaryEditor();
 
     var recent = diaryEntries('me').slice(0, 3);
+    var sr = sheetRect(theme);
     return head +
       '<div class="diary-stage">' +
       '<div class="diary-cover-wrap">' +
-      '<div class="diary-cover">' +
-      '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="Bìa sổ nhật ký">' +
-      '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Bìa sổ nhật ký">' +
+      '<div class="diary-book">' +
+      '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="Sổ nhật ký">' +
+      '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Sổ nhật ký">' +
+      '<button class="diary-sheet diary-sheet-idle" data-action="diary-new" ' +
+      'style="left:' + sr.l + '%;top:' + sr.t + '%;right:' + sr.r + '%;bottom:' + sr.b + '%" ' +
+      'aria-label="Viết nhật ký vào trang giấy trong sổ">' +
+      '<span class="ds-idle-ico">✍</span>' +
+      '<b>Chạm để viết</b>' +
+      '<small>Trang giấy nằm trong sổ</small>' +
+      '</button>' +
       '</div>' +
       '</div>' +
       '</div>' +
-      '<div class="diary-cta"><button class="btn btn-primary diary-write-btn" data-action="diary-new">✍ Mở sổ &amp; viết</button></div>' +
       (recent.length
         ? '<section class="diary-recent"><div class="section-head"><h2>Bài gần đây</h2>' +
           '<a class="link-more" href="#/me">Xem tất cả ›</a></div>' +
@@ -1691,6 +1718,8 @@
   function renderDiaryEditor() {
     var paper = Object.assign({}, getPaper(diaryDraft.paperId));
     if (diaryDraft.free != null) paper.snap = !diaryDraft.free;
+    var theme = getDiaryTheme();
+    var sr = sheetRect(theme);
 
     var targetBtns = [{ id: 'me', name: 'Trang của bạn' }].concat(state.people.map(function (p) {
       return { id: p.id, name: p.name };
@@ -1723,7 +1752,14 @@
       '<button class="btn btn-primary de-save" data-action="diary-save">Lưu</button>' +
       '</div>' +
       '<div class="de-targets"><span class="de-target-label">Viết cho</span>' + targetBtns + '</div>' +
-      '<div class="de-stage">' + paperHtml(paper, { editable: true, text: diaryDraft.text, id: 'diaryText' }) + '</div>' +
+      /* Tờ giấy được đặt LỌT TRONG lòng cuốn sổ đang mở — khung % lấy từ sheetRect(theme),
+         nên đổi bìa hay đổi khung ngang/dọc thì giấy vẫn nằm đúng chỗ. */
+      '<div class="de-stage"><div class="diary-book">' +
+      '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="">' +
+      '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="">' +
+      '<div class="diary-sheet" style="left:' + sr.l + '%;top:' + sr.t + '%;right:' + sr.r + '%;bottom:' + sr.b + '%">' +
+      paperHtml(Object.assign({}, paper, { inbook: true }), { editable: true, text: diaryDraft.text, id: 'diaryText' }) +
+      '</div></div></div>' +
       '<div class="de-bar2"><div class="de-papers">' + paperChips +
       '<label class="de-paper de-paper-import" title="Import ảnh làm mẫu giấy">' +
       '<span class="de-paper-thumb pkind-import">＋</span><span class="de-paper-name">Ảnh giấy</span>' +
