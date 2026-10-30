@@ -993,17 +993,31 @@
 
 /* ===== Tổng số người: cạnh tiêu đề "Mọi người" và trong menu ===== */
 .page-count {
-  display:inline-flex; align-items:center; justify-content:center;
-  min-width:30px; height:30px; padding:0 10px; margin-left:10px;
-  border-radius:999px; font-size:15px; font-weight:700; line-height:1;
-  color:#7A5B45; background:#F3E3D6; border:1px solid #EBD5C3;
-  vertical-align:middle;
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  min-width:36px; height:36px; padding:0 12px; margin-left:12px;
+  border-radius:999px; font-size:16px; font-weight:700; line-height:1;
+  color:#fff; vertical-align:middle; letter-spacing:.2px;
+  background:linear-gradient(135deg, #E9A97F 0%, #D985A5 62%, #C98BC0 100%);
+  box-shadow:0 6px 16px rgba(217,133,165,.32), 0 2px 4px rgba(150,116,90,.18),
+             inset 0 1px 0 rgba(255,255,255,.5);
+  text-shadow:0 1px 1px rgba(120,70,90,.25);
+}
+.page-count::after {
+  content:""; position:absolute; inset:2px; border-radius:999px;
+  background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 55%);
+  pointer-events:none;
 }
 .sidebar-link .nav-count, .nav-item .nav-count {
-  margin-left:auto; padding-left:8px;
-  font-size:11.5px; font-weight:700; color:#A08C7C;
+  margin-left:auto; padding:0 7px; min-width:22px; height:20px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.1px;
+  color:#8A5A46; background:linear-gradient(135deg, #F9E7D8, #F3D9DF);
+  box-shadow:inset 0 0 0 1px rgba(226,180,150,.55), 0 1px 2px rgba(150,116,90,.10);
 }
-.sidebar-link.active .nav-count { color:#8A6A52; }
+.sidebar-link.active .nav-count {
+  color:#fff; background:linear-gradient(135deg, #E9A97F, #D985A5);
+  box-shadow:0 2px 6px rgba(217,133,165,.35);
+}
 @media (max-width:899px){
   .page-count { min-width:26px; height:26px; font-size:13.5px; padding:0 8px; margin-left:8px; }
   .nav-item .nav-count { margin-left:6px; padding-left:0; }

@@ -595,10 +595,10 @@
         (active === 'people' ? '<div class="sidebar-hero-card"><img class="sidebar-hero" src="assets/sidebar-girl-cloud.png" alt="" aria-hidden="true"></div>' : '') +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
+          '<a class="sidebar-link' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '">' +
+            '<span class="ic">' + ic('profile', 24) + '</span>Trang cá nhân</a>' +
           navLink('home', ic('home', 22), 'Home', active) +
           navLink('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
-          '<a class="sidebar-link' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '">' +
-            '<span class="ic">' + ic('avatar', 22) + '</span>Trang cá nhân</a>' +
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
@@ -612,9 +612,9 @@
       '<div class="shell-main">' +
         '<div class="view-root page-' + active + '"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
+          '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('profile', 24) + '</span>Hồ sơ</a>' +
           bottomItem('home', ic('home', 22), 'Home', active) +
           bottomItem('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
-          '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('avatar', 22) + '</span>Hồ sơ</a>' +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
           bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
