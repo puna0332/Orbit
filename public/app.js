@@ -585,8 +585,8 @@
       (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
   }
   function bottomItem(key, icon, label, active, suffix) {
-    return '<a class="nav-item ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
-      (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
+    return '<a class="nav-item ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' +
+      '<span class="lbl">' + label + '</span>' + (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
   }
   function shell(inner, active, onProfile) {
     return (
@@ -595,9 +595,9 @@
         (active === 'people' ? '<div class="sidebar-hero-card"><img class="sidebar-hero" src="assets/sidebar-girl-cloud.png" alt="" aria-hidden="true"></div>' : '') +
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
+          navLink('home', ic('home', 22), 'Home', active) +
           '<a class="sidebar-link' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '">' +
             '<span class="ic">' + ic('profile', 24) + '</span>Trang cá nhân</a>' +
-          navLink('home', ic('home', 22), 'Home', active) +
           navLink('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
@@ -612,8 +612,8 @@
       '<div class="shell-main">' +
         '<div class="view-root page-' + active + '"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
-          '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('profile', 24) + '</span>Hồ sơ</a>' +
           bottomItem('home', ic('home', 22), 'Home', active) +
+          '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('profile', 24) + '</span><span class="lbl">Hồ sơ</span></a>' +
           bottomItem('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
@@ -1075,6 +1075,9 @@
       ? '<div class="memory-tile" style="background:#999;"><div class="more-badge">+' + (mems.length - 3) + '</div></div>'
       : '<div class="memory-tile add" data-action="add-memory" data-id="' + p.id + '">+</div>';
 
+    var postedPhotos = [];
+    (p.memories || []).forEach(function (m) { (m.images || []).forEach(function (src) { postedPhotos.push(src); }); });
+
     var collapsed = !!state.settings.pdSideCollapsed;
     var peopleCol = state.people.map(function (q) {
       return '<a class="pd-person' + (q.id === p.id ? ' on' : '') + '" href="#/people/' + q.id + '">' +
@@ -1129,14 +1132,47 @@
 
       '<div class="pd-grid">' +
 
-      /* Cột trái kiểu Facebook: phần "Giới thiệu" đứng trước, hồ sơ cá nhân gọn lại */
+      /* 70% trái: dòng nội dung — ghi chú, ảnh đã đăng, nhật ký, hoạt động */
+      '<div class="pd-col pd-col-feed">' +
+
+      '<section class="pd-block" id="pdNotes">' +
+      '<div class="section-head"><h2>Ghi chú</h2></div>' +
+      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
+
+      '<section class="pd-block" id="pdPhotos">' +
+      '<div class="section-head"><h2>Ảnh đã đăng</h2><span class="count-chip">' + postedPhotos.length + '</span></div>' +
+      (postedPhotos.length
+        ? '<div class="posted-grid">' + postedPhotos.map(function (src) { return '<img src="' + src + '" alt="">'; }).join('') + '</div>'
+        : '<p class="muted" style="margin:0;">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>') +
+      '</section>' +
+
+      '<section class="pd-block" id="pdDiary">' +
+      '<div class="section-head"><h2>Nhật ký</h2><span class="soon-chip">Sắp có</span></div>' +
+      '<p class="muted" style="margin:0;">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>' +
+      '</section>' +
+
+      '<section class="pd-block" id="pdActivity">' +
+      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
+      ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
+        return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
+      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
+      '</section></div>' +
+
+      /* 30% phải: khối thông tin — kỷ niệm — nhắc nhở, dính khi cuộn */
       '<div class="pd-col pd-col-intro">' +
+
       '<section class="pd-block" id="pdIntro">' +
-      '<div class="section-head"><h2>Giới thiệu</h2></div>' +
+      '<div class="section-head"><h2>Thông tin</h2></div>' +
       '<div class="quickinfo-row"><span class="ic">' + ic('cake', 18) + '</span> Sinh nhật <b>' + (p.birthday ? formatMMDD(p.birthday) : 'Chưa có') + '</b></div>' +
       '<div class="quickinfo-row"><span class="ic">🏷️</span> Mối quan hệ <b>' + (REL_LABEL[p.relationship] || 'Khác') + '</b></div>' +
       ((p.groups || []).length ? '<div class="quickinfo-row"><span class="ic">📁</span> Nhóm <b>' + esc(groupNames(p.groups).join(', ')) + '</b></div>' : '') +
       (p.since ? '<div class="quickinfo-row"><span class="ic">✦</span> Quen từ <b>' + esc(String(p.since)) + '</b></div>' : '') +
+      '</section>' +
+
+      '<section class="pd-block" id="pdMemories">' +
+      '<div class="section-head"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
+      '<div class="memory-grid">' + memTiles + extra + '</div>' +
+      '<button class="link-more invite-btn invite-wide" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
       '</section>' +
 
       '<section class="pd-block">' +
@@ -1149,25 +1185,6 @@
       '</section>' +
       '<button class="btn btn-danger btn-block" data-action="delete-person" data-id="' + p.id + '">Xoá liên hệ</button>' +
       '</div>' +
-
-      /* Cột phải: dòng kỷ niệm như newsfeed */
-      '<div class="pd-col pd-col-feed">' +
-      '<section class="pd-block" id="pdMemories">' +
-      '<div class="section-head"><h2>Kỷ niệm</h2><div class="head-actions">' +
-      '<button class="link-more invite-btn" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
-      '<button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div></div>' +
-      '<div class="memory-grid">' + memTiles + extra + '</div></section>' +
-
-      '<section class="pd-block" id="pdNotes">' +
-      '<div class="section-head"><h2>Ghi chú</h2></div>' +
-      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
-
-      '<section class="pd-block" id="pdActivity">' +
-      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
-      ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
-        return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
-      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
-      '</section></div>' +
       '</div></div></div>'
 
     );

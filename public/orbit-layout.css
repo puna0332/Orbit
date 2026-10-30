@@ -733,7 +733,16 @@
   /* Desktop luôn thấy danh bạ nên nút "‹" trên ảnh bìa là thừa và dễ nhầm với nút thu gọn */
   .pd-back { display:none; }
   .pd-cover { height:288px; border-radius:20px; }
-  .pd-grid { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:12px; }
+  /* Hồ sơ: 70% trái là dòng nội dung, 30% phải là khối thông tin dính khi cuộn */
+  .pd-grid { grid-template-columns:minmax(0,7fr) minmax(0,3fr); gap:18px; align-items:start; }
+  .pd-col-feed { order:1; min-width:0; }
+  .pd-col-intro {
+    order:2; position:sticky; top:56px; align-self:start;
+    max-height:calc(100dvh - 84px); overflow-y:auto; padding-right:2px;
+    scrollbar-width:thin;
+  }
+  .pd-col-intro .pd-block { margin-bottom:12px; }
+  .pd-block .memory-grid { grid-template-columns:repeat(2,1fr); }
 }
 @media (max-width:899px) {
   .pd-shell { gap:10px; }
@@ -972,8 +981,8 @@
   font-size:11px; font-weight:700; background:#F3E3D6; color:#7A5B45;
   border-radius:999px; padding:1px 6px; margin-left:3px;
 }
-.pd-col-intro { order:1; }
-.pd-col-feed { order:2; }
+.pd-col-intro { order:2; }
+.pd-col-feed { order:1; }
 
 /* ===== Bảng thống kê liên kết ===== */
 .stats-card { margin:2px 0 12px; background:#FBF2E8; border-radius:16px; padding:10px 12px; }
@@ -1021,4 +1030,33 @@
 @media (max-width:899px){
   .page-count { min-width:26px; height:26px; font-size:13.5px; padding:0 8px; margin-left:8px; }
   .nav-item .nav-count { margin-left:6px; padding-left:0; }
+}
+
+
+/* ===== Hồ sơ: chip đếm, lưới ảnh đã đăng, nút mời full-width ===== */
+.count-chip, .soon-chip {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:20px; height:20px; padding:0 7px; border-radius:999px;
+  font-size:11px; font-weight:700;
+}
+.count-chip { color:#8A5A46; background:linear-gradient(135deg,#F9E7D8,#F3D9DF); box-shadow:inset 0 0 0 1px rgba(226,180,150,.5); }
+.soon-chip { color:#7A5B45; background:#EFE7F7; box-shadow:inset 0 0 0 1px rgba(180,160,201,.45); }
+.posted-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+.posted-grid img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:14px; display:block; }
+.link-more.invite-wide { display:flex; justify-content:center; margin-top:10px; width:100%; }
+
+/* ===== Chấm trên quỹ đạo phải nằm SAU avatar ===== */
+.orbit-dust-track { z-index:0 !important; }
+.orbit-track:not(.orbit-dust-track) { z-index:2; }
+.orbit-avatar { z-index:3; }
+.orbit-avatar.focused { z-index:9; }
+.orbit-center { z-index:5; }
+
+/* ===== Mobile: thanh điều hướng chỉ còn icon ===== */
+@media (max-width:899px){
+  .bottom-nav .nav-item .lbl,
+  .bottom-nav .nav-item .nav-count { display:none; }
+  .bottom-nav .nav-item { padding:6px 10px; }
+  .bottom-nav .nav-item .ic { height:26px; }
+  .bottom-nav .nav-item .ic-img { width:26px; height:26px; }
 }
