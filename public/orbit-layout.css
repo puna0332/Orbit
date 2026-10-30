@@ -1113,3 +1113,15 @@
 .diary-empty .de-ic img { width:64px; height:64px; opacity:.9; }
 .diary-empty h2 { margin:0; font-size:17px; color:#17243B; }
 .diary-empty p { margin:0; max-width:420px; font-size:13px; line-height:1.6; color:#8C8078; }
+
+
+/* ===== Bottom nav: chia ô tuyệt đối để nút + nằm đúng giữa =====
+   6 mục + FAB = 7 ô bằng nhau; FAB ở ô thứ 4 nên tâm trùng tâm thanh. */
+.bottom-nav { justify-content:center; }
+.bottom-nav > * { flex:0 0 calc(100% / 7); max-width:calc(100% / 7); min-width:0; }
+.bottom-nav .fab {
+  margin:-28px 0 0; padding:0; width:auto; height:auto;
+  display:flex; align-items:center; justify-content:center;
+  background:transparent; border:0; box-shadow:none;
+}
+.bottom-nav .fab img { width:52px; height:52px; display:block; margin:0 auto; }

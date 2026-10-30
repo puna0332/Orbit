@@ -619,8 +619,8 @@
           bottomItem('home', ic('home', 22), 'Home', active) +
           '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('profile', 24) + '</span><span class="lbl">Hồ sơ</span></a>' +
           bottomItem('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
-          bottomItem('diary', ic('diary', 24), 'Nhật ký', active) +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
+          bottomItem('diary', ic('diary', 24), 'Nhật ký', active) +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
           bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
