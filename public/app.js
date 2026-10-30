@@ -129,6 +129,53 @@
     var cur = (state.settings && state.settings.diaryCoverTheme) || 'sky';
     return DIARY_THEMES.find(function (t) { return t.id === cur; }) || DIARY_THEMES[0];
   }
+
+  /* ---------------------------- Mẫu giấy viết nhật ký ----------------------------
+     QUAN TRỌNG — mọi kích thước ở đây là PHẦN TRĂM, không phải px:
+       box  : lề khung chữ (t/r/b/l theo % bề rộng/chiều cao tờ giấy)
+       top  : khoảng cách từ mép trên tờ giấy tới ĐƯỜNG KẺ ĐẦU TIÊN (% chiều cao)
+       gap  : khoảng cách giữa hai đường kẻ (% chiều cao)
+       size : cỡ chữ (% bề rộng tờ giấy)
+     Nhờ vậy cùng một bài viết, khi render ở khung ngang (máy tính) hay khung dọc
+     (điện thoại) đều ra đúng tỉ lệ — nội dung lưu dạng CHỮ, không lưu ảnh đã vẽ,
+     nên không bao giờ bị "khoá cứng" theo một hướng giấy nào.
+     snap = false: giấy không dòng, chữ chảy tự do. */
+  var PAPER_BUILTINS = [
+    { id: 'paper-blank', label: 'Giấy trắng', kind: 'blank', snap: false,
+      box: { t: 9, r: 8, b: 9, l: 10 }, top: 7.8, gap: 5.0, size: 3.1, ink: '#3D342D', ar: 0.7071 },
+    { id: 'paper-rule', label: 'Giấy kẻ dòng', kind: 'rule', snap: true,
+      box: { t: 7, r: 8, b: 8, l: 10 }, top: 7.4, gap: 5.0, size: 3.1, ink: '#3D342D', ar: 0.7071 },
+    { id: 'paper-dot', label: 'Giấy chấm', kind: 'dot', snap: true,
+      box: { t: 7, r: 8, b: 8, l: 10 }, top: 7.4, gap: 5.0, size: 3.1, ink: '#3D342D', ar: 0.7071 }
+  ];
+  function allPapers() {
+    return PAPER_BUILTINS.concat((state.papers || []).map(function (p) {
+      return Object.assign({ custom: true, kind: 'image', snap: p.snap !== false }, p);
+    }));
+  }
+  function getPaper(id) {
+    var list = allPapers();
+    return list.find(function (p) { return p.id === id; }) || PAPER_BUILTINS[1];
+  }
+  /* Ảnh giấy hiển thị theo khung nhìn: máy tính dùng bản ngang, điện thoại bản dọc.
+     Nếu người dùng chỉ upload một ảnh thì cả hai dùng chung ảnh đó. */
+  function paperImg(p) {
+    var wide = (window.innerWidth || 1024) >= 900;
+    if (!p.img) return '';
+    return (wide ? (p.img.desktop || p.img.mobile) : (p.img.mobile || p.img.desktop)) || '';
+  }
+  /* Tỉ lệ tờ giấy cũng phải theo từng bản ảnh: bản dọc cho điện thoại, bản ngang cho
+     máy tính — hai ảnh có thể khác tỉ lệ nên không dùng chung một con số được. */
+  function paperAr(p) {
+    var a = p && p.ar;
+    if (typeof a === 'number' && a > 0) return a;
+    if (a && typeof a === 'object') {
+      var wide = (window.innerWidth || 1024) >= 900;
+      var v = wide ? (a.desktop || a.mobile) : (a.mobile || a.desktop);
+      if (v > 0) return v;
+    }
+    return 0.7071;
+  }
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
 
@@ -254,7 +301,7 @@
   }
   function emptyState(keepSettings) {
     return {
-      onboardingDone: true, onboardingSlide: 0, people: [], events: [],
+      onboardingDone: true, onboardingSlide: 0, people: [], events: [], diaries: [], papers: [],
       settings: keepSettings || defaultSettings()
     };
   }
@@ -275,6 +322,10 @@
         if (!parsed.settings) parsed.settings = defaultSettings();
         var st = parsed.settings;
         if (!st.relationPriority) st.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+        if (!Array.isArray(parsed.people)) parsed.people = [];
+        if (!Array.isArray(parsed.events)) parsed.events = [];
+        if (!Array.isArray(parsed.diaries)) parsed.diaries = [];
+        if (!Array.isArray(parsed.papers)) parsed.papers = [];
         if (!Array.isArray(st.groups)) st.groups = [];
         if (typeof st.homeOccasions !== 'boolean') st.homeOccasions = true;
         if (typeof st.homeSuggest !== 'boolean') st.homeSuggest = true;
@@ -327,6 +378,7 @@
   var pdTab = 'all';        // tab đang chọn ở trang cá nhân (của người khác)
   var pdTabFor = null;      // hồ sơ đang xem, đổi người thì reset về Tổng
   var meTab = 'overview';   // tab đang chọn ở Trang cá nhân của chính bạn
+  var diaryDraft = null;    // bài nhật ký đang soạn: {id?, text, target, paperId, free}
   var peopleQuery = '';
   var orbitCollapsed = true; // true = contact drawer closed, orbit stays visible
   var orbitMotionPaused = false;
@@ -508,6 +560,17 @@
     if (page === 'people' && parts[1]) bindNotesArea(parts[1]);
     if (page === 'people' && !parts[1]) { bindOrbitGestures(); bindPeopleSearch(); applyFocusCamera(); }
     if (page === 'settings' && parts[1] === 'data') bindImportInput();
+    if (page === 'diary') { layoutPapers(); if (document.getElementById('paperImportInput')) bindPaperImport(); }
+    else if (page === 'me' || (page === 'people' && parts[1])) layoutPapers();
+    if (diaryDraft) syncDiaryText();
+  }
+
+  /* Giữ nội dung đang gõ trong diaryDraft để đổi giấy / đổi người nhận (render lại) không mất chữ */
+  function syncDiaryText() {
+    var ta = document.getElementById('diaryText');
+    if (!ta || !diaryDraft) return;
+    diaryDraft.text = ta.value;
+    ta.addEventListener('input', function () { if (diaryDraft) diaryDraft.text = ta.value; });
   }
 
   function bindPeopleSearch() {
@@ -1204,7 +1267,9 @@
             : '<p class="muted feed-empty">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>';
         }
         if (pdTab === 'diary') {
-          return '<p class="muted feed-empty">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>';
+          var pe = diaryEntries(p.id);
+          return pe.length ? pe.map(function (d) { return entryCardHtml(d, { deletable: true }); }).join('')
+            : '<p class="muted feed-empty">Chưa có dòng nhật ký nào về ' + esc(p.name) + '. <a class="me-link" href="#/diary">Viết ngay ›</a></p>';
         }
         if (pdTab === 'activity') {
           return items.filter(function (i) { return i.kind === 'activity'; }).map(tlRow).join('') ||
@@ -1314,7 +1379,7 @@
   /* Cùng khung pd-panel/pd-cover/pd-head/pd-tabs/pd-grid dùng cho trang hồ sơ của người
      khác (renderPersonDetail) — để "Trang cá nhân" của chính bạn trông giống hệt, chỉ
      khác nội dung (không có danh bạ bên trái vì đây không phải một liên hệ để duyệt). */
-  var ME_TABS = [['overview', 'Tổng quan'], ['messages', 'Lời nhắn'], ['groups', 'Nhóm']];
+  var ME_TABS = [['overview', 'Tổng quan'], ['diary', 'Nhật ký'], ['messages', 'Lời nhắn'], ['groups', 'Nhóm']];
   function renderMe() {
     var name = state.settings.profileName || 'Bạn';
     var stats = connectionStats();
@@ -1336,7 +1401,11 @@
     }
 
     var feed;
-    if (meTab === 'messages') {
+    if (meTab === 'diary') {
+      var mine = diaryEntries('me');
+      feed = mine.length ? mine.map(function (d) { return entryCardHtml(d, { deletable: true }); }).join('')
+        : '<p class="muted feed-empty">Chưa có bài nhật ký nào. <a class="me-link" href="#/diary">Mở sổ viết ngay ›</a></p>';
+    } else if (meTab === 'messages') {
       feed = msgs.length ? msgs.map(function (x) { return msgRow(x, 90); }).join('')
         : '<p class="muted feed-empty">Chưa nhận lời nhắn nào. Mời ai đó gửi kỷ niệm từ trang hồ sơ của họ.</p>';
     } else if (meTab === 'groups') {
@@ -1448,7 +1517,112 @@
     }).join('');
   }
 
-  /* Nội dung ngăn kéo chọn chủ đề bìa nhật ký */
+  /* Tờ giấy dùng chung cho cả lúc VIẾT và lúc ĐỌC LẠI bài đã lưu. Tỉ lệ lấy từ chính mẫu
+     giấy (--paper-ar), khung chữ và đường kẻ canh bằng % nên điện thoại hay máy tính đều
+     ra đúng một bố cục. */
+  function paperHtml(paper, opts) {
+    opts = opts || {};
+    var img = paperImg(paper);
+    var style = '--paper-ar:' + paperAr(paper) + ';color:' + (paper.ink || '#3D342D') + ';';
+    if (img) style += 'background-image:url(' + img + ');';
+    var inner = opts.editable
+      ? '<textarea class="paper-ink paper-input" id="' + (opts.id || 'diaryText') + '" spellcheck="false" ' +
+        'placeholder="Hôm nay của bạn thế nào?">' + esc(opts.text || '') + '</textarea>'
+      : '<div class="paper-ink">' + esc(opts.text || '') + '</div>';
+    return '<div class="paper ' + (opts.editable ? 'edit' : 'read') + ' kind-' + paper.kind + (img ? ' has-img' : '') +
+      '" data-paper="' + paper.id + '" style="' + style + '">' +
+      (paper.kind === 'rule' || paper.kind === 'dot' ? '<div class="paper-rules" aria-hidden="true"></div>' : '') +
+      inner +
+      '</div>';
+  }
+
+  /* Canh chữ lên đúng đường kẻ. MỌI khoảng cách tính theo BỀ RỘNG tờ giấy (%) nên:
+       - đổi từ khung ngang sang khung dọc vẫn giữ đúng tỉ lệ;
+       - trang đọc dài ra (bài dài) thì các dòng kẻ vẫn chạy đều, chữ không trôi khỏi dòng. */
+  function layoutPapers(root) {
+    var list = (root || document).querySelectorAll('.paper');
+    Array.prototype.forEach.call(list, function (el) {
+      var paper = getPaper(el.dataset.paper);
+      var w = el.clientWidth;
+      if (!w) return;
+      var edit = el.classList.contains('edit');
+      var ar = paperAr(paper);
+      /* Đổi bề rộng cửa sổ qua mốc 900px thì phải đổi luôn BẢN ẢNH GIẤY (ngang ↔ dọc)
+         và tỉ lệ tờ giấy — không cần render lại cả trang. */
+      el.style.setProperty('--paper-ar', ar);
+      var imgUrl = paperImg(paper);
+      el.style.backgroundImage = imgUrl ? 'url("' + imgUrl + '")' : '';
+      if (!edit) {
+        /* Trang đọc: thấp nhất ~45% một trang giấy cho gọn; bài dài thì tờ giấy tự giãn
+           theo nội dung. Ảnh nền neo mép trên và phủ đúng bề rộng (xem .paper.has-img)
+           nên cắt bớt phần dưới KHÔNG làm chữ trôi khỏi đường kẻ. */
+        el.style.minHeight = Math.round((w / ar) * 0.45) + 'px';
+      }
+      var sizeRaw = (paper.size / 100) * w;
+      var gap = (paper.gap / 100) * w;
+      /* Cỡ chữ không bao giờ được vượt quá ~0.72 khoảng cách dòng (để chữ vẫn nằm gọn
+         trong ô dòng của giấy) và không nhỏ hơn 8px. Khoảng cách dòng LUÔN lấy đúng theo
+         mẫu giấy — nhờ vậy chữ không bao giờ trôi khỏi đường kẻ, kể cả khi tờ giấy nhỏ. */
+      var size = Math.max(8, Math.min(sizeRaw, gap * 0.72));
+      var firstLine = (paper.top / 100) * w;
+      var padT = (paper.box.t / 100) * w;
+      var ink = el.querySelector('.paper-ink');
+      if (ink) {
+        ink.style.fontSize = size + 'px';
+        ink.style.paddingRight = (paper.box.r / 100) * w + 'px';
+        ink.style.paddingBottom = (paper.box.b / 100) * w + 'px';
+        ink.style.paddingLeft = (paper.box.l / 100) * w + 'px';
+        if (paper.snap === false) {
+          /* Giấy không dòng: chữ chảy tự nhiên, không canh đường kẻ */
+          ink.style.lineHeight = '1.72';
+          ink.style.paddingTop = Math.max(2, firstLine - size * 1.15) + 'px';
+        } else {
+          ink.style.lineHeight = gap + 'px';
+          /* baseline của dòng đầu trong hộp dòng cao `gap`: ~ (gap - size)/2 + 0.8*size */
+          var baseline = (gap - size) / 2 + size * 0.8;
+          ink.style.paddingTop = Math.max(2, firstLine - baseline) + 'px';
+        }
+      }
+      var rules = el.querySelector('.paper-rules');
+      if (rules) {
+        if (paper.kind === 'rule') {
+          var edge = Math.max(0.5, gap - 1);
+          rules.style.backgroundImage = 'repeating-linear-gradient(to bottom,' +
+            'transparent 0,transparent ' + edge + 'px,' +
+            'rgba(122,101,82,.34) ' + edge + 'px,rgba(122,101,82,.34) ' + gap + 'px)';
+        } else {
+          rules.style.backgroundImage = 'radial-gradient(circle,rgba(122,101,82,.40) 1.1px,transparent 1.3px)';
+          rules.style.backgroundSize = gap + 'px ' + gap + 'px';
+        }
+        /* đặt đường kẻ/dãy chấm ĐẦU TIÊN đúng tại `top` */
+        rules.style.backgroundPosition = '0 ' + (firstLine - gap) + 'px';
+      }
+    });
+  }
+
+  function diaryEntries(target) {
+    return (state.diaries || [])
+      .filter(function (d) { return (d.target || 'me') === target; })
+      .sort(function (a, b) { return (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0); });
+  }
+  function entryPaper(entry) {
+    var p = Object.assign({}, getPaper(entry.paperId));
+    p.snap = !entry.free;
+    return p;
+  }
+  function entryCardHtml(entry, opts) {
+    opts = opts || {};
+    var who = entry.target && entry.target !== 'me' ? state.people.find(function (x) { return x.id === entry.target; }) : null;
+    return '<article class="diary-entry">' +
+      '<div class="entry-paper">' + paperHtml(entryPaper(entry), { text: entry.text }) + '</div>' +
+      '<div class="entry-meta">' +
+      '<span class="entry-who">' + (who ? 'Viết cho ' + esc(who.name) : 'Trang của bạn') + '</span>' +
+      '<time>' + (entry.at ? timeAgo(entry.at) : '') + '</time>' +
+      (opts.deletable ? '<button class="entry-del" data-action="diary-del" data-id="' + entry.id + '" title="Xoá bài">✕</button>' : '') +
+      '</div></article>';
+  }
+
+
   function diaryThemeDrawerHtml(curId) {
     return '<div class="theme-drawer" role="dialog" aria-modal="true" aria-label="Chọn chủ đề bìa nhật ký">' +
       '<div class="theme-drawer-head"><h3>Chủ đề</h3>' +
@@ -1477,11 +1651,11 @@
     setTimeout(function () { if (bd.parentNode) bd.remove(); }, 220);
   }
 
-  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền, phủ kín khung nội dung); nút "Chủ đề" tòi ra
-     cạnh bìa mở ngăn kéo chọn bộ khung ở bên phải màn hình; lớp giấy viết nhật ký sẽ thêm sau */
+  /* Nhật ký: lớp bìa (đã tách nền) + nút viết; khi đang viết thì hiện TỜ GIẤY thay cho bìa.
+     Bài lưu xong nằm ở trang cá nhân của bạn, hoặc ở trang của người được chọn. */
   function renderDiary() {
     var theme = getDiaryTheme();
-    return '<div class="diary-head">' +
+    var head = '<div class="diary-head">' +
       '<h1 class="page-title">Nhật ký</h1>' +
       '<button class="diary-theme-trigger" data-action="open-diary-theme-drawer" aria-haspopup="dialog" title="Chọn chủ đề bìa">' +
       '<span class="dtt-swatches">' + DIARY_THEMES.map(function (t) {
@@ -1490,7 +1664,12 @@
       '<span class="dtt-label">Chủ đề</span>' +
       '<span class="dtt-chev" aria-hidden="true">›</span>' +
       '</button>' +
-      '</div>' +
+      '</div>';
+
+    if (diaryDraft) return head + renderDiaryEditor();
+
+    var recent = diaryEntries('me').slice(0, 3);
+    return head +
       '<div class="diary-stage">' +
       '<div class="diary-cover-wrap">' +
       '<div class="diary-cover">' +
@@ -1498,8 +1677,63 @@
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Bìa sổ nhật ký">' +
       '</div>' +
       '</div>' +
+      '</div>' +
+      '<div class="diary-cta"><button class="btn btn-primary diary-write-btn" data-action="diary-new">✍ Mở sổ &amp; viết</button></div>' +
+      (recent.length
+        ? '<section class="diary-recent"><div class="section-head"><h2>Bài gần đây</h2>' +
+          '<a class="link-more" href="#/me">Xem tất cả ›</a></div>' +
+          recent.map(function (d) { return entryCardHtml(d, { deletable: true }); }).join('') + '</section>'
+        : '');
+  }
+
+  /* Trình soạn nhật ký: chọn giấy + chọn người nhận + viết trực tiếp trên tờ giấy.
+     Chữ được canh theo đường kẻ của giấy; bật "viết tự do" thì tắt canh dòng. */
+  function renderDiaryEditor() {
+    var paper = Object.assign({}, getPaper(diaryDraft.paperId));
+    if (diaryDraft.free != null) paper.snap = !diaryDraft.free;
+
+    var targetBtns = [{ id: 'me', name: 'Trang của bạn' }].concat(state.people.map(function (p) {
+      return { id: p.id, name: p.name };
+    })).map(function (t) {
+      return '<button class="de-target' + ((diaryDraft.target || 'me') === t.id ? ' on' : '') + '" ' +
+        'data-action="diary-target" data-target="' + t.id + '">' + esc(t.name) + '</button>';
+    }).join('');
+
+    var paperChips = allPapers().map(function (p) {
+      var thumb = p.img ? 'background-image:url(' + paperImg(p) + ')' : '';
+      return '<button class="de-paper' + (p.id === diaryDraft.paperId ? ' on' : '') + '" data-action="diary-paper" ' +
+        'data-paper-id="' + p.id + '" title="' + esc(p.label) + '">' +
+        '<span class="de-paper-thumb pkind-' + p.kind + '" style="' + thumb + '"></span>' +
+        '<span class="de-paper-name">' + esc(p.label) + '</span></button>';
+    }).join('');
+
+    var tools = '<div class="de-tools">' +
+      '<button class="de-toggle' + (paper.snap === false ? ' on' : '') + '" data-action="diary-free">' +
+      (paper.snap === false ? '✎ Viết tự do (không canh dòng)' : '☰ Canh theo dòng kẻ') + '</button>' +
+      (paper.custom
+        ? '<label class="de-slider">Dòng <input type="range" min="3" max="9" step="0.1" data-role="paper-gap" value="' + paper.gap + '"></label>' +
+          '<label class="de-slider">Lề trên <input type="range" min="3" max="20" step="0.1" data-role="paper-top" value="' + paper.top + '"></label>'
+        : '') +
+      '</div>';
+
+    return '<div class="diary-editor">' +
+      '<div class="de-bar">' +
+      '<button class="btn btn-ghost de-cancel" data-action="diary-cancel">‹ Hủy</button>' +
+      '<div class="de-bar-title">' + (diaryDraft.id ? 'Sửa bài' : 'Bài mới') + '</div>' +
+      '<button class="btn btn-primary de-save" data-action="diary-save">Lưu</button>' +
+      '</div>' +
+      '<div class="de-targets"><span class="de-target-label">Viết cho</span>' + targetBtns + '</div>' +
+      '<div class="de-stage">' + paperHtml(paper, { editable: true, text: diaryDraft.text, id: 'diaryText' }) + '</div>' +
+      '<div class="de-bar2"><div class="de-papers">' + paperChips +
+      '<label class="de-paper de-paper-import" title="Import ảnh làm mẫu giấy">' +
+      '<span class="de-paper-thumb pkind-import">＋</span><span class="de-paper-name">Ảnh giấy</span>' +
+      '<input type="file" accept="image/*" id="paperImportInput" hidden></label>' +
+      '</div></div>' +
+      tools +
       '</div>';
   }
+
+
 
   function renderCalendar() {
     var base = new Date();
@@ -2393,6 +2627,30 @@
       }
       case 'open-diary-theme-drawer': openDiaryThemeDrawer(); break;
       case 'close-diary-theme-drawer': closeDiaryThemeDrawer(); break;
+      case 'diary-new':
+        diaryDraft = { text: '', target: 'me', paperId: (state.settings.diaryPaperId || 'paper-rule'), free: null };
+        render(); break;
+      case 'diary-cancel': diaryDraft = null; render(); break;
+      case 'diary-save': diarySave(); break;
+      case 'diary-free': {
+        if (!diaryDraft) break;
+        syncDiaryText();
+        var baseP = getPaper(diaryDraft.paperId);
+        var snapping = diaryDraft.free != null ? !diaryDraft.free : baseP.snap !== false;
+        diaryDraft.free = snapping;   /* đang canh dòng -> chuyển sang viết tự do, và ngược lại */
+        render(); break;
+      }
+      case 'diary-target':
+        if (!diaryDraft) break;
+        syncDiaryText(); diaryDraft.target = t.dataset.target || 'me'; render(); break;
+      case 'diary-paper':
+        if (!diaryDraft) break;
+        syncDiaryText(); diaryDraft.paperId = t.dataset.paperId; diaryDraft.free = null; render(); break;
+      case 'diary-del': {
+        var delId = t.dataset.id;
+        state.diaries = (state.diaries || []).filter(function (d) { return d.id !== delId; });
+        save(); render(); showToast('Đã xoá bài nhật ký'); break;
+      }
       case 'toggle-ai': toggleAI(); break;
       case 'export-data': exportData(); break;
       case 'import-data': var inp = document.getElementById('import-file-input'); if (inp) inp.click(); break;
@@ -2436,6 +2694,208 @@
     }
   }
 
+  function diarySave() {
+    if (!diaryDraft) return;
+    var ta = document.getElementById('diaryText');
+    if (ta) diaryDraft.text = ta.value;
+    var text = (diaryDraft.text || '').trim();
+    if (!text) { showToast('Bạn chưa viết gì mà ✍'); return; }
+    var paper = getPaper(diaryDraft.paperId);
+    var target = diaryDraft.target || 'me';
+    var prev = diaryDraft.id ? (state.diaries || []).find(function (d) { return d.id === diaryDraft.id; }) : null;
+    var entry = {
+      id: diaryDraft.id || uid('dy'),
+      text: text,
+      target: target,
+      paperId: paper.id,
+      free: diaryDraft.free != null ? !!diaryDraft.free : paper.snap === false,
+      at: (prev && prev.at) || new Date().toISOString()
+    };
+    state.diaries = state.diaries || [];
+    var i = -1;
+    for (var k = 0; k < state.diaries.length; k++) { if (state.diaries[k].id === entry.id) { i = k; break; } }
+    if (i > -1) state.diaries[i] = entry; else state.diaries.unshift(entry);
+    var who = state.people.find(function (p) { return p.id === target; });
+    if (who) logActivity(who, 'Có một dòng nhật ký mới');
+    state.settings.diaryPaperId = paper.id;
+    save();
+    diaryDraft = null;
+    render();
+    showToast(who ? 'Đã lưu vào nhật ký của ' + who.name : 'Đã lưu vào nhật ký của bạn');
+  }
+
+  /* Đo ảnh giấy vừa import để TỰ tìm đường kẻ ngang và lề dọc, nhờ vậy chữ khớp dòng
+     ngay mà không phải kéo tay. Chỉ nhận kết quả khi tín hiệu đủ rõ (nhiều dòng, khoảng
+     cách đều); ảnh giấy trơn/ảnh chụp lộn xộn thì trả null và giữ mặc định. */
+  function detectPaperGrid(ctx, w, h) {
+    var data;
+    try { data = ctx.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+    var x0 = Math.floor(w * 0.18), x1 = Math.floor(w * 0.82);
+    var y0 = Math.floor(h * 0.06), y1 = Math.floor(h * 0.94);
+    var rowLum = new Float32Array(h);
+    for (var y = y0; y < y1; y++) {
+      var s = 0, n = 0, base = y * w * 4;
+      for (var x = x0; x < x1; x += 3) {
+        var i = base + x * 4;
+        s += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114; n++;
+      }
+      rowLum[y] = s / n;
+    }
+    var sample = [];
+    for (var yy = y0; yy < y1; yy++) sample.push(rowLum[yy]);
+    sample.sort(function (a, b) { return a - b; });
+    var med = sample[Math.floor(sample.length * 0.5)];
+
+    function groupCenters(vals) {
+      var out = [], cur = [];
+      vals.forEach(function (v) {
+        if (cur.length && v - cur[cur.length - 1] <= 2) cur.push(v);
+        else { if (cur.length) out.push(cur); cur = [v]; }
+      });
+      if (cur.length) out.push(cur);
+      return out.map(function (g) {
+        var t = 0; g.forEach(function (v) { t += v; }); return t / g.length;
+      });
+    }
+
+    var darkRows = [];
+    for (var r = y0; r < y1; r++) if (rowLum[r] < med - 7) darkRows.push(r);
+    var centers = groupCenters(darkRows);
+    if (centers.length < 4) return null;
+
+    var gaps = [];
+    for (var k = 1; k < centers.length; k++) gaps.push(centers[k] - centers[k - 1]);
+    var gsort = gaps.slice().sort(function (a, b) { return a - b; });
+    var mg = gsort[Math.floor(gsort.length / 2)];
+    if (!(mg > h * 0.015)) return null;
+    var steady = gaps.filter(function (g) { return Math.abs(g - mg) <= mg * 0.3; }).length / gaps.length;
+    if (steady < 0.6) return null;
+
+    /* lề dọc: cột tối bất thường trong khoảng 4–35% bề rộng (đường kẻ lề của giấy) */
+    var leftPct = null;
+    var cx0 = Math.floor(w * 0.04), cx1 = Math.floor(w * 0.35);
+    var colLum = new Float32Array(w);
+    for (var cx = cx0; cx < cx1; cx++) {
+      var s2 = 0, n2 = 0;
+      for (var cy = y0; cy < y1; cy += 4) {
+        var j = (cy * w + cx) * 4;
+        s2 += data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114; n2++;
+      }
+      colLum[cx] = s2 / n2;
+    }
+    var best = null, bestDelta = 0;
+    for (var c2 = cx0 + 2; c2 < cx1 - 2; c2++) {
+      var neighbors = (colLum[c2 - 2] + colLum[c2 + 2]) / 2;
+      var d = neighbors - colLum[c2];
+      if (d > bestDelta) { bestDelta = d; best = c2; }
+    }
+    if (best && bestDelta > 9) leftPct = +((best / w) * 100 + 1.6).toFixed(2);
+
+    return {
+      gap: +((mg / w) * 100).toFixed(2),
+      top: +((centers[0] / w) * 100).toFixed(2),
+      left: leftPct,
+      lines: centers.length
+    };
+  }
+
+
+  /* Import ảnh làm mẫu giấy. Ảnh được thu nhỏ + nén JPEG để vừa localStorage.
+     Hai ảnh import liên tiếp (một dọc, một ngang) trong vòng 3 phút sẽ được ghép
+     vào CÙNG một mẫu giấy: bản ngang cho máy tính, bản dọc cho điện thoại. */
+  var lastPaperImport = null;   // { id, at }
+  function bindPaperImport() {
+    var inp = document.getElementById('paperImportInput');
+    if (!inp) return;
+    inp.addEventListener('change', function () {
+      var file = inp.files && inp.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type)) { showToast('Chọn một tệp ảnh nhé'); return; }
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var maxW = 1400;
+          var scale = Math.min(1, maxW / img.width);
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          var ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          var dataUrl = cv.toDataURL('image/jpeg', 0.82);
+          var landscape = w >= h;
+          /* Dò đường kẻ + lề của chính ảnh này để canh chữ ngay từ lần đầu */
+          var grid = detectPaperGrid(ctx, w, h);
+
+          state.papers = state.papers || [];
+          var pair = lastPaperImport && (Date.now() - lastPaperImport.at < 180000)
+            ? state.papers.find(function (p) { return p.id === lastPaperImport.id; }) : null;
+
+          if (pair) {
+            pair.img = pair.img || {};
+            pair.img[landscape ? 'desktop' : 'mobile'] = dataUrl;
+            pair.ar = (pair.ar && typeof pair.ar === 'object') ? pair.ar : {};
+            pair.ar[landscape ? 'desktop' : 'mobile'] = +(w / h).toFixed(4);
+            if (grid) {
+              pair.gap = grid.gap;
+              pair.top = grid.top;
+              if (grid.left != null) pair.box = Object.assign({}, pair.box, { l: grid.left });
+            }
+            lastPaperImport = { id: pair.id, at: Date.now() };
+            save();
+            if (diaryDraft) { diaryDraft.paperId = pair.id; diaryDraft.free = null; }
+            render();
+            showToast((landscape ? 'Đã thêm bản ngang cho máy tính' : 'Đã thêm bản dọc cho điện thoại') +
+              (grid ? ' · đã tự canh ' + grid.lines + ' dòng kẻ' : ''));
+            return;
+          }
+
+          var paper = {
+            id: uid('pp'),
+            label: 'Giấy của tôi ' + (state.papers.length + 1),
+            img: landscape ? { desktop: dataUrl } : { mobile: dataUrl },
+            ar: (function () { var o = {}; o[landscape ? 'desktop' : 'mobile'] = +(w / h).toFixed(4); return o; })(),
+            snap: true,
+            box: { t: 6, r: 6, b: 6, l: (grid && grid.left != null) ? grid.left : 7 },
+            top: grid ? grid.top : 8,
+            gap: grid ? grid.gap : 5.2,
+            size: grid ? Math.min(4.6, Math.max(2.6, +(grid.gap / 1.6).toFixed(2))) : 3.1,
+            ink: '#3D342D'
+          };
+          var addLen = JSON.stringify(paper).length;
+          var used = 0;
+          try { used = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
+          if (used + addLen > 4400000) { showToast('Bộ nhớ trình duyệt sắp đầy — xoá bớt bài hoặc ảnh cũ nhé'); return; }
+
+          state.papers.push(paper);
+          lastPaperImport = { id: paper.id, at: Date.now() };
+          save();
+          if (diaryDraft) { diaryDraft.paperId = paper.id; diaryDraft.free = null; }
+          render();
+          showToast(grid
+            ? 'Đã thêm mẫu giấy — tự canh được ' + grid.lines + ' dòng kẻ'
+            : 'Đã thêm mẫu giấy — chỉnh "Dòng" và "Lề trên" cho khớp đường kẻ');
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* Kéo thanh "Dòng" / "Lề trên" của mẫu giấy import: cập nhật trực tiếp, không render lại
+     để không mất focus và không nháy trang. */
+  function onGlobalInput(e) {
+    var el = e.target;
+    if (!el || !el.dataset || !diaryDraft) return;
+    if (el.dataset.role !== 'paper-gap' && el.dataset.role !== 'paper-top') return;
+    var p = (state.papers || []).find(function (x) { return x.id === diaryDraft.paperId; });
+    if (!p) return;
+    p[el.dataset.role === 'paper-gap' ? 'gap' : 'top'] = parseFloat(el.value) || p.gap;
+    save();
+    layoutPapers();
+  }
+
   function onGlobalChange(e) {
     var el = e.target;
     if (!el || !el.dataset) return;
@@ -2459,6 +2919,13 @@
     document.addEventListener('click', onGlobalClick);
     document.addEventListener('submit', onGlobalSubmit);
     document.addEventListener('change', onGlobalChange);
+    document.addEventListener('input', onGlobalInput);
+    /* Đổi kích thước cửa sổ: canh lại dòng ngay, và canh lại lần nữa ở frame kế tiếp vì
+       một số trình duyệt cập nhật innerWidth SAU khi bắn sự kiện resize (đổi hướng giấy). */
+    window.addEventListener('resize', function () {
+      layoutPapers();
+      requestAnimationFrame(function () { layoutPapers(); });
+    });
     window.addEventListener('hashchange', render);
     render();
     /* loadState luôn đưa về onboarding nên không thể chờ cờ onboardingDone ở đây;
