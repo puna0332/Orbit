@@ -571,11 +571,13 @@
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
-  function navLink(key, icon, label, active) {
-    return '<a class="sidebar-link ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label + '</a>';
+  function navLink(key, icon, label, active, suffix) {
+    return '<a class="sidebar-link ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
+      (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
   }
-  function bottomItem(key, icon, label, active) {
-    return '<a class="nav-item ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label + '</a>';
+  function bottomItem(key, icon, label, active, suffix) {
+    return '<a class="nav-item ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
+      (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
   }
   function shell(inner, active) {
     return (
@@ -585,7 +587,7 @@
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
           navLink('home', ic('home', 22), 'Home', active) +
-          navLink('people', ic('people', 22), 'Mọi người', active) +
+          navLink('people', ic('people', 22), 'Mọi người', active, state.people.length) +
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
@@ -600,7 +602,7 @@
         '<div class="view-root page-' + active + '"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
           bottomItem('home', ic('home', 22), 'Home', active) +
-          bottomItem('people', ic('people', 22), 'Mọi người', active) +
+          bottomItem('people', ic('people', 22), 'Mọi người', active, state.people.length) +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
           bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
@@ -1012,7 +1014,8 @@
     ensureContactAvatars();
     var filtered = state.people.filter(personMatchesFilters);
     var listed = searchPeople(filtered);
-    return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người</h1>' +
+    return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người' +
+      '<span class="page-count" title="Tổng số người trong Orbit">' + state.people.length + '</span></h1>' +
       '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
       '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
       '<section class="people-orbit-col">' + renderOrbit(filtered, hasActiveFilter()) + '</section>' +
