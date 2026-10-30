@@ -473,7 +473,7 @@
     else if (page === 'settings') inner = parts[1] ? renderSettingsSub(parts[1]) : renderSettings();
     else inner = renderHome();
 
-    document.getElementById('app').innerHTML = shell(inner, page);
+    document.getElementById('app').innerHTML = shell(inner, page, page === 'people' && !!parts[1]);
     afterRender(page, parts);
   }
 
@@ -571,6 +571,15 @@
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
+  /* "Trang cá nhân" về bản chất vẫn là mục Mọi người: mở hồ sơ người xem gần
+     nhất, chưa xem ai thì mở người đầu tiên, chưa có ai thì về danh sách. */
+  function profileHref() {
+    var id = state.settings && state.settings.lastPersonId;
+    var ok = id && state.people.some(function (p) { return p.id === id; });
+    if (!ok) id = state.people.length ? state.people[0].id : null;
+    return id ? '#/people/' + id : '#/people';
+  }
+
   function navLink(key, icon, label, active, suffix) {
     return '<a class="sidebar-link ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
       (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
@@ -579,7 +588,7 @@
     return '<a class="nav-item ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
       (suffix ? '<span class="nav-count">' + suffix + '</span>' : '') + '</a>';
   }
-  function shell(inner, active) {
+  function shell(inner, active, onProfile) {
     return (
       '<div class="app-shell shell-' + active + '" style="display:flex;width:100%;">' +
       '<aside class="sidebar">' +
@@ -587,7 +596,9 @@
         '<div class="sidebar-logo">✦ Orbit</div>' +
         '<nav class="sidebar-nav">' +
           navLink('home', ic('home', 22), 'Home', active) +
-          navLink('people', ic('people', 22), 'Mọi người', active, state.people.length) +
+          navLink('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
+          '<a class="sidebar-link' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '">' +
+            '<span class="ic">' + ic('avatar', 22) + '</span>Trang cá nhân</a>' +
           navLink('calendar', ic('calendar', 22), 'Sự kiện', active) +
           navLink('settings', ic('settings', 22), 'Cài đặt', active) +
         '</nav>' +
@@ -602,7 +613,8 @@
         '<div class="view-root page-' + active + '"><div class="view-inner">' + inner + '</div></div>' +
         '<nav class="bottom-nav">' +
           bottomItem('home', ic('home', 22), 'Home', active) +
-          bottomItem('people', ic('people', 22), 'Mọi người', active, state.people.length) +
+          bottomItem('people', ic('people', 22), 'Mọi người', onProfile ? '__none' : active, state.people.length) +
+          '<a class="nav-item' + (onProfile ? ' active' : '') + '" href="' + profileHref() + '"><span class="ic">' + ic('avatar', 22) + '</span>Hồ sơ</a>' +
           '<button class="fab" data-action="open-quickadd">' + ic('plus', 54) + '</button>' +
           bottomItem('calendar', ic('calendar', 22), 'Sự kiện', active) +
           bottomItem('settings', ic('settings', 22), 'Cài đặt', active) +
@@ -872,8 +884,7 @@
     var scene = '';
     rings.forEach(function (list, r) {
       var d = pcts[r], period = 90 + r * 40;
-      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + d + '%;height:' + d + '%">' +
-        '<span class="orbit-ring-num" aria-hidden="true">' + (r + 1) + '</span></div>';
+      scene += '<div class="orbit-ring" data-ring="' + (r + 1) + '" style="width:' + d + '%;height:' + d + '%"></div>';
       if (dotMode) {
         /* Từ 98 người: phần lớn chỉ là chấm nhỏ; chỉ gia đình và người có dấu sao
            được vẽ avatar kèm tên. Đặt tĩnh theo góc để vài trăm phần tử vẫn nhẹ. */
@@ -1047,6 +1058,10 @@
 
   function renderPersonDetail(id) {
     var p = state.people.find(function (x) { return x.id === id; });
+    if (p && state.settings.lastPersonId !== p.id) {
+      state.settings.lastPersonId = p.id;
+      save();
+    }
     if (!p) return '<p>Không tìm thấy người này.</p><a class="btn btn-ghost" href="#/people">‹ Quay lại</a>';
     var mems = (p.memories || []).filter(function (m) { return !m.hidden; });
     var memTiles = mems.slice(0, 3).map(function (m) {
