@@ -1344,13 +1344,14 @@
       '</div></div>';
   }
 
-  /* Nhật ký: khung trang chờ nội dung (người dùng sẽ bổ sung sau) */
+  /* Nhật ký: lớp nền là trang bìa sổ tay; lớp giấy viết nhật ký sẽ thêm sau */
   function renderDiary() {
     return '<h1 class="page-title">Nhật ký</h1>' +
-      '<div class="diary-empty">' +
-      '<div class="de-ic"><img src="assets/icons/diary.png" alt=""></div>' +
-      '<h2>Sổ tay của bạn</h2>' +
-      '<p>Nơi ghi lại những dòng nhật ký, cảm xúc và câu chuyện nhỏ trong ngày. Nội dung cho mục này sẽ được bổ sung sau.</p>' +
+      '<div class="diary-stage">' +
+      '<div class="diary-cover">' +
+      '<img class="cover-img cover-desktop" src="assets/diary/cover-desktop.jpg" alt="Bìa sổ nhật ký">' +
+      '<img class="cover-img cover-mobile" src="assets/diary/cover-mobile.jpg" alt="Bìa sổ nhật ký">' +
+      '</div>' +
       '</div>';
   }
 
