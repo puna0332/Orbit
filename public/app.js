@@ -107,7 +107,8 @@
   function defaultSettings() {
     return {
       theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn',
-      relationPriority: JSON.parse(JSON.stringify(DEFAULT_PRIORITY)), groups: []
+      relationPriority: JSON.parse(JSON.stringify(DEFAULT_PRIORITY)), groups: [],
+      homeOccasions: true, homeSuggest: true, homeSuggestHidden: false
     };
   }
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
@@ -257,6 +258,9 @@
         var st = parsed.settings;
         if (!st.relationPriority) st.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
         if (!Array.isArray(st.groups)) st.groups = [];
+        if (typeof st.homeOccasions !== 'boolean') st.homeOccasions = true;
+        if (typeof st.homeSuggest !== 'boolean') st.homeSuggest = true;
+        if (typeof st.homeSuggestHidden !== 'boolean') st.homeSuggestHidden = false;
         (parsed.people || []).forEach(function (p) {
           if (REL_MIGRATE[p.relationship]) p.relationship = REL_MIGRATE[p.relationship];
           if (!REL_LABEL[p.relationship]) p.relationship = 'other';
@@ -471,12 +475,13 @@
     if (page === 'onboarding') { page = 'home'; parts = ['home']; }
     if (page === 'home') inner = renderHome();
     else if (page === 'people') inner = parts[1] ? renderPersonDetail(parts[1]) : renderPeople();
+    else if (page === 'me') inner = renderMe();
     else if (page === 'diary') inner = renderDiary();
     else if (page === 'calendar') inner = renderCalendar();
     else if (page === 'settings') inner = parts[1] ? renderSettingsSub(parts[1]) : renderSettings();
     else inner = renderHome();
 
-    document.getElementById('app').innerHTML = shell(inner, page, page === 'people' && !!parts[1]);
+    document.getElementById('app').innerHTML = shell(inner, page, page === 'me');
     afterRender(page, parts);
   }
 
@@ -574,14 +579,8 @@
   }
 
   /* ---------------------------- shell / nav ---------------------------- */
-  /* "Trang cá nhân" về bản chất vẫn là mục Mọi người: mở hồ sơ người xem gần
-     nhất, chưa xem ai thì mở người đầu tiên, chưa có ai thì về danh sách. */
-  function profileHref() {
-    var id = state.settings && state.settings.lastPersonId;
-    var ok = id && state.people.some(function (p) { return p.id === id; });
-    if (!ok) id = state.people.length ? state.people[0].id : null;
-    return id ? '#/people/' + id : '#/people';
-  }
+  /* "Trang cá nhân" là hồ sơ của CHÍNH người dùng, không phải hồ sơ liên hệ */
+  function profileHref() { return '#/me'; }
 
   function navLink(key, icon, label, active, suffix) {
     return '<a class="sidebar-link ' + (active === key ? 'active' : '') + '" href="#/' + key + '"><span class="ic">' + icon + '</span>' + label +
@@ -722,15 +721,21 @@
       '<div class="home-hero-art"></div>' +
       '</div>' +
 
-      '<section class="home-section">' +
-      '<div class="home-section-head"><h2>60 ngày tới</h2>' +
-      '<button class="link-more" data-action="open-all-upcoming">Xem tất cả ›</button></div>' +
-      occBody + '</section>' +
+      /* Mỗi khối trên trang chủ bật/tắt được trong Cài đặt -> Trang chủ */
+      (state.settings.homeOccasions === false ? '' :
+        '<section class="home-section">' +
+        '<div class="home-section-head"><h2>60 ngày tới</h2>' +
+        '<button class="link-more" data-action="open-all-upcoming">Xem tất cả ›</button></div>' +
+        occBody + '</section>') +
 
-      (suggestion ?
-        '<section class="home-section"><div class="home-section-head"><h2>Gợi ý hôm nay</h2></div>' +
-        '<a class="suggest-card" href="' + suggestion.href + '"><div class="ic-wrap">' + ic(suggestion.icon, 28) + '</div>' +
-        '<div class="txt">' + esc(suggestion.text) + '</div><div class="chev">›</div></a></section>' : '')
+      /* Gợi ý chỉ là thông báo phụ: thu thành một dải mảnh, có nút ẩn ngay tại chỗ */
+      (suggestion && state.settings.homeSuggest !== false && !state.settings.homeSuggestHidden ?
+        '<div class="suggest-bar">' +
+        '<a class="suggest-bar-main" href="' + suggestion.href + '">' +
+        '<span class="sb-ic">' + ic(suggestion.icon, 18) + '</span>' +
+        '<span class="sb-txt">' + esc(suggestion.text) + '</span></a>' +
+        '<button class="sb-hide" data-action="hide-home-suggest" aria-label="Ẩn gợi ý" title="Ẩn gợi ý">✕</button>' +
+        '</div>' : '')
     );
   }
 
@@ -1270,6 +1275,75 @@
     );
   }
 
+  /* ---------------------------- Trang cá nhân của BẠN ---------------------------- */
+  function receivedMessages() {
+    var out = [];
+    state.people.forEach(function (p) {
+      (p.memories || []).forEach(function (m) {
+        if (m.type === 'guest_message' && !m.hidden) out.push({ p: p, m: m });
+      });
+    });
+    out.sort(function (a, b) { return (Date.parse(b.m.at) || 0) - (Date.parse(a.m.at) || 0); });
+    return out;
+  }
+
+  function renderMe() {
+    var name = state.settings.profileName || 'Bạn';
+    var stats = connectionStats();
+    var msgs = receivedMessages();
+    var groups = state.settings.groups || [];
+    var upcoming = getOccasions(30).length;
+    var initial = name.trim().charAt(0).toUpperCase() || 'B';
+
+    var rows = REL_TYPES.map(function (r) {
+      var n = stats.counts[r.k] || 0;
+      if (!n) return '';
+      return '<div class="me-rel"><span class="stats-dot" style="background:' + ringColor(r.k) + '"></span>' +
+        '<span>' + r.label + '</span><b>' + n + '</b></div>';
+    }).join('');
+
+    return '<div class="me-page">' +
+      '<div class="me-cover"></div>' +
+      '<div class="me-head">' +
+      '<div class="me-avatar"><img src="assets/avatars/av-01.png" alt=""></div>' +
+      '<div class="me-id"><h1>' + esc(name) + '</h1>' +
+      '<p>Trang cá nhân của bạn · ' + state.people.length + ' người trong quỹ đạo</p></div>' +
+      '<div class="me-actions">' +
+      '<button class="btn btn-ghost" data-action="edit-me-name">Đổi tên hiển thị</button>' +
+      '<button class="btn btn-primary" data-action="nav" data-to="settings">Cài đặt</button>' +
+      '</div></div>' +
+
+      '<div class="me-stats">' +
+      '<div class="me-stat"><b>' + stats.total + '</b><span>Liên kết</span></div>' +
+      '<div class="me-stat"><b>' + stats.groups + '</b><span>Nhóm</span></div>' +
+      '<div class="me-stat"><b>' + msgs.length + '</b><span>Lời nhắn đã nhận</span></div>' +
+      '<div class="me-stat"><b>' + upcoming + '</b><span>Dịp trong 30 ngày</span></div>' +
+      '</div>' +
+
+      '<div class="me-grid">' +
+      '<section class="pd-block"><div class="section-head"><h2>Quỹ đạo của bạn</h2></div>' +
+      (rows ? '<div class="me-rel-list">' + rows + '</div>' : '<p class="muted" style="margin:0;">Chưa có liên kết nào. Thêm người đầu tiên nhé.</p>') +
+      '<a class="me-link" href="#/people">Xem bản đồ quỹ đạo ›</a></section>' +
+
+      '<section class="pd-block"><div class="section-head"><h2>Lời nhắn đã nhận</h2>' +
+      '<span class="count-chip">' + msgs.length + '</span></div>' +
+      (msgs.length ? msgs.slice(0, 5).map(function (x) {
+        return '<a class="me-msg" href="#/people/' + x.p.id + '"><img src="' + (x.m.images && x.m.images[0] ? x.m.images[0] : 'assets/avatars/av-01.png') + '" alt="">' +
+          '<div class="t"><b>' + esc(x.p.name) + '</b><span>' + esc((x.m.caption || '').slice(0, 80)) + '</span></div>' +
+          '<time>' + (x.m.at ? timeAgo(x.m.at) : '') + '</time></a>';
+      }).join('') : '<p class="muted" style="margin:0;">Chưa nhận lời nhắn nào. Mời ai đó gửi kỷ niệm từ trang hồ sơ của họ.</p>') +
+      '</section>' +
+
+      '<section class="pd-block"><div class="section-head"><h2>Nhóm của bạn</h2>' +
+      '<button class="link-more" data-action="nav" data-to="settings/groups">Quản lý</button></div>' +
+      (groups.length ? groups.map(function (g) {
+        var n = state.people.filter(function (p) { return (p.groups || []).indexOf(g.id) > -1; }).length;
+        return '<div class="me-group"><span>' + esc(g.name) + '</span><b>' + n + '</b></div>';
+      }).join('') : '<p class="muted" style="margin:0;">Chưa có nhóm nào.</p>') +
+      '</section>' +
+      '</div></div>';
+  }
+
   /* Nhật ký: khung trang chờ nội dung (người dùng sẽ bổ sung sau) */
   function renderDiary() {
     return '<h1 class="page-title">Nhật ký</h1>' +
@@ -1686,6 +1760,7 @@
       settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
       settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
       settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
+      settingsRow('home', ic('home', 22), 'tone-peach', 'Trang chủ', 'Bật/tắt các khối trên trang chủ') +
       settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo', 'Mức ưu tiên xếp vòng theo mối quan hệ') +
       settingsRow('groups', ic('people', 24), 'tone-mint', 'Nhóm', 'Tự tạo nhóm để lọc và sắp xếp') +
       settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu', 'Sao lưu và quản lý dữ liệu') +
@@ -1696,6 +1771,7 @@
 
   function renderSettingsSub(key) {
     if (key === 'appearance') return subAppearance();
+    if (key === 'home') return subHome();
     if (key === 'orbit') return subOrbit();
     if (key === 'groups') return subGroups();
     if (key === 'ai') return subAI();
@@ -1711,6 +1787,20 @@
         '<input type="radio" name="theme" value="' + val + '" ' + (cur === val ? 'checked' : '') + ' data-action="settings-theme" data-theme="' + val + '"> ' + label + '</label>';
     }
     return backBtn() + '<h1 class="page-title">Chế độ hiển thị</h1><div class="radio-group">' + opt('light', '☀️ Sáng') + opt('dark', '🌙 Tối') + opt('system', '💻 Theo hệ thống') + '</div>';
+  }
+  function subHome() {
+    var occ = state.settings.homeOccasions !== false;
+    var sug = state.settings.homeSuggest !== false;
+    function row(icon, tone, title, sub, action, on) {
+      return '<div class="settings-row card" style="margin-bottom:10px;">' +
+        '<div class="ic-wrap ' + tone + '">' + ic(icon, 22) + '</div>' +
+        '<div class="t"><b>' + title + '</b><span>' + sub + '</span></div>' +
+        '<button class="toggle ' + (on ? 'on' : '') + '" data-action="' + action + '" aria-pressed="' + on + '"></button></div>';
+    }
+    return backBtn() + '<h1 class="page-title">Trang chủ</h1>' +
+      row('calendar', 'tone-purple', 'Khối "60 ngày tới"', 'Ba tấm mây tóm tắt dịp sắp tới', 'toggle-home-occasions', occ) +
+      row('sun', 'tone-orange', 'Gợi ý hôm nay', 'Dải nhắc việc nhỏ, có nút ẩn ngay trên trang chủ', 'toggle-home-suggest', sug) +
+      '<div class="gap-note">Tắt bớt để trang chủ gọn hơn. Gợi ý đã ẩn bằng nút ✕ vẫn có thể bật lại ở đây.</div>';
   }
   function subOrbit() {
     var pr = state.settings.relationPriority || DEFAULT_PRIORITY;
@@ -2099,6 +2189,18 @@
       case 'add-memory': addMemoryPrompt(t.dataset.id); break;
       case 'invite-memory': openInviteModal(t.dataset.id); break;
       case 'pd-tab': pdTab = t.dataset.tab || 'all'; render(); break;
+      case 'hide-home-suggest': state.settings.homeSuggestHidden = true; save(); render(); showToast('Đã ẩn gợi ý — bật lại trong Cài đặt'); break;
+      case 'toggle-home-occasions': state.settings.homeOccasions = state.settings.homeOccasions === false; save(); render(); break;
+      case 'toggle-home-suggest': state.settings.homeSuggest = state.settings.homeSuggest === false; if (state.settings.homeSuggest) state.settings.homeSuggestHidden = false; save(); render(); break;
+      case 'edit-me-name': {
+        var cur = state.settings.profileName || 'Bạn';
+        var nn = prompt('Tên hiển thị của bạn:', cur);
+        if (nn && nn.trim() && nn.trim() !== cur) {
+          state.settings.profileName = nn.trim().slice(0, 40);
+          save(); render(); showToast('Đã đổi tên hiển thị');
+        }
+        break;
+      }
       case 'copy-invite': copyInviteLink(); break;
       case 'share-invite':
         if (inviteShare && navigator.share) {

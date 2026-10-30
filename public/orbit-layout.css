@@ -1125,3 +1125,59 @@
   background:transparent; border:0; box-shadow:none;
 }
 .bottom-nav .fab img { width:52px; height:52px; display:block; margin:0 auto; }
+
+
+/* ===== Dải gợi ý gọn trên trang chủ (thay khối card lớn) ===== */
+.suggest-bar {
+  display:flex; align-items:center; gap:8px; margin-top:14px;
+  background:rgba(255,251,248,.9); border:1px solid #EFE2D8; border-radius:14px;
+  padding:9px 10px 9px 12px; box-shadow:0 2px 8px rgba(150,116,90,.07);
+}
+.suggest-bar-main { display:flex; align-items:center; gap:9px; flex:1 1 auto; min-width:0; text-decoration:none; color:inherit; }
+.suggest-bar .sb-ic { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#F7E7DA; flex:0 0 auto; }
+.suggest-bar .sb-txt { font-size:12.5px; line-height:1.35; color:#5A4F46; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.suggest-bar .sb-hide {
+  border:0; background:transparent; color:#A08C7C; cursor:pointer; flex:0 0 auto;
+  width:24px; height:24px; border-radius:8px; font-size:12px; line-height:1;
+}
+.suggest-bar .sb-hide:hover { background:#F3E3D6; color:#7A5B45; }
+
+/* ===== Trang cá nhân của bạn ===== */
+.me-page { max-width:1000px; margin:0 auto; }
+.me-cover {
+  height:190px; border-radius:24px;
+  background-image:url(assets/cover-default-wide.jpg);
+  background-size:cover; background-position:center 70%;
+}
+.me-head { display:flex; align-items:flex-end; gap:16px; margin-top:-42px; padding:0 18px; flex-wrap:wrap; }
+.me-avatar { width:104px; height:104px; border-radius:50%; overflow:hidden; border:4px solid #fff; background:#fff; box-shadow:0 8px 22px rgba(150,116,90,.18); flex:0 0 auto; }
+.me-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+.me-id { flex:1 1 220px; min-width:0; padding-bottom:4px; }
+.me-id h1 { margin:0; font-size:24px; color:#17243B; }
+.me-id p { margin:2px 0 0; font-size:12.5px; color:#8C8078; }
+.me-actions { display:flex; gap:8px; padding-bottom:4px; }
+.me-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:18px 0 16px; }
+.me-stat { background:#FBF2E8; border-radius:16px; padding:12px 10px; text-align:center; }
+.me-stat b { display:block; font-size:20px; color:#17243B; }
+.me-stat span { font-size:11.5px; color:#8C8078; }
+.me-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; align-items:start; }
+.me-rel-list { display:flex; flex-direction:column; gap:7px; }
+.me-rel { display:flex; align-items:center; gap:8px; font-size:12.5px; color:#4A4038; }
+.me-rel b { margin-left:auto; color:#3D342D; }
+.me-link { display:inline-block; margin-top:10px; font-size:12.5px; font-weight:700; color:#7A5B45; text-decoration:none; }
+.me-msg { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed rgba(216,199,184,.8); text-decoration:none; color:inherit; }
+.me-msg:last-child { border-bottom:0; }
+.me-msg img { width:40px; height:40px; border-radius:10px; object-fit:cover; flex:0 0 auto; }
+.me-msg .t { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
+.me-msg .t b { font-size:13px; color:#3D342D; }
+.me-msg .t span { font-size:11.5px; color:#8C8078; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.me-msg time { font-size:11px; color:#A08C7C; flex:0 0 auto; }
+.me-group { display:flex; justify-content:space-between; font-size:12.5px; color:#4A4038; padding:6px 0; border-bottom:1px dashed rgba(216,199,184,.7); }
+.me-group:last-child { border-bottom:0; }
+
+@media (max-width:899px){
+  .me-cover { height:140px; border-radius:20px; }
+  .me-avatar { width:84px; height:84px; }
+  .me-stats { grid-template-columns:repeat(2,1fr); }
+  .me-head { padding:0 10px; }
+}
