@@ -1356,28 +1356,69 @@
       '</div></div>';
   }
 
-  /* Dải tab chọn bộ khung nền — dùng chung cho trang Nhật ký (tòi ra cạnh bìa) */
-  function diaryThemeTabsHtml(curId) {
+  /* Danh sách chủ đề đầy đủ — dùng trong ngăn kéo "Chủ đề" xổ ra từ bên phải màn hình */
+  function diaryThemeOptionsHtml(curId) {
     return DIARY_THEMES.map(function (t) {
-      return '<button class="dtp-tab' + (t.id === curId ? ' on' : '') + '" style="--tab-tint:' + t.swatch + '" ' +
-        'data-action="pick-diary-theme" data-theme="' + t.id + '" aria-pressed="' + (t.id === curId) + '" title="' + esc(t.label) + '">' +
-        '<span class="dtp-tab-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
-        '<span class="dtp-tab-label">' + esc(t.shortLabel) + '</span>' +
+      return '<button class="theme-opt' + (t.id === curId ? ' on' : '') + '" style="--tab-tint:' + t.swatch + '" ' +
+        'data-action="pick-diary-theme" data-theme="' + t.id + '" aria-pressed="' + (t.id === curId) + '">' +
+        '<span class="theme-opt-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
+        '<span class="theme-opt-body"><b>' + esc(t.label) + '</b>' +
+        (t.id === curId ? '<span class="theme-opt-tag">Đang dùng</span>' : '<span class="theme-opt-tag theme-opt-tag-ghost">Chạm để chọn</span>') +
+        '</span>' +
+        '<span class="theme-opt-check" aria-hidden="true">' + (t.id === curId ? '✓' : '') + '</span>' +
         '</button>';
     }).join('');
   }
 
-  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền); dải chọn bộ khung tòi ra ngay cạnh bìa; lớp giấy viết nhật ký sẽ thêm sau */
+  /* Nội dung ngăn kéo chọn chủ đề bìa nhật ký */
+  function diaryThemeDrawerHtml(curId) {
+    return '<div class="theme-drawer" role="dialog" aria-modal="true" aria-label="Chọn chủ đề bìa nhật ký">' +
+      '<div class="theme-drawer-head"><h3>Chủ đề</h3>' +
+      '<button data-action="close-diary-theme-drawer" aria-label="Đóng">✕</button></div>' +
+      '<p class="theme-drawer-sub">Chọn một bộ bìa cho sổ nhật ký của bạn</p>' +
+      '<div class="theme-drawer-list">' + diaryThemeOptionsHtml(curId) + '</div>' +
+      '</div>';
+  }
+
+  function openDiaryThemeDrawer() {
+    closeDiaryThemeDrawer();
+    var theme = getDiaryTheme();
+    document.body.insertAdjacentHTML('beforeend',
+      '<div class="theme-drawer-backdrop" id="theme-drawer-backdrop">' + diaryThemeDrawerHtml(theme.id) + '</div>');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(function () {
+      var bd = document.getElementById('theme-drawer-backdrop');
+      if (bd) bd.classList.add('open');
+    });
+  }
+  function closeDiaryThemeDrawer() {
+    var bd = document.getElementById('theme-drawer-backdrop');
+    if (!bd) return;
+    bd.classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(function () { if (bd.parentNode) bd.remove(); }, 220);
+  }
+
+  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền, phủ kín khung nội dung); nút "Chủ đề" tòi ra
+     cạnh bìa mở ngăn kéo chọn bộ khung ở bên phải màn hình; lớp giấy viết nhật ký sẽ thêm sau */
   function renderDiary() {
     var theme = getDiaryTheme();
-    return '<h1 class="page-title">Nhật ký</h1>' +
+    return '<div class="diary-head">' +
+      '<h1 class="page-title">Nhật ký</h1>' +
+      '<button class="diary-theme-trigger" data-action="open-diary-theme-drawer" aria-haspopup="dialog" title="Chọn chủ đề bìa">' +
+      '<span class="dtt-swatches">' + DIARY_THEMES.map(function (t) {
+        return '<span class="dtt-dot" style="background:' + t.swatch + '"></span>';
+      }).join('') + '</span>' +
+      '<span class="dtt-label">Chủ đề</span>' +
+      '<span class="dtt-chev" aria-hidden="true">›</span>' +
+      '</button>' +
+      '</div>' +
       '<div class="diary-stage">' +
       '<div class="diary-cover-wrap">' +
       '<div class="diary-cover">' +
       '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="Bìa sổ nhật ký">' +
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Bìa sổ nhật ký">' +
       '</div>' +
-      '<div class="dtp-tabs diary-theme-tabs" role="tablist" aria-label="Chọn bộ khung nền">' + diaryThemeTabsHtml(theme.id) + '</div>' +
       '</div>' +
       '</div>';
   }
@@ -2119,6 +2160,7 @@
   /* ---------------------------- global event delegation ---------------------------- */
   function onGlobalClick(e) {
     if (e.target.classList && e.target.classList.contains('modal-backdrop')) { closeModal(); return; }
+    if (e.target.classList && e.target.classList.contains('theme-drawer-backdrop')) { closeDiaryThemeDrawer(); return; }
     var t = e.target.closest && e.target.closest('[data-action]');
     if (!t) return;
     var action = t.dataset.action;
@@ -2264,8 +2306,11 @@
           var picked = DIARY_THEMES.find(function (x) { return x.id === dth; });
           showToast('Đã đổi bìa: ' + (picked ? picked.label : dth));
         }
+        closeDiaryThemeDrawer();
         break;
       }
+      case 'open-diary-theme-drawer': openDiaryThemeDrawer(); break;
+      case 'close-diary-theme-drawer': closeDiaryThemeDrawer(); break;
       case 'toggle-ai': toggleAI(); break;
       case 'export-data': exportData(); break;
       case 'import-data': var inp = document.getElementById('import-file-input'); if (inp) inp.click(); break;

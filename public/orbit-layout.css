@@ -1107,14 +1107,14 @@
 /* ===== Trang Nhật ký: lớp nền (bìa sổ) + lớp giấy (sẽ thêm sau) ===== */
 /* ===== Trang Nhật ký: lớp nền (bìa sổ, đã tách nền) + lớp giấy (sẽ thêm sau) ===== */
 .diary-stage {
-  display:flex; justify-content:center; margin-top:16px;
+  display:block; margin-top:16px;
 }
 .diary-cover-wrap {
-  display:flex; align-items:center; justify-content:center;
-  width:100%; max-width:980px;
+  display:flex; align-items:center; justify-content:flex-start;
+  width:100%;
 }
 .diary-cover {
-  position:relative; width:100%; max-width:860px;
+  position:relative; width:100%;
   display:flex; justify-content:center;
 }
 .diary-cover .cover-img {
@@ -1124,44 +1124,86 @@
 .diary-cover .cover-mobile { display:none; }
 @media (max-width:640px) {
   .diary-cover-wrap { flex-direction:column; }
-  .diary-cover { max-width:420px; }
   .diary-cover .cover-desktop { display:none; }
   .diary-cover .cover-mobile { display:block; }
 }
 
-/* ===== Cài đặt > Bìa nhật ký: panel + hàng tab "tòi ra" bên cạnh ===== */
-.dtp-wrap { display:flex; align-items:center; gap:0; margin-top:6px; }
-.dtp-panel {
-  flex:1 1 auto; max-width:360px; padding:20px;
-  border-radius:24px; display:flex; flex-direction:column; align-items:center;
-  gap:10px; text-align:center; position:relative; z-index:1;
+/* Đưa tiêu đề "Nhật ký" sát mép trên của khung nội dung, thẳng hàng với cạnh trái của bìa;
+   nút "Chủ đề" nằm cùng hàng bên phải, tách khỏi tranh bìa để không đè lên chi tiết 3D */
+@media (min-width:900px) {
+  .view-root.page-diary { padding-top:var(--space-4); }
 }
-.dtp-preview { width:100%; max-width:220px; height:auto; filter:drop-shadow(0 12px 20px rgba(23,36,59,.18)); }
-.dtp-info b { display:block; font-size:15px; color:#17243B; }
-.dtp-info span { font-size:12.5px; color:#8C8078; }
-.dtp-tabs { display:flex; flex-direction:column; gap:9px; margin-left:-16px; z-index:0; }
-.dtp-tab {
-  display:flex; align-items:center; gap:9px; border:1px solid #EFE4DC; cursor:pointer;
-  padding:7px 16px 7px 22px; border-radius:0 20px 20px 0; background:#FFFDFB;
-  box-shadow:2px 4px 10px rgba(23,36,59,.08); font:inherit; color:#3D342D;
-  transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+.page-diary .page-title { margin-top:0; }
+.diary-head {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
 }
-.dtp-tab:hover { transform:translateX(3px); }
-.dtp-tab.on {
-  background:var(--tab-tint); border-color:transparent; color:#17243B;
-  box-shadow:3px 7px 16px rgba(23,36,59,.2); transform:translateX(6px); font-weight:700;
+.diary-head .page-title { margin-bottom:0; }
+
+/* Nút "Chủ đề": mở ngăn kéo chọn chủ đề, đặt cùng hàng tiêu đề */
+.diary-theme-trigger {
+  display:flex; align-items:center; gap:8px; border:1px solid #EFE4DC; cursor:pointer;
+  padding:9px 16px 9px 12px; border-radius:9999px; background:#FFFDFB;
+  box-shadow:0 6px 16px rgba(23,36,59,.1); font:inherit; color:#3D342D; flex:0 0 auto;
+  transition:transform .15s ease, box-shadow .15s ease;
 }
-.dtp-tab-thumb {
-  width:30px; height:30px; border-radius:9px; background-size:cover; background-position:center 20%;
-  box-shadow:0 0 0 2px var(--tab-tint); flex:0 0 auto;
-}
-.dtp-tab-label { font-size:12.5px; white-space:nowrap; }
+.diary-theme-trigger:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(23,36,59,.16); }
+.dtt-swatches { display:flex; }
+.dtt-dot { width:16px; height:16px; border-radius:50%; box-shadow:0 0 0 2px #FFFDFB; }
+.dtt-dot + .dtt-dot { margin-left:-7px; }
+.dtt-label { font-size:13px; font-weight:700; white-space:nowrap; }
+.dtt-chev { font-size:15px; color:#A08C7C; }
 @media (max-width:640px) {
-  .dtp-wrap { flex-direction:column; align-items:center; }
-  .dtp-tabs { flex-direction:row; margin-left:0; margin-top:-12px; }
-  .dtp-tab { flex-direction:column; border-radius:0 0 18px 18px; padding:14px 12px 9px; }
-  .dtp-tab.on { transform:translateY(5px); }
-  .dtp-tab:hover { transform:translateY(3px); }
+  .diary-head { align-items:flex-start; }
+  .dtt-label { display:none; }
+  .diary-theme-trigger { padding:9px; }
+}
+
+/* ===== Ngăn kéo "Chủ đề" xổ ra từ bên phải màn hình ===== */
+.theme-drawer-backdrop {
+  position:fixed; inset:0; background:rgba(23,36,59,.38); z-index:300;
+  display:flex; justify-content:flex-end;
+  opacity:0; pointer-events:none; transition:opacity .22s ease;
+}
+.theme-drawer-backdrop.open { opacity:1; pointer-events:auto; }
+.theme-drawer {
+  width:380px; max-width:88vw; height:100%; background:#FFFDFB;
+  box-shadow:-14px 0 44px rgba(23,36,59,.28);
+  padding:28px 22px 22px; display:flex; flex-direction:column; gap:16px;
+  transform:translateX(100%); transition:transform .3s cubic-bezier(.22,1,.36,1);
+  overflow-y:auto;
+}
+.theme-drawer-backdrop.open .theme-drawer { transform:translateX(0); }
+.theme-drawer-head { display:flex; align-items:center; justify-content:space-between; }
+.theme-drawer-head h3 { margin:0; font-size:19px; color:#17243B; }
+.theme-drawer-head button {
+  background:#F3ECE4; border:none; width:32px; height:32px; border-radius:50%;
+  font-size:14px; color:#8C8078; cursor:pointer; flex:0 0 auto;
+}
+.theme-drawer-sub { margin:0; font-size:12.5px; color:#8C8078; }
+.theme-drawer-list { display:flex; flex-direction:column; gap:12px; }
+.theme-opt {
+  display:flex; align-items:center; gap:12px; text-align:left; width:100%;
+  border:1.5px solid #EFE4DC; border-radius:18px; padding:10px; background:#fff;
+  cursor:pointer; font:inherit; color:#3D342D;
+  transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.theme-opt:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(23,36,59,.1); }
+.theme-opt.on {
+  border-color:var(--tab-tint);
+  background:color-mix(in srgb, var(--tab-tint) 16%, #fff);
+  box-shadow:0 6px 18px rgba(23,36,59,.14);
+}
+.theme-opt-thumb {
+  width:56px; height:56px; border-radius:14px; background-size:cover; background-position:center 20%;
+  box-shadow:0 0 0 3px var(--tab-tint); flex:0 0 auto;
+}
+.theme-opt-body { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.theme-opt-body b { font-size:14px; font-weight:700; }
+.theme-opt-tag { font-size:11px; color:#17243B; font-weight:700; }
+.theme-opt-tag-ghost { color:#A08C7C; font-weight:500; }
+.theme-opt-check { font-size:17px; font-weight:700; color:var(--tab-tint); width:20px; flex:0 0 auto; text-align:center; }
+@media (max-width:640px) {
+  .theme-drawer { width:100%; max-width:none; }
 }
 
 /* ===== Trang Nhật ký (chờ nội dung) ===== */
