@@ -108,8 +108,20 @@
     return {
       theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn',
       relationPriority: JSON.parse(JSON.stringify(DEFAULT_PRIORITY)), groups: [],
-      homeOccasions: true, homeSuggest: true, homeSuggestHidden: false
+      homeOccasions: true, homeSuggest: true, homeSuggestHidden: false,
+      diaryCoverTheme: 'sky'
     };
+  }
+  /* Các bộ khung nền (bìa) cho trang Nhật ký — chọn trong Cài đặt › Bìa nhật ký */
+  var DIARY_THEMES = [
+    { id: 'sky', label: 'Trời đêm xanh', shortLabel: 'Trời xanh', swatch: '#AFC9E8',
+      desktop: 'assets/diary/cover-desktop-cut.png', mobile: 'assets/diary/cover-mobile-cut.png' },
+    { id: 'sunset', label: 'Hoàng hôn hồng', shortLabel: 'Hoàng hôn', swatch: '#F0B9C7',
+      desktop: 'assets/diary/cover-sunset-desktop-cut.png', mobile: 'assets/diary/cover-sunset-mobile-cut.png' }
+  ];
+  function getDiaryTheme() {
+    var cur = (state.settings && state.settings.diaryCoverTheme) || 'sky';
+    return DIARY_THEMES.find(function (t) { return t.id === cur; }) || DIARY_THEMES[0];
   }
   var AVATAR_COLORS = ['#E8A6B4', '#8CB4E0', '#8FCB9B', '#C6A6E8', '#F0B870', '#7FB8B0', '#E08C7D', '#9E9EDB'];
   var DOW = ['Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'CN'];
@@ -1344,13 +1356,14 @@
       '</div></div>';
   }
 
-  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền); lớp giấy viết nhật ký sẽ thêm sau */
+  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền, chọn theo bộ khung trong Cài đặt); lớp giấy viết nhật ký sẽ thêm sau */
   function renderDiary() {
+    var theme = getDiaryTheme();
     return '<h1 class="page-title">Nhật ký</h1>' +
       '<div class="diary-stage">' +
       '<div class="diary-cover">' +
-      '<img class="cover-img cover-desktop" src="assets/diary/cover-desktop-cut.png" alt="Bìa sổ nhật ký">' +
-      '<img class="cover-img cover-mobile" src="assets/diary/cover-mobile-cut.png" alt="Bìa sổ nhật ký">' +
+      '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="Bìa sổ nhật ký">' +
+      '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Bìa sổ nhật ký">' +
       '</div>' +
       '</div>';
   }
@@ -1760,6 +1773,7 @@
     return '<h1 class="page-title">Cài đặt</h1><div class="settings-list">' +
       settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
       settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
+      settingsRow('diary-cover', ic('diary', 22), 'tone-pink', 'Bìa nhật ký', getDiaryTheme().label) +
       settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
       settingsRow('home', ic('home', 22), 'tone-peach', 'Trang chủ', 'Bật/tắt các khối trên trang chủ') +
       settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo', 'Mức ưu tiên xếp vòng theo mối quan hệ') +
@@ -1772,6 +1786,7 @@
 
   function renderSettingsSub(key) {
     if (key === 'appearance') return subAppearance();
+    if (key === 'diary-cover') return subDiaryCover();
     if (key === 'home') return subHome();
     if (key === 'orbit') return subOrbit();
     if (key === 'groups') return subGroups();
@@ -1788,6 +1803,25 @@
         '<input type="radio" name="theme" value="' + val + '" ' + (cur === val ? 'checked' : '') + ' data-action="settings-theme" data-theme="' + val + '"> ' + label + '</label>';
     }
     return backBtn() + '<h1 class="page-title">Chế độ hiển thị</h1><div class="radio-group">' + opt('light', '☀️ Sáng') + opt('dark', '🌙 Tối') + opt('system', '💻 Theo hệ thống') + '</div>';
+  }
+  function subDiaryCover() {
+    var cur = getDiaryTheme();
+    var tabs = DIARY_THEMES.map(function (t) {
+      return '<button class="dtp-tab' + (t.id === cur.id ? ' on' : '') + '" style="--tab-tint:' + t.swatch + '" ' +
+        'data-action="pick-diary-theme" data-theme="' + t.id + '" aria-pressed="' + (t.id === cur.id) + '">' +
+        '<span class="dtp-tab-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
+        '<span class="dtp-tab-label">' + esc(t.shortLabel) + '</span>' +
+        '</button>';
+    }).join('');
+    return backBtn() + '<h1 class="page-title">Bìa nhật ký</h1>' +
+      '<p class="muted" style="margin:0 0 14px;">Chọn một bộ khung nền — áp dụng ngay cho trang Nhật ký, cả bản máy tính lẫn điện thoại.</p>' +
+      '<div class="dtp-wrap">' +
+      '<div class="dtp-panel card">' +
+      '<img class="dtp-preview" src="' + cur.desktop + '" alt="' + esc(cur.label) + '">' +
+      '<div class="dtp-info"><b>' + esc(cur.label) + '</b><span>Đang dùng cho trang Nhật ký</span></div>' +
+      '</div>' +
+      '<div class="dtp-tabs" role="tablist" aria-label="Chọn bộ khung nền">' + tabs + '</div>' +
+      '</div>';
   }
   function subHome() {
     var occ = state.settings.homeOccasions !== false;
@@ -2230,6 +2264,15 @@
       case 'cal-today': calMonthOffset = 0; render(); break;
       case 'dismiss-banner': bannerDismissed = true; render(); break;
       case 'settings-theme': setTheme(t.dataset.theme); break;
+      case 'pick-diary-theme': {
+        var dth = t.dataset.theme;
+        if (dth && state.settings.diaryCoverTheme !== dth) {
+          state.settings.diaryCoverTheme = dth; save(); render();
+          var picked = DIARY_THEMES.find(function (x) { return x.id === dth; });
+          showToast('Đã đổi bìa: ' + (picked ? picked.label : dth));
+        }
+        break;
+      }
       case 'toggle-ai': toggleAI(); break;
       case 'export-data': exportData(); break;
       case 'import-data': var inp = document.getElementById('import-file-input'); if (inp) inp.click(); break;
