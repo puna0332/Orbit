@@ -1119,46 +1119,45 @@
       '<button class="tone-purple" data-action="toggle-favorite" data-id="' + p.id + '">' + (p.favorite ? '💖' : '🤍') + '<span>' + (p.favorite ? 'Bỏ thích' : 'Yêu thích') + '</span></button>' +
       '<button class="tone-blue" data-action="quick-note-focus">' + ic('leaf', 20) + '<span>Ghi chú</span></button>' +
       '<button class="tone-green" data-action="add-memory" data-id="' + p.id + '">' + ic('plane', 20) + '<span>Kỷ niệm</span></button>' +
+      '<button class="tone-lilac" data-action="invite-memory" data-id="' + p.id + '"><span class="ic-emoji">✨</span><span>Mời gửi kỷ niệm</span></button>' +
       '</div></div>' +
       (p.quote ? '<div class="pd-quote">' + esc(p.quote) + '<span class="sp">✦</span></div>' : '') +
       '</div>' +
 
       '<nav class="pd-tabs" aria-label="Mục hồ sơ">' +
-      '<button class="pd-tab on" data-action="pd-tab" data-target="pdIntro">Giới thiệu</button>' +
-      '<button class="pd-tab" data-action="pd-tab" data-target="pdMemories">Kỷ niệm <span>' + mems.length + '</span></button>' +
-      '<button class="pd-tab" data-action="pd-tab" data-target="pdNotes">Ghi chú</button>' +
+      '<button class="pd-tab on" data-action="pd-tab" data-target="pdPhotos">Ảnh đăng <span>' + postedPhotos.length + '</span></button>' +
+      '<button class="pd-tab" data-action="pd-tab" data-target="pdDiary">Nhật ký</button>' +
       '<button class="pd-tab" data-action="pd-tab" data-target="pdActivity">Hoạt động</button>' +
       '</nav>' +
 
       '<div class="pd-grid">' +
 
-      /* 70% trái: dòng nội dung — ghi chú, ảnh đã đăng, nhật ký, hoạt động */
+      /* 70% trái: một dòng nội dung liền mạch — ảnh đăng, nhật ký, hoạt động */
       '<div class="pd-col pd-col-feed">' +
+      '<div class="pd-feed">' +
 
-      '<section class="pd-block" id="pdNotes">' +
-      '<div class="section-head"><h2>Ghi chú</h2></div>' +
-      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
-
-      '<section class="pd-block" id="pdPhotos">' +
-      '<div class="section-head"><h2>Ảnh đã đăng</h2><span class="count-chip">' + postedPhotos.length + '</span></div>' +
+      '<section class="pd-feed-sec" id="pdPhotos">' +
+      '<div class="feed-head"><h2>Ảnh đăng</h2><span class="count-chip">' + postedPhotos.length + '</span></div>' +
       (postedPhotos.length
         ? '<div class="posted-grid">' + postedPhotos.map(function (src) { return '<img src="' + src + '" alt="">'; }).join('') + '</div>'
-        : '<p class="muted" style="margin:0;">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>') +
+        : '<p class="muted feed-empty">Chưa có ảnh nào. Ảnh gửi qua link mời sẽ xuất hiện ở đây.</p>') +
       '</section>' +
 
-      '<section class="pd-block" id="pdDiary">' +
-      '<div class="section-head"><h2>Nhật ký</h2><span class="soon-chip">Sắp có</span></div>' +
-      '<p class="muted" style="margin:0;">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>' +
+      '<section class="pd-feed-sec" id="pdDiary">' +
+      '<div class="feed-head"><h2>Nhật ký</h2><span class="soon-chip">Sắp có</span></div>' +
+      '<p class="muted feed-empty">Những dòng nhật ký về ' + esc(p.name) + ' sẽ hiện ở đây khi tính năng này được bật.</p>' +
       '</section>' +
 
-      '<section class="pd-block" id="pdActivity">' +
-      '<div class="section-head"><h2>Hoạt động gần đây</h2></div>' +
-      ((p.activity || []).slice().reverse().slice(0, 6).map(function (a) {
+      '<section class="pd-feed-sec" id="pdActivity">' +
+      '<div class="feed-head"><h2>Hoạt động</h2></div>' +
+      ((p.activity || []).slice().reverse().slice(0, 8).map(function (a) {
         return '<div class="activity-item"><div class="dot"></div><div>' + esc(a.text) + '<div class="when">' + timeAgo(a.at) + '</div></div></div>';
-      }).join('') || '<p class="muted" style="margin:0;">Chưa có hoạt động.</p>') +
-      '</section></div>' +
+      }).join('') || '<p class="muted feed-empty">Chưa có hoạt động.</p>') +
+      '</section>' +
 
-      /* 30% phải: khối thông tin — kỷ niệm — nhắc nhở, dính khi cuộn */
+      '</div></div>' +
+
+      /* 30% phải: thông tin — kỷ niệm — ghi chú — nhắc nhở, dính khi cuộn */
       '<div class="pd-col pd-col-intro">' +
 
       '<section class="pd-block" id="pdIntro">' +
@@ -1172,8 +1171,11 @@
       '<section class="pd-block" id="pdMemories">' +
       '<div class="section-head"><h2>Kỷ niệm</h2><button class="link-more" data-action="add-memory" data-id="' + p.id + '">+ Thêm</button></div>' +
       '<div class="memory-grid">' + memTiles + extra + '</div>' +
-      '<button class="link-more invite-btn invite-wide" data-action="invite-memory" data-id="' + p.id + '">Mời gửi kỷ niệm</button>' +
       '</section>' +
+
+      '<section class="pd-block" id="pdNotes">' +
+      '<div class="section-head"><h2>Ghi chú</h2></div>' +
+      '<textarea id="notes-area" placeholder="Viết điều bạn nhớ về ' + esc(p.name) + '...">' + esc(p.notes) + '</textarea></section>' +
 
       '<section class="pd-block">' +
       '<div class="section-head"><h2>Nhắc nhở</h2></div>' +
@@ -1186,6 +1188,7 @@
       '<button class="btn btn-danger btn-block" data-action="delete-person" data-id="' + p.id + '">Xoá liên hệ</button>' +
       '</div>' +
       '</div></div></div>'
+
 
     );
   }
