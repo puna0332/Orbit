@@ -1109,8 +1109,12 @@
 .diary-stage {
   display:flex; justify-content:center; margin-top:16px;
 }
+.diary-cover-wrap {
+  display:flex; align-items:center; justify-content:center;
+  width:100%; max-width:980px;
+}
 .diary-cover {
-  position:relative; width:100%; max-width:980px;
+  position:relative; width:100%; max-width:860px;
   display:flex; justify-content:center;
 }
 .diary-cover .cover-img {
@@ -1119,6 +1123,7 @@
 }
 .diary-cover .cover-mobile { display:none; }
 @media (max-width:640px) {
+  .diary-cover-wrap { flex-direction:column; }
   .diary-cover { max-width:420px; }
   .diary-cover .cover-desktop { display:none; }
   .diary-cover .cover-mobile { display:block; }

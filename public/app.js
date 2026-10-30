@@ -1356,14 +1356,28 @@
       '</div></div>';
   }
 
-  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền, chọn theo bộ khung trong Cài đặt); lớp giấy viết nhật ký sẽ thêm sau */
+  /* Dải tab chọn bộ khung nền — dùng chung cho trang Nhật ký (tòi ra cạnh bìa) */
+  function diaryThemeTabsHtml(curId) {
+    return DIARY_THEMES.map(function (t) {
+      return '<button class="dtp-tab' + (t.id === curId ? ' on' : '') + '" style="--tab-tint:' + t.swatch + '" ' +
+        'data-action="pick-diary-theme" data-theme="' + t.id + '" aria-pressed="' + (t.id === curId) + '" title="' + esc(t.label) + '">' +
+        '<span class="dtp-tab-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
+        '<span class="dtp-tab-label">' + esc(t.shortLabel) + '</span>' +
+        '</button>';
+    }).join('');
+  }
+
+  /* Nhật ký: lớp nền là trang bìa sổ tay (đã tách nền); dải chọn bộ khung tòi ra ngay cạnh bìa; lớp giấy viết nhật ký sẽ thêm sau */
   function renderDiary() {
     var theme = getDiaryTheme();
     return '<h1 class="page-title">Nhật ký</h1>' +
       '<div class="diary-stage">' +
+      '<div class="diary-cover-wrap">' +
       '<div class="diary-cover">' +
       '<img class="cover-img cover-desktop" src="' + theme.desktop + '" alt="Bìa sổ nhật ký">' +
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Bìa sổ nhật ký">' +
+      '</div>' +
+      '<div class="dtp-tabs diary-theme-tabs" role="tablist" aria-label="Chọn bộ khung nền">' + diaryThemeTabsHtml(theme.id) + '</div>' +
       '</div>' +
       '</div>';
   }
@@ -1773,7 +1787,6 @@
     return '<h1 class="page-title">Cài đặt</h1><div class="settings-list">' +
       settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
       settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
-      settingsRow('diary-cover', ic('diary', 22), 'tone-pink', 'Bìa nhật ký', getDiaryTheme().label) +
       settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
       settingsRow('home', ic('home', 22), 'tone-peach', 'Trang chủ', 'Bật/tắt các khối trên trang chủ') +
       settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo', 'Mức ưu tiên xếp vòng theo mối quan hệ') +
@@ -1786,7 +1799,6 @@
 
   function renderSettingsSub(key) {
     if (key === 'appearance') return subAppearance();
-    if (key === 'diary-cover') return subDiaryCover();
     if (key === 'home') return subHome();
     if (key === 'orbit') return subOrbit();
     if (key === 'groups') return subGroups();
@@ -1803,25 +1815,6 @@
         '<input type="radio" name="theme" value="' + val + '" ' + (cur === val ? 'checked' : '') + ' data-action="settings-theme" data-theme="' + val + '"> ' + label + '</label>';
     }
     return backBtn() + '<h1 class="page-title">Chế độ hiển thị</h1><div class="radio-group">' + opt('light', '☀️ Sáng') + opt('dark', '🌙 Tối') + opt('system', '💻 Theo hệ thống') + '</div>';
-  }
-  function subDiaryCover() {
-    var cur = getDiaryTheme();
-    var tabs = DIARY_THEMES.map(function (t) {
-      return '<button class="dtp-tab' + (t.id === cur.id ? ' on' : '') + '" style="--tab-tint:' + t.swatch + '" ' +
-        'data-action="pick-diary-theme" data-theme="' + t.id + '" aria-pressed="' + (t.id === cur.id) + '">' +
-        '<span class="dtp-tab-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
-        '<span class="dtp-tab-label">' + esc(t.shortLabel) + '</span>' +
-        '</button>';
-    }).join('');
-    return backBtn() + '<h1 class="page-title">Bìa nhật ký</h1>' +
-      '<p class="muted" style="margin:0 0 14px;">Chọn một bộ khung nền — áp dụng ngay cho trang Nhật ký, cả bản máy tính lẫn điện thoại.</p>' +
-      '<div class="dtp-wrap">' +
-      '<div class="dtp-panel card">' +
-      '<img class="dtp-preview" src="' + cur.desktop + '" alt="' + esc(cur.label) + '">' +
-      '<div class="dtp-info"><b>' + esc(cur.label) + '</b><span>Đang dùng cho trang Nhật ký</span></div>' +
-      '</div>' +
-      '<div class="dtp-tabs" role="tablist" aria-label="Chọn bộ khung nền">' + tabs + '</div>' +
-      '</div>';
   }
   function subHome() {
     var occ = state.settings.homeOccasions !== false;
