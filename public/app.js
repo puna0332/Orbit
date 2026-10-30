@@ -116,6 +116,12 @@
   var DIARY_THEMES = [
     { id: 'sky', label: 'Trời đêm xanh', shortLabel: 'Trời xanh', swatch: '#AFC9E8',
       desktop: 'assets/diary/cover-desktop-cut.png', mobile: 'assets/diary/cover-mobile-cut.png' },
+    { id: 'coast', label: 'Biển hoàng hôn', shortLabel: 'Biển hoàng hôn', swatch: '#E0943A',
+      desktop: 'assets/diary/cover-coast-desktop-cut.png', mobile: 'assets/diary/cover-coast-mobile-cut.png' },
+    { id: 'meadow', label: 'Đồng cỏ xanh', shortLabel: 'Đồng cỏ', swatch: '#6FA050',
+      desktop: 'assets/diary/cover-meadow-desktop-cut.png', mobile: 'assets/diary/cover-meadow-mobile-cut.png' },
+    { id: 'forest', label: 'Núi rừng hoàng hôn', shortLabel: 'Núi rừng', swatch: '#3F6B8C',
+      desktop: 'assets/diary/cover-forest-desktop-cut.png', mobile: 'assets/diary/cover-forest-mobile-cut.png' },
     { id: 'sunset', label: 'Hoàng hôn hồng', shortLabel: 'Hoàng hôn', swatch: '#F0B9C7',
       desktop: 'assets/diary/cover-sunset-desktop-cut.png', mobile: 'assets/diary/cover-sunset-mobile-cut.png' }
   ];
