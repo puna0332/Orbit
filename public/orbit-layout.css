@@ -1260,15 +1260,12 @@
 .me-group { display:flex; justify-content:space-between; font-size:12.5px; color:#4A4038; padding:6px 0; border-bottom:1px dashed rgba(216,199,184,.7); }
 .me-group:last-child { border-bottom:0; }
 
-/* Trang cá nhân của BẠN dùng lại khung pd-panel/pd-cover/pd-head/pd-tabs/pd-grid của hồ sơ
-   người khác để trông giống hệt — nhưng không có danh bạ bên cạnh nên không cần kiểu
-   "toàn màn hình cuộn riêng" (height:100dvh) của trang Mọi người > chi tiết; giữ nó như
-   MỘT thẻ card cuộn theo trang bình thường, ở mọi kích thước màn hình. */
+/* Trang cá nhân của BẠN giờ có luôn dải danh bạ bên trái (giống hệt trang hồ sơ người
+   khác), nên cần cùng kiểu "toàn màn hình": dải danh bạ sát mép, panel tự cuộn bên trong.
+   Các quy tắc .pd-shell/.pd-panel/.pd-cover phía trên vốn KHÔNG bị scope theo .page-people
+   nên chỉ cần mở khung view-root cho trang này là đủ. */
 @media (min-width:900px) {
-  .page-me .pd-panel {
-    height:auto; overflow:visible; border:1px solid #EBDDD2; border-radius:24px;
-    background:#fff; box-shadow:0 4px 18px rgba(150,116,90,.08); padding:18px;
-  }
-  .page-me .pd-col-intro { position:static; max-height:none; overflow:visible; }
+  .page-me:has(.pd-shell) { padding:0; height:100dvh; overflow:hidden; }
+  .page-me:has(.pd-shell) > .view-inner { max-width:none; width:100%; margin:0; padding:0; height:100%; }
 }
 

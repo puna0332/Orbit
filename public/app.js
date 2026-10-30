@@ -1109,7 +1109,12 @@
     (p.memories || []).forEach(function (m) { (m.images || []).forEach(function (src) { postedPhotos.push(src); }); });
 
     var collapsed = !!state.settings.pdSideCollapsed;
-    var peopleCol = state.people.map(function (q) {
+    /* Mục đầu danh bạ luôn là CHÍNH BẠN, để từ hồ sơ của người khác bấm một lần là về được
+       Trang cá nhân của mình — hai dải danh bạ ở hai trang vì thế giống hệt nhau. */
+    var selfEntry = '<a class="pd-person" href="#/me">' +
+      '<span class="avatar"><img class="av-img" src="assets/avatars/av-01.png" alt=""></span>' +
+      '<span class="pd-name"><b>' + esc(state.settings.profileName || 'Bạn') + '</b><em>Trang của bạn</em></span></a>';
+    var peopleCol = selfEntry + state.people.map(function (q) {
       return '<a class="pd-person' + (q.id === p.id ? ' on' : '') + '" href="#/people/' + q.id + '">' +
         '<span class="avatar" style="' + avatarStyle(q) + '">' + avatarInner(q) + '</span>' +
         '<span class="pd-name"><b>' + esc(q.name) + '</b><em>' + esc(REL_LABEL[q.relationship] || 'Khác') + '</em></span>' +
@@ -1347,8 +1352,35 @@
       }).join('') : '<p class="muted feed-empty">Chưa có hoạt động nào. Khi ai đó gửi lời nhắn, nó sẽ hiện ở đây.</p>';
     }
 
+    var railCollapsed = !!state.settings.pdSideCollapsed;
+    /* Dải danh bạ bên trái giống hệt trang hồ sơ người khác — chỉ thêm chính bạn ở đầu
+       danh sách (đang chọn), bấm vào ai là nhảy sang hồ sơ của người đó ở mục Mọi người. */
+    var railPeople = state.people.map(function (q) {
+      return '<a class="pd-person" href="#/people/' + q.id + '">' +
+        '<span class="avatar" style="' + avatarStyle(q) + '">' + avatarInner(q) + '</span>' +
+        '<span class="pd-name"><b>' + esc(q.name) + '</b><em>' + esc(REL_LABEL[q.relationship] || 'Khác') + '</em></span>' +
+        (q.favorite ? '<span class="pd-fav">★</span>' : '') + '</a>';
+    }).join('');
+
     return (
-      '<div class="pd-panel me-panel">' +
+      '<div class="pd-shell' + (railCollapsed ? ' side-collapsed' : '') + '">' +
+
+      '<aside class="pd-side" id="meSide"' + (railCollapsed ? ' inert' : '') + '>' +
+      '<div class="pd-side-head"><h2>Mọi người</h2><span class="pd-count">' + state.people.length + '</span></div>' +
+      '<div class="pd-list">' +
+      '<a class="pd-person on" href="#/me">' +
+      '<span class="avatar"><img class="av-img" src="assets/avatars/av-01.png" alt=""></span>' +
+      '<span class="pd-name"><b>' + esc(name) + '</b><em>Trang của bạn</em></span></a>' +
+      railPeople +
+      '</div>' +
+      '<a class="pd-add" href="#" data-action="open-add-person">＋ Thêm người</a>' +
+      '</aside>' +
+
+      '<button class="pd-side-toggle" data-action="toggle-pd-side" aria-expanded="' + (!railCollapsed) + '" ' +
+      'aria-controls="meSide" title="' + (railCollapsed ? 'Mở danh bạ' : 'Thu gọn danh bạ') + '">' +
+      '<i>' + (railCollapsed ? '›' : '‹') + '</i><span>Mọi người</span></button>' +
+
+      '<div class="pd-panel">' +
       '<div class="pd-cover" style="--pd-cover:url(\'assets/cover-default-wide.jpg\');--pd-cover-tall:url(\'assets/cover-default-tall.jpg\')">' +
       '<button class="pd-more" data-action="nav" data-to="settings" aria-label="Cài đặt">' + ic('settings', 18) + '</button>' +
       '</div>' +
@@ -1362,7 +1394,7 @@
       '<button class="tone-pink" data-action="edit-me-name">' + ic('profile', 18) + '<span>Đổi tên</span></button>' +
       '<button class="tone-blue" data-action="nav" data-to="diary">' + ic('diary', 18) + '<span>Nhật ký</span></button>' +
       '<button class="tone-purple" data-action="nav" data-to="people">' + ic('people', 18) + '<span>Quỹ đạo</span></button>' +
-      '<button class="tone-green" data-action="nav" data-to="settings">' + ic('settings', 18) + '<span>Cài đặt</span></button>' +
+      '<button class="tone-green" data-action="nav" data-to="calendar">' + ic('calendar', 18) + '<span>Sự kiện</span></button>' +
       '</div></div>' +
       '<div class="pd-quote">Trang cá nhân của bạn trong Orbit<span class="sp">✦</span></div>' +
       '</div>' +
@@ -1393,6 +1425,7 @@
         '<span class="count-chip">' + msgs.length + '</span></div>' +
         msgs.slice(0, 3).map(function (x) { return msgRow(x, 60); }).join('') +
         '</section>' : '') +
+      '</div>' +
       '</div>' +
       '</div>' +
       '</div>'
@@ -2208,6 +2241,9 @@
     if (e.target.classList && e.target.classList.contains('theme-drawer-backdrop')) { closeDiaryThemeDrawer(); return; }
     var t = e.target.closest && e.target.closest('[data-action]');
     if (!t) return;
+    /* Link placeholder href="#" (nút "Thêm người"...) chỉ để bắt click, không được đổi hash —
+       nếu không, route nhảy về Home ngay sau khi mở modal. */
+    if (t.tagName === 'A' && t.getAttribute('href') === '#') e.preventDefault();
     var action = t.dataset.action;
     switch (action) {
       case 'nav':
