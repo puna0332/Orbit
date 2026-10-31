@@ -599,8 +599,15 @@
     if (page === 'diary') { layoutPapers(); if (document.getElementById('paperImportInput')) bindPaperImport(); }
     else if (page === 'me' || (page === 'people' && parts[1])) layoutPapers();
     if (diaryDraft) syncDiaryText();
-    /* animation "trải giấy" chỉ chạy đúng một lần lúc mở */
-    if (diaryLayingIn) setTimeout(function () { diaryLayingIn = false; }, 900);
+    /* animation lật trang chỉ chạy đúng một lần lúc mở; hết animation thì bỏ class
+       để tờ giấy trở lại bóng đổ/nếp gấp của trạng thái nằm phẳng */
+    if (diaryLayingIn) setTimeout(function () {
+      diaryLayingIn = false;
+      var sh = document.querySelector('.diary-sheet.lay-in');
+      if (sh) sh.classList.remove('lay-in');
+      var cast = document.querySelector('.page-cast');
+      if (cast) cast.remove();
+    }, 1000);
   }
 
   /* Giữ nội dung đang gõ trong diaryDraft để đổi giấy / đổi người nhận (render lại) không mất chữ */
