@@ -1625,7 +1625,7 @@
       /* Phần đầu giấy ("Viết cho" + ngày) chiếm đúng HEAD_ROWS dòng kẻ, nhờ vậy chữ
          phía dưới vẫn rơi đúng vào các đường kẻ tiếp theo. */
       var head = el.querySelector('.paper-head');
-      var HEAD_ROWS = 3;
+      var HEAD_ROWS = 4;   /* đầu giấy chiếm 4 dòng kẻ (1 dòng thở thêm so với trước) */
       if (head) {
         var headSize = Math.max(10, size * 0.68);
         head.style.height = (gap * HEAD_ROWS) + 'px';
@@ -1727,20 +1727,10 @@
     setTimeout(function () { if (bd.parentNode) bd.remove(); }, 220);
   }
 
-  /* Nhật ký: cũng MỘT cuốn sổ đó, chỉ "trải" tờ giấy lên khi bắt đầu viết — không đổi cảnh */
+  /* Nhật ký: MỘT cuốn sổ, giấy trải lên khi viết; phần tuỳ chỉnh nằm ở cột phải */
   function renderDiary() {
     var theme = getDiaryTheme();
     var sr = sheetRect(theme);
-    var head = '<div class="diary-head">' +
-      '<h1 class="page-title">Nhật ký</h1>' +
-      '<button class="diary-theme-trigger" data-action="open-diary-theme-drawer" aria-haspopup="dialog" title="Chọn chủ đề bìa">' +
-      '<span class="dtt-swatches">' + DIARY_THEMES.map(function (t) {
-        return '<span class="dtt-dot" style="background:' + t.swatch + '"></span>';
-      }).join('') + '</span>' +
-      '<span class="dtt-label">Chủ đề</span>' +
-      '<span class="dtt-chev" aria-hidden="true">›</span>' +
-      '</button>' +
-      '</div>';
 
     var sheetInner = diaryDraft ? diaryPaperHtml() : (
       '<button class="diary-sheet diary-sheet-idle" data-action="diary-new" ' +
@@ -1751,7 +1741,9 @@
       '</button>');
 
     var recent = diaryDraft ? '' : diaryEntries('me').slice(0, 3);
-    return head +
+    return '<div class="diary-layout">' +
+      '<div class="diary-main">' +
+      '<div class="diary-head"><h1 class="page-title">Nhật ký</h1></div>' +
       '<div class="diary-stage">' +
       '<div class="diary-cover-wrap">' +
       '<div class="diary-book">' +
@@ -1764,12 +1756,14 @@
       '</div>' +
       '</div>' +
       '</div>' +
-      (diaryDraft ? renderDiaryTools() : '') +
       (recent.length
         ? '<section class="diary-recent"><div class="section-head"><h2>Bài gần đây</h2>' +
           '<a class="link-more" href="#/me">Xem tất cả ›</a></div>' +
           recent.map(function (d) { return entryCardHtml(d, { deletable: true }); }).join('') + '</section>'
-        : '');
+        : '') +
+      '</div>' +
+      '<aside class="diary-side">' + renderDiarySide() + '</aside>' +
+      '</div>';
   }
 
   /* Tờ giấy đang viết (nằm trong lòng sổ): đầu giấy có "Viết cho" + ngày kiểu thư */
@@ -1798,42 +1792,62 @@
     });
   }
 
-  /* Thanh công cụ dưới cuốn sổ: mẫu giấy, kiểu chữ, canh dòng, và nút Huỷ/Lưu nổi */
-  function renderDiaryTools() {
-    var paper = Object.assign({}, getPaper(diaryDraft.paperId));
-    if (diaryDraft.free != null) paper.snap = !diaryDraft.free;
+  /* Cột phải kiểu "sổ tay sketch": bìa sổ · mẫu giấy · kiểu chữ · dòng kẻ · Huỷ/Lưu */
+  function renderDiarySide() {
+    var theme = getDiaryTheme();
+    var paper = diaryDraft ? Object.assign({}, getPaper(diaryDraft.paperId)) : null;
+    if (diaryDraft && diaryDraft.free != null) paper.snap = !diaryDraft.free;
 
-    var paperChips = allPapers().map(function (p) {
-      var thumb = p.img ? 'background-image:url(' + paperImg(p) + ')' : '';
-      return '<button class="de-paper' + (p.id === diaryDraft.paperId ? ' on' : '') + '" data-action="diary-paper" ' +
-        'data-paper-id="' + p.id + '" title="' + esc(p.label) + '">' +
-        '<span class="de-paper-thumb pkind-' + p.kind + '" style="' + thumb + '"></span>' +
-        '<span class="de-paper-name">' + esc(p.label) + '</span></button>';
+    var themes = DIARY_THEMES.map(function (t) {
+      return '<button class="sk-swatch' + (t.id === theme.id ? ' on' : '') + '" data-action="pick-diary-theme" ' +
+        'data-theme="' + t.id + '" title="' + esc(t.label) + '" aria-pressed="' + (t.id === theme.id) + '">' +
+        '<span class="sk-swatch-thumb" style="background-image:url(' + t.mobile + ')"></span>' +
+        '<span class="sk-swatch-name">' + esc(t.shortLabel) + '</span></button>';
     }).join('');
 
-    return '<div class="de-tools-wrap">' +
-      '<div class="de-papers">' + paperChips +
-      '<label class="de-paper de-paper-import" title="Import ảnh làm mẫu giấy">' +
-      '<span class="de-paper-thumb pkind-import">＋</span><span class="de-paper-name">Ảnh giấy</span>' +
-      '<input type="file" accept="image/*" id="paperImportInput" hidden></label>' +
-      '</div>' +
-      '<div class="de-tools">' +
-      '<label class="de-font">Kiểu chữ <select data-role="diary-font">' +
-      DIARY_FONTS.map(function (f) {
-        return '<option value="' + f.id + '"' + (f.id === (diaryDraft.font || 'serif') ? ' selected' : '') + '>' + f.label + '</option>';
-      }).join('') + '</select></label>' +
-      '<button class="de-toggle' + (paper.snap === false ? ' on' : '') + '" data-action="diary-free">' +
-      (paper.snap === false ? '✎ Viết tự do' : '☰ Canh dòng kẻ') + '</button>' +
-      (paper.custom
-        ? '<label class="de-slider">Dòng <input type="range" min="3" max="9" step="0.1" data-role="paper-gap" value="' + paper.gap + '"></label>' +
-          '<label class="de-slider">Lề trên <input type="range" min="3" max="20" step="0.1" data-role="paper-top" value="' + paper.top + '"></label>'
-        : '') +
-      '</div>' +
-      '<div class="de-float">' +
-      '<button class="btn btn-ghost" data-action="diary-cancel">Huỷ</button>' +
-      '<button class="btn btn-primary" data-action="diary-save">Lưu vào sổ</button>' +
-      '</div>' +
-      '</div>';
+    var body = '';
+    if (diaryDraft) {
+      var chips = allPapers().map(function (p) {
+        var thumb = p.img ? 'background-image:url(' + paperImg(p) + ')' : '';
+        return '<button class="sk-paper' + (p.id === diaryDraft.paperId ? ' on' : '') + '" data-action="diary-paper" ' +
+          'data-paper-id="' + p.id + '" title="' + esc(p.label) + '">' +
+          '<span class="sk-paper-thumb pkind-' + p.kind + '" style="' + thumb + '"></span>' +
+          '<span class="sk-paper-name">' + esc(p.label) + '</span></button>';
+      }).join('') +
+        '<label class="sk-paper sk-paper-add" title="Import ảnh làm mẫu giấy">' +
+        '<span class="sk-paper-thumb pkind-import">＋</span><span class="sk-paper-name">Ảnh</span>' +
+        '<input type="file" accept="image/*" id="paperImportInput" hidden></label>';
+
+      var fonts = DIARY_FONTS.map(function (f) {
+        return '<button class="sk-font font-' + f.id + (f.id === (diaryDraft.font || 'serif') ? ' on' : '') + '" ' +
+          'data-action="diary-font" data-font="' + f.id + '">' + f.label + '</button>';
+      }).join('');
+
+      var snapping = paper.snap !== false;
+      body =
+        '<section class="sk-block"><h3 class="sk-title">Mẫu giấy</h3><div class="sk-papers">' + chips + '</div></section>' +
+        '<section class="sk-block"><h3 class="sk-title">Kiểu chữ</h3><div class="sk-fonts">' + fonts + '</div></section>' +
+        '<section class="sk-block"><h3 class="sk-title">Dòng kẻ</h3><div class="sk-seg">' +
+        '<button class="sk-seg-btn' + (snapping ? ' on' : '') + '" data-action="diary-snap" data-snap="1">Canh dòng kẻ</button>' +
+        '<button class="sk-seg-btn' + (!snapping ? ' on' : '') + '" data-action="diary-snap" data-snap="0">Viết tự do</button>' +
+        '</div></section>' +
+        (paper.custom
+          ? '<section class="sk-block"><h3 class="sk-title">Khớp đường kẻ</h3>' +
+            '<label class="sk-slider">Dòng <input type="range" min="3" max="9" step="0.1" data-role="paper-gap" value="' + paper.gap + '"></label>' +
+            '<label class="sk-slider">Lề trên <input type="range" min="3" max="20" step="0.1" data-role="paper-top" value="' + paper.top + '"></label>' +
+            '</section>'
+          : '') +
+        '<div class="sk-actions">' +
+        '<button class="sk-btn ghost" data-action="diary-cancel">Huỷ</button>' +
+        '<button class="sk-btn primary" data-action="diary-save">Lưu vào sổ</button>' +
+        '</div>';
+    } else {
+      body = '<p class="sk-hint">Chạm vào trang giấy trong sổ để bắt đầu viết. Chọn bìa bên trên, ' +
+        'còn mẫu giấy · kiểu chữ · cách canh dòng sẽ hiện ra khi bạn mở sổ.</p>' +
+        '<div class="sk-actions"><button class="sk-btn primary" data-action="diary-new">Mở sổ viết</button></div>';
+    }
+
+    return '<section class="sk-block"><h3 class="sk-title">Bìa sổ</h3><div class="sk-themes">' + themes + '</div></section>' + body;
   }
 
   /* Trình soạn cũ đã bỏ — giờ tờ giấy được trải ngay trong cuốn sổ (xem renderDiary). */
@@ -2721,6 +2735,7 @@
       case 'pick-diary-theme': {
         var dth = t.dataset.theme;
         if (dth && state.settings.diaryCoverTheme !== dth) {
+          syncDiaryText();   /* đổi bìa giữa lúc viết thì không được mất chữ đang gõ */
           state.settings.diaryCoverTheme = dth; save(); render();
           var picked = DIARY_THEMES.find(function (x) { return x.id === dth; });
           showToast('Đã đổi bìa: ' + (picked ? picked.label : dth));
@@ -2744,6 +2759,19 @@
         if (!dEl) break;
         if (dEl.showPicker) { try { dEl.showPicker(); break; } catch (e) {} }
         dEl.click(); break;
+      }
+      case 'diary-snap': {
+        if (!diaryDraft) break;
+        syncDiaryText();
+        diaryDraft.free = t.dataset.snap === '0';
+        render(); break;
+      }
+      case 'diary-font': {
+        if (!diaryDraft) break;
+        syncDiaryText();
+        diaryDraft.font = t.dataset.font || 'serif';
+        state.settings.diaryFont = diaryDraft.font;
+        save(); render(); break;
       }
       case 'diary-free': {
         if (!diaryDraft) break;

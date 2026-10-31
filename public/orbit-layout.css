@@ -1171,7 +1171,7 @@ html { scrollbar-gutter: stable; }
   .diary-book .cover-mobile { display: block; }
 }
 .diary-sheet {
-  position: absolute; display: block; border-radius: 8px; overflow: hidden;
+  position: absolute; display: block; border-radius: 3px; overflow: hidden;
   /* khung giấy đặt đúng vào lòng sổ; inset do JS set theo % của ảnh bìa */
 }
 .diary-sheet-idle {
@@ -1189,7 +1189,7 @@ html { scrollbar-gutter: stable; }
 .diary-sheet-idle b { font-size: clamp(11px, 1.15vw, 14px); font-weight: 700; }
 .diary-sheet-idle small { font-size: clamp(9px, .85vw, 11px); opacity: .72; }
 .paper.inbook {
-  width: 100%; height: 100%; border-radius: 8px;
+  width: 100%; height: 100%; border-radius: 2px;
   box-shadow: inset 10px 0 16px -12px rgba(23,36,59,.30),
               inset 0 0 0 1px rgba(216,199,184,.45),
               0 6px 18px rgba(23,36,59,.18);
@@ -1221,7 +1221,7 @@ html { scrollbar-gutter: stable; }
 }
 .pb-tear {
   position: absolute; right: 8%; top: 4%; bottom: 4%; width: 0;
-  border-left: 1.5px dashed rgba(122,101,82,.45);
+  border-left: 1.6px dashed rgba(122,101,82,.58);
 }
 
 /* ---- Đầu tờ giấy: "Viết cho" + ngày kiểu thư, nằm ngay trong giấy ---- */
@@ -1248,11 +1248,11 @@ html { scrollbar-gutter: stable; }
 .ph-date-wrap:hover .ph-date-txt { border-bottom: 1px dashed rgba(122,101,82,.6); }
 .ph-date-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 
-/* ---- Animation "trải giấy" từ trái sang phải khi mở sổ ---- */
-.diary-sheet.lay-in .paper { animation: paperLay .62s cubic-bezier(.22,.9,.28,1) both; }
+/* ---- Animation "trải giấy" từ góc trên-trái lan dần xuống/phải, chậm cho giống thật ---- */
+.diary-sheet.lay-in .paper { animation: paperLay 1.05s cubic-bezier(.22,.75,.25,1) both; }
 @keyframes paperLay {
-  0%   { clip-path: inset(0 100% 0 0); transform: translateX(-10px) rotate(-.5deg); opacity: .55; }
-  70%  { opacity: 1; }
+  0%   { clip-path: inset(0 100% 100% 0); transform: translate(-10px, -8px) rotate(-.35deg); opacity: .55; }
+  55%  { opacity: 1; }
   100% { clip-path: inset(0 0 0 0); transform: none; opacity: 1; }
 }
 
@@ -1273,9 +1273,109 @@ html { scrollbar-gutter: stable; }
 .de-float .btn { border-radius: 999px; }
 @media (max-width:899px) { .de-float { bottom: 96px; } }
 
+/* ===== Bố cục Nhật ký: sổ bên trái, bảng tuỳ chỉnh kiểu sketch bên phải ===== */
+.diary-layout { display: grid; grid-template-columns: minmax(0,1fr) 306px; gap: 22px; align-items: stretch; }
+.diary-main { min-width: 0; }
+@media (max-width:1099px) { .diary-layout { grid-template-columns: minmax(0,1fr); } }
+
+.diary-side {
+  position: sticky; top: 20px;
+  background: #FEF9F2;
+  border: 1.5px solid #E6D5C3;
+  border-radius: 16px 20px 14px 18px;
+  box-shadow: 2px 4px 0 rgba(122,101,82,.10), 0 10px 24px rgba(150,116,90,.08);
+  padding: 16px 16px 18px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.diary-side::before {   /* miếng băng dính giấy ở mép trên */
+  content: ""; position: absolute; top: -11px; left: 50%; transform: translateX(-50%) rotate(-1.5deg);
+  width: 92px; height: 20px; background: rgba(240,222,192,.85);
+  border-radius: 2px; box-shadow: 0 1px 3px rgba(122,101,82,.16);
+}
+.sk-block { display: flex; flex-direction: column; gap: 8px; }
+.sk-title {
+  margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: #A08064; padding-bottom: 5px;
+  border-bottom: 1px dashed rgba(160,128,100,.35);
+}
+.sk-hint { margin: 0; font-size: 12px; line-height: 1.55; color: #8C8078; }
+
+/* bìa sổ */
+.sk-themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.sk-swatch {
+  border: 1.5px dashed #E2D0BE; background: #FFFDFA; border-radius: 10px 12px 9px 11px;
+  padding: 5px 4px 4px; cursor: pointer; font: inherit; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; transition: transform .14s, border-color .14s, box-shadow .14s;
+}
+.sk-swatch:hover { transform: translateY(-1px) rotate(-.6deg); border-color: #D3B698; }
+.sk-swatch.on { border-style: solid; border-color: #C79A6B; box-shadow: 0 3px 10px rgba(150,116,90,.18); background: #FDF3E7; }
+.sk-swatch-thumb { width: 100%; aspect-ratio: 4/3; border-radius: 6px; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.sk-swatch-name { font-size: 9.5px; line-height: 1.1; color: #7A6350; text-align: center; }
+
+/* mẫu giấy */
+.sk-papers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.sk-paper {
+  border: 1.5px dashed #E2D0BE; background: #FFFDFA; border-radius: 9px; padding: 4px 3px;
+  cursor: pointer; font: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .14s, border-color .14s;
+}
+.sk-paper:hover { transform: translateY(-1px); border-color: #D3B698; }
+.sk-paper.on { border-style: solid; border-color: #C79A6B; background: #FDF3E7; }
+.sk-paper-thumb { width: 100%; aspect-ratio: 3/4; border-radius: 4px; background-size: cover; background-position: center; }
+.sk-paper-name { font-size: 9px; color: #7A6350; white-space: nowrap; }
+
+/* kiểu chữ */
+.sk-fonts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.sk-font {
+  border: 1.5px dashed #E2D0BE; background: #FFFDFA; border-radius: 999px; padding: 7px 6px;
+  cursor: pointer; font-size: 12.5px; color: #5E4632; transition: border-color .14s, background .14s;
+}
+.sk-font:hover { border-color: #D3B698; }
+.sk-font.on { border-style: solid; border-color: #C79A6B; background: #FDF3E7; font-weight: 700; }
+.sk-font.font-serif { font-family: Cambria, "Times New Roman", serif; }
+.sk-font.font-hand { font-family: "Segoe Script", "Comic Sans MS", cursive; }
+.sk-font.font-sans { font-family: "Segoe UI", system-ui, sans-serif; }
+.sk-font.font-mono { font-family: Consolas, monospace; }
+
+/* canh dòng */
+.sk-seg { display: flex; border: 1.5px solid #E2D0BE; border-radius: 999px; overflow: hidden; }
+.sk-seg-btn {
+  flex: 1 1 0; border: 0; background: transparent; padding: 8px 6px; cursor: pointer;
+  font: inherit; font-size: 12px; color: #7A6350;
+}
+.sk-seg-btn.on { background: #F3E3D6; color: #5E4632; font-weight: 700; }
+
+.sk-slider { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #8C8078; }
+.sk-slider input[type=range] { width: 120px; accent-color: #C79A6B; }
+
+.sk-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+.sk-btn {
+  flex: 1 1 0; border-radius: 999px; padding: 10px 12px; cursor: pointer; font: inherit;
+  font-size: 13px; font-weight: 700; border: 1.5px solid transparent;
+}
+.sk-btn.ghost { background: #FFFDFA; border-color: #E2D0BE; color: #7A6350; }
+.sk-btn.primary { background: #17243B; color: #fff; }
+.sk-btn.primary:hover { background: #22314d; }
+
+/* Mobile: bảng tuỳ chỉnh nằm dưới sổ — chừa chỗ cho thanh nav nổi, bìa sổ cuộn ngang cho gọn */
+@media (max-width:899px) {
+  .diary-side { position: static; padding-bottom: 104px; }
+}
+@media (max-width:640px) {
+  .sk-themes {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86px;
+    overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;
+  }
+  .sk-themes::-webkit-scrollbar { display: none; }
+}
+
+/* Trang Nhật ký dùng hết bề ngang: sổ to bên trái, bảng tuỳ chỉnh bên phải */
+.view-root.page-diary .view-inner { max-width: none; }
+
 /* ===== Giấy viết nhật ký (dùng chung cho lúc viết và lúc đọc lại) ===== */
+/* Giấy thật thì góc gần như vuông — bo quá nhiều trông như "card" chứ không phải giấy */
 .paper {
-  position: relative; width: 100%; margin: 0 auto; border-radius: 14px; overflow: hidden;
+  position: relative; width: 100%; margin: 0 auto; border-radius: 3px; overflow: hidden;
   background-color: #FFFDF8; background-size: cover; background-position: center;
   box-shadow: 0 14px 34px rgba(23,36,59,.16), inset 0 0 0 1px rgba(216,199,184,.55);
 }
