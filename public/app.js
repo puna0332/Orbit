@@ -140,12 +140,14 @@
     if (!s) return { l: 7.7, t: 4.0, r: 6.0, b: 10.1 };
     return (wide ? s.desktop : s.mobile) || s.desktop;
   }
-  /* Kiểu chữ cho trang viết */
+  /* Kiểu chữ cho trang viết — xếp font CÓ ĐỦ glyph tiếng Việt lên trước: một số font
+     (vd Georgia) thiếu glyph "ế/ộ…" nên trình duyệt phải mượn font khác cho từng dấu,
+     chữ bị hở ra như "Viế t". */
   var DIARY_FONTS = [
-    { id: 'serif', label: 'Có chân', css: 'Georgia, "Times New Roman", serif' },
+    { id: 'serif', label: 'Có chân', css: 'Cambria, "Noto Serif", "Times New Roman", Georgia, serif' },
     { id: 'hand', label: 'Viết tay', css: '"Segoe Script", "Bradley Hand", "Comic Sans MS", cursive' },
-    { id: 'sans', label: 'Không chân', css: 'system-ui, "Segoe UI", Roboto, sans-serif' },
-    { id: 'mono', label: 'Máy chữ', css: '"Courier New", ui-monospace, monospace' }
+    { id: 'sans', label: 'Không chân', css: '"Segoe UI", system-ui, Roboto, sans-serif' },
+    { id: 'mono', label: 'Máy chữ', css: 'Consolas, "Courier New", ui-monospace, monospace' }
   ];
   function fontCss(id) {
     var f = DIARY_FONTS.find(function (x) { return x.id === id; });
@@ -1566,12 +1568,15 @@
         'placeholder="Hôm nay của bạn thế nào?">' + esc(opts.text || '') + '</textarea>'
       : '<div class="paper-ink">' + esc(opts.text || '') + '</div>';
     var head = opts.head ? '<div class="paper-head">' + opts.head + '</div>' : '';
+    /* Lề trái kiểu sổ bấm lỗ: dãy lỗ đục + đường đứt để xé */
+    var binding = (paper.binding === false || paper.custom) ? '' :
+      '<div class="paper-binding" aria-hidden="true"><span class="pb-holes"></span><span class="pb-tear"></span></div>';
     return '<div class="paper ' + (opts.editable ? 'edit' : 'read') + (paper.inbook ? ' inbook' : '') +
       (opts.head ? ' has-head' : '') + ' font-' + (opts.font || 'serif') +
       ' kind-' + paper.kind + (img ? ' has-img' : '') +
       '" data-paper="' + paper.id + '" style="' + style + '">' +
       (paper.kind === 'rule' || paper.kind === 'dot' ? '<div class="paper-rules" aria-hidden="true"></div>' : '') +
-      head + inner +
+      binding + head + inner +
       '</div>';
   }
 
@@ -1609,16 +1614,28 @@
       var size = Math.max(8, Math.min(sizeRaw, gap * 0.72));
       var firstLine = (paper.top / 100) * w;
       var padT = (paper.box.t / 100) * w;
+      /* Dãy lỗ đục: chia đều ~6 lỗ theo chiều cao tờ giấy */
+      var bindEl = el.querySelector('.paper-binding');
+      if (bindEl) {
+        var holesEl = bindEl.querySelector('.pb-holes');
+        var ph = el.clientHeight || Math.round(w / ar);
+        if (holesEl) holesEl.style.backgroundSize = '100% ' + Math.max(26, (ph * 0.92) / 6) + 'px';
+      }
       var ink = el.querySelector('.paper-ink');
       /* Phần đầu giấy ("Viết cho" + ngày) chiếm đúng HEAD_ROWS dòng kẻ, nhờ vậy chữ
          phía dưới vẫn rơi đúng vào các đường kẻ tiếp theo. */
       var head = el.querySelector('.paper-head');
       var HEAD_ROWS = 3;
       if (head) {
+        var headSize = Math.max(10, size * 0.68);
         head.style.height = (gap * HEAD_ROWS) + 'px';
+        head.style.lineHeight = gap + 'px';
+        head.style.fontSize = headSize + 'px';
         head.style.paddingLeft = (paper.box.l / 100) * w + 'px';
         head.style.paddingRight = (paper.box.r / 100) * w + 'px';
-        head.style.fontSize = Math.max(10, size * 0.68) + 'px';
+        /* đặt baseline dòng đầu giấy ĐÚNG lên đường kẻ đầu tiên (giống công thức của phần chữ) */
+        var headBase = (gap - headSize) / 2 + headSize * 0.8;
+        head.style.paddingTop = Math.max(2, firstLine - headBase) + 'px';
       }
       var headOffset = head ? gap * HEAD_ROWS : 0;
       if (ink) {
