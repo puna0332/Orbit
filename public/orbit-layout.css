@@ -1248,57 +1248,16 @@ html { scrollbar-gutter: stable; }
 .ph-date-wrap:hover .ph-date-txt { border-bottom: 1px dashed rgba(122,101,82,.6); }
 .ph-date-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 
-/* ---- Hiệu ứng LẬT TRANG: tờ giấy dựng ở gáy rồi hạ phẳng dần sang phải ----
-   Tham khảo turn.js (D:/book-effect) nhưng làm thuần CSS 3D, không kéo jQuery vào:
-   tờ giấy xoay quanh mép gáy (trái) + một dải sáng cong chạy theo nếp gấp + bóng
-   hắt ở mép tự do, để mắt đọc ra "giấy đang cong và hạ xuống" chứ không phải
-   một tấm phẳng bị xoay. */
-.diary-sheet.lay-in { perspective: 4200px; perspective-origin: 50% 50%; }
-.diary-sheet.lay-in .paper {
-  transform-origin: left center;
-  backface-visibility: hidden;
-  will-change: transform;
-  /* bóng để CỐ ĐỊNH (không animate box-shadow: animation bóng trên phần tử lớn
-     gây repaint nặng mỗi frame, đây là nguồn giật khi mở sổ) */
-  box-shadow: 0 14px 30px -14px rgba(23,36,59,.4), inset 0 0 0 1px rgba(216,199,184,.45);
-  animation: pageTurnIn .95s cubic-bezier(.3,.5,.25,1) both;
+/* ---- Hiệu ứng "lật giấy" quét NGANG từ trái sang phải ----
+   Tờ giấy hiện ra dần bằng clip-path chỉ mở theo trục ngang (không có thành phần
+   từ trên xuống), kèm nhích nhẹ sang phải như vừa được đẩy vào sổ. */
+.diary-sheet.lay-in .paper { animation: paperLay .95s cubic-bezier(.25,.72,.28,1) both; }
+@keyframes paperLay {
+  0%   { clip-path: inset(0 100% 0 0); transform: translateX(-10px); opacity: .72; }
+  55%  { opacity: 1; }
+  100% { clip-path: inset(0 0 0 0); transform: none; opacity: 1; }
 }
-@keyframes pageTurnIn {
-  /* Tỉ lệ scale ở mỗi mốc = 1 - (W·sinθ)/P với P=4200, W≈788 → bù đúng độ phóng
-     của phối cảnh, nhờ vậy tờ giấy KHÔNG bị phình cao quá khung và không bị cắt. */
-  0%   { transform: rotateY(-58deg) rotateZ(-.7deg) scale(.841); border-radius: 2px 14px 13px 2px; }
-  42%  { transform: rotateY(-40deg) rotateZ(-.25deg) scale(.879); border-radius: 2px 9px 8px 2px; }
-  76%  { transform: rotateY(-12deg) rotateZ(.22deg) scale(.961); border-radius: 2px 4px 4px 2px; }
-  92%  { transform: rotateY(2deg) rotateZ(.08deg) scale(.995); border-radius: 2px 3px 3px 2px; }
-  100% { transform: rotateY(0) rotateZ(0) scale(1); border-radius: 2px; }
-}
-/* bóng của tờ giấy đang lật hắt xuống mặt sổ — thứ làm mắt tin là giấy nằm TRÊN sổ */
-.page-cast {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: 3px;
-  background: radial-gradient(120% 100% at 0% 50%, rgba(23,36,59,.34) 0%, rgba(23,36,59,.14) 38%, rgba(23,36,59,0) 72%);
-  transform-origin: left center;
-  animation: pageCast 1.2s cubic-bezier(.34,.06,.2,1) both;
-}
-@keyframes pageCast {
-  0%   { opacity: .5;  transform: scaleX(.34) skewY(-1deg); }
-  45%  { opacity: .34; transform: scaleX(.62) skewY(-.3deg); }
-  78%  { opacity: .12; transform: scaleX(.92) skewY(.2deg); }
-  100% { opacity: 0;   transform: none; }
-}
-
-/* bóng tối sát gáy — rất nhẹ, chỉ để gợi chiều sâu (bản trước tối 0.75 nên sổ bị xám ngoét) */
-.diary-sheet.lay-in .paper::after {
-  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
-  background: linear-gradient(90deg, rgba(23,36,59,.26) 0%, rgba(23,36,59,.09) 26%, rgba(23,36,59,0) 58%);
-  animation: pageTurnShade 1.2s cubic-bezier(.34,.06,.2,1) both;
-}
-@keyframes pageTurnShade {
-  0%   { opacity: .2; }
-  50%  { opacity: .55; }
-  100% { opacity: 0; }
-}
-/* dải sáng "nếp gấp": bỏ hẳn — nó tạo một vệt trắng chạy ngang trông như vết loá,
-   không giống giấy. Chỉ giữ bóng gáy rất nhẹ + bóng hắt dưới tờ giấy. */
+/* (đã bỏ hiệu ứng lật trang 3D và vệt sáng nếp gấp — chỉ còn quét ngang ở trên) */
 
 /* ---- Thanh công cụ dưới sổ + nút Huỷ/Lưu nổi ---- */
 .de-tools-wrap { display: flex; flex-direction: column; gap: 10px; margin: 16px auto 8px; max-width: 1000px; padding: 0 4px 84px; }

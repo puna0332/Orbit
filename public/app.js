@@ -599,14 +599,11 @@
     if (page === 'diary') { layoutPapers(); if (document.getElementById('paperImportInput')) bindPaperImport(); }
     else if (page === 'me' || (page === 'people' && parts[1])) layoutPapers();
     if (diaryDraft) syncDiaryText();
-    /* animation lật trang chỉ chạy đúng một lần lúc mở; hết animation thì bỏ class
-       để tờ giấy trở lại bóng đổ/nếp gấp của trạng thái nằm phẳng */
+    /* hiệu ứng quét giấy chỉ chạy đúng một lần lúc mở; hết animation thì bỏ class */
     if (diaryLayingIn) setTimeout(function () {
       diaryLayingIn = false;
       var sh = document.querySelector('.diary-sheet.lay-in');
       if (sh) sh.classList.remove('lay-in');
-      var cast = document.querySelector('.page-cast');
-      if (cast) cast.remove();
     }, 1000);
   }
 
@@ -1758,7 +1755,6 @@
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Sổ nhật ký">' +
       '<div class="diary-sheet' + (diaryDraft ? ' is-writing' : '') + (diaryLayingIn ? ' lay-in' : '') + '" ' +
       'style="left:' + sr.l + '%;top:' + sr.t + '%;right:' + sr.r + '%;bottom:' + sr.b + '%">' +
-      (diaryDraft && diaryLayingIn ? '<span class="page-cast" aria-hidden="true"></span>' : '') +
       sheetInner +
       '</div>' +
       '</div>' +
