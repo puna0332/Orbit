@@ -1248,12 +1248,76 @@ html { scrollbar-gutter: stable; }
 .ph-date-wrap:hover .ph-date-txt { border-bottom: 1px dashed rgba(122,101,82,.6); }
 .ph-date-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 
-/* ---- Animation "trải giấy" từ góc trên-trái lan dần xuống/phải, chậm cho giống thật ---- */
-.diary-sheet.lay-in .paper { animation: paperLay 1.05s cubic-bezier(.22,.75,.25,1) both; }
-@keyframes paperLay {
-  0%   { clip-path: inset(0 100% 100% 0); transform: translate(-10px, -8px) rotate(-.35deg); opacity: .55; }
-  55%  { opacity: 1; }
-  100% { clip-path: inset(0 0 0 0); transform: none; opacity: 1; }
+/* ---- Hiệu ứng LẬT TRANG: tờ giấy dựng ở gáy rồi hạ phẳng dần sang phải ----
+   Tham khảo turn.js (D:/book-effect) nhưng làm thuần CSS 3D, không kéo jQuery vào:
+   tờ giấy xoay quanh mép gáy (trái) + một dải sáng cong chạy theo nếp gấp + bóng
+   hắt ở mép tự do, để mắt đọc ra "giấy đang cong và hạ xuống" chứ không phải
+   một tấm phẳng bị xoay. */
+.diary-sheet.lay-in { perspective: 4200px; perspective-origin: 50% 50%; }
+.diary-sheet.lay-in .paper {
+  transform-origin: left center;
+  backface-visibility: hidden;
+  will-change: transform, filter;
+  animation: pageTurnIn 1.2s cubic-bezier(.34,.06,.2,1) both;
+}
+@keyframes pageTurnIn {
+  0%   { transform: rotateY(-72deg) rotateZ(-1.2deg) scale(.97) translate3d(0, -12px, 0);
+         border-radius: 2px 30px 26px 2px;
+         filter: brightness(.74) saturate(.92);
+         box-shadow: 26px 0 34px -14px rgba(23,36,59,.55), inset 0 0 0 1px rgba(216,199,184,.45); }
+  40%  { transform: rotateY(-50deg) rotateZ(-.4deg) scale(1) translate3d(0, -4px, 0);
+         border-radius: 2px 18px 16px 2px;
+         filter: brightness(.84);
+         box-shadow: 20px 0 28px -14px rgba(23,36,59,.45), inset 0 0 0 1px rgba(216,199,184,.45); }
+  74%  { transform: rotateY(-13deg) rotateZ(.4deg);
+         border-radius: 2px 7px 7px 2px;
+         filter: brightness(.95);
+         box-shadow: 10px 0 18px -12px rgba(23,36,59,.3), inset 0 0 0 1px rgba(216,199,184,.45); }
+  90%  { transform: rotateY(3deg) rotateZ(.1deg);
+         border-radius: 2px 3px 3px 2px;
+         filter: brightness(1);
+         box-shadow: 0 6px 18px rgba(23,36,59,.18), inset 0 0 0 1px rgba(216,199,184,.45); }
+  100% { transform: rotateY(0) rotateZ(0);
+         filter: none;
+         box-shadow: inset 10px 0 16px -12px rgba(23,36,59,.30), inset 0 0 0 1px rgba(216,199,184,.45), 0 6px 18px rgba(23,36,59,.18); }
+}
+/* bóng của tờ giấy đang lật hắt xuống mặt sổ — thứ làm mắt tin là giấy nằm TRÊN sổ */
+.page-cast {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: 3px;
+  background: radial-gradient(120% 100% at 0% 50%, rgba(23,36,59,.5) 0%, rgba(23,36,59,.22) 38%, rgba(23,36,59,0) 72%);
+  transform-origin: left center;
+  animation: pageCast 1.2s cubic-bezier(.34,.06,.2,1) both;
+}
+@keyframes pageCast {
+  0%   { opacity: .85; transform: scaleX(.34) skewY(-1.2deg); }
+  45%  { opacity: .6;  transform: scaleX(.62) skewY(-.4deg); }
+  78%  { opacity: .22; transform: scaleX(.92) skewY(.3deg); }
+  100% { opacity: 0;   transform: none; }
+}
+
+/* bóng tối sát gáy lúc giấy còn dựng, tan dần khi giấy hạ phẳng */
+.diary-sheet.lay-in .paper::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(90deg, rgba(23,36,59,.5) 0%, rgba(23,36,59,.2) 22%, rgba(23,36,59,0) 58%);
+  animation: pageTurnShade 1.2s cubic-bezier(.34,.06,.2,1) both;
+}
+@keyframes pageTurnShade {
+  0%   { opacity: .3; }
+  50%  { opacity: .75; }
+  100% { opacity: 0; }
+}
+/* dải sáng "nếp gấp" chạy từ gáy ra mép tự do — thứ làm tờ giấy trông cong */
+.diary-sheet.lay-in .paper::before {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 42%, rgba(255,255,255,.9) 50%,
+    rgba(255,255,255,.35) 58%, rgba(255,255,255,0) 72%);
+  animation: pageTurnSheen 1.2s cubic-bezier(.34,.06,.2,1) both;
+}
+@keyframes pageTurnSheen {
+  0%   { opacity: .55; background-position: -40% 0; background-size: 220% 100%; }
+  55%  { opacity: .5;  background-position: 40% 0; background-size: 220% 100%; }
+  100% { opacity: 0;   background-position: 120% 0; background-size: 220% 100%; }
 }
 
 /* ---- Thanh công cụ dưới sổ + nút Huỷ/Lưu nổi ---- */

@@ -1751,6 +1751,7 @@
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Sổ nhật ký">' +
       '<div class="diary-sheet' + (diaryDraft ? ' is-writing' : '') + (diaryLayingIn ? ' lay-in' : '') + '" ' +
       'style="left:' + sr.l + '%;top:' + sr.t + '%;right:' + sr.r + '%;bottom:' + sr.b + '%">' +
+      (diaryDraft && diaryLayingIn ? '<span class="page-cast" aria-hidden="true"></span>' : '') +
       sheetInner +
       '</div>' +
       '</div>' +
