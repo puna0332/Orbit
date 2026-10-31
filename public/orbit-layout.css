@@ -1297,19 +1297,8 @@ html { scrollbar-gutter: stable; }
   50%  { opacity: .55; }
   100% { opacity: 0; }
 }
-/* dải sáng "nếp gấp" chạy từ gáy ra mép tự do — thứ làm tờ giấy trông cong */
-.diary-sheet.lay-in .paper::before {
-  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 42%, rgba(255,255,255,.9) 50%,
-    rgba(255,255,255,.35) 58%, rgba(255,255,255,0) 72%);
-  animation: pageTurnSheen 1.2s cubic-bezier(.34,.06,.2,1) both;
-}
-@keyframes pageTurnSheen {
-  0%   { opacity: .3;  background-position: -40% 0; background-size: 220% 100%; }
-  55%  { opacity: .25; background-position: 40% 0; background-size: 220% 100%; }
-  100% { opacity: 0;   background-position: 120% 0; background-size: 220% 100%; }
-}
+/* dải sáng "nếp gấp": bỏ hẳn — nó tạo một vệt trắng chạy ngang trông như vết loá,
+   không giống giấy. Chỉ giữ bóng gáy rất nhẹ + bóng hắt dưới tờ giấy. */
 
 /* ---- Thanh công cụ dưới sổ + nút Huỷ/Lưu nổi ---- */
 .de-tools-wrap { display: flex; flex-direction: column; gap: 10px; margin: 16px auto 8px; max-width: 1000px; padding: 0 4px 84px; }
