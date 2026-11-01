@@ -599,11 +599,13 @@
     if (page === 'diary') { layoutPapers(); if (document.getElementById('paperImportInput')) bindPaperImport(); }
     else if (page === 'me' || (page === 'people' && parts[1])) layoutPapers();
     if (diaryDraft) syncDiaryText();
-    /* hiệu ứng quét giấy chỉ chạy đúng một lần lúc mở; hết animation thì bỏ class */
+    /* hiệu ứng quét giấy chỉ chạy đúng một lần lúc mở; hết animation thì dọn class + mép sáng */
     if (diaryLayingIn) setTimeout(function () {
       diaryLayingIn = false;
       var sh = document.querySelector('.diary-sheet.lay-in');
       if (sh) sh.classList.remove('lay-in');
+      var edge = document.querySelector('.sweep-edge');
+      if (edge) edge.remove();
     }, 1000);
   }
 
@@ -1629,7 +1631,7 @@
       /* Phần đầu giấy ("Viết cho" + ngày) chiếm đúng HEAD_ROWS dòng kẻ, nhờ vậy chữ
          phía dưới vẫn rơi đúng vào các đường kẻ tiếp theo. */
       var head = el.querySelector('.paper-head');
-      var HEAD_ROWS = 4;   /* đầu giấy chiếm 4 dòng kẻ (1 dòng thở thêm so với trước) */
+      var HEAD_ROWS = 2;   /* đầu giấy chiếm 2 dòng kẻ → chữ bắt đầu viết sớm hơn */
       if (head) {
         var headSize = Math.max(10, size * 0.68);
         head.style.height = (gap * HEAD_ROWS) + 'px';
@@ -1755,6 +1757,7 @@
       '<img class="cover-img cover-mobile" src="' + theme.mobile + '" alt="Sổ nhật ký">' +
       '<div class="diary-sheet' + (diaryDraft ? ' is-writing' : '') + (diaryLayingIn ? ' lay-in' : '') + '" ' +
       'style="left:' + sr.l + '%;top:' + sr.t + '%;right:' + sr.r + '%;bottom:' + sr.b + '%">' +
+      (diaryDraft && diaryLayingIn ? '<span class="sweep-edge" aria-hidden="true"></span>' : '') +
       sheetInner +
       '</div>' +
       '</div>' +

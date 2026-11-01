@@ -1248,14 +1248,27 @@ html { scrollbar-gutter: stable; }
 .ph-date-wrap:hover .ph-date-txt { border-bottom: 1px dashed rgba(122,101,82,.6); }
 .ph-date-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; opacity: 0; cursor: pointer; }
 
-/* ---- Hiệu ứng "lật giấy" quét NGANG từ trái sang phải ----
-   Tờ giấy hiện ra dần bằng clip-path chỉ mở theo trục ngang (không có thành phần
-   từ trên xuống), kèm nhích nhẹ sang phải như vừa được đẩy vào sổ. */
-.diary-sheet.lay-in .paper { animation: paperLay .95s cubic-bezier(.25,.72,.28,1) both; }
+/* ---- Hiệu ứng "đặt giấy": quét ngang từ trái sang phải, MÉP TRƯỚC có viền sáng
+   + bóng hắt xuống trang bên dưới, nên mắt đọc ra một tờ giấy đang trượt vào sổ chứ
+   không phải một khung hình bị cắt. Không có chuyển động dọc. ---- */
+.diary-sheet.lay-in .paper { animation: paperLay .9s cubic-bezier(.3,.52,.28,1) both; }
 @keyframes paperLay {
-  0%   { clip-path: inset(0 100% 0 0); transform: translateX(-10px); opacity: .72; }
-  55%  { opacity: 1; }
-  100% { clip-path: inset(0 0 0 0); transform: none; opacity: 1; }
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+/* dải bóng đi kèm mép giấy; cùng thời lượng/easing với clip-path nên luôn khớp mép */
+.sweep-edge {
+  position: absolute; top: 0.6%; bottom: 0.6%; width: 56px; left: 0; z-index: 6;
+  display: none; pointer-events: none;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,.92) 0px, rgba(255,255,255,.35) 1.5px,
+    rgba(23,36,59,.30) 4px, rgba(23,36,59,.13) 16px, rgba(23,36,59,0) 56px);
+}
+.diary-sheet.lay-in .sweep-edge { display: block; animation: sweepEdge .9s cubic-bezier(.3,.52,.28,1) both; }
+@keyframes sweepEdge {
+  0%   { left: -0.4%; opacity: 1; }
+  92%  { opacity: .9; }
+  100% { left: 100%; opacity: 0; }
 }
 /* (đã bỏ hiệu ứng lật trang 3D và vệt sáng nếp gấp — chỉ còn quét ngang ở trên) */
 
