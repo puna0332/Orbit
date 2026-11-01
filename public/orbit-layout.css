@@ -1885,3 +1885,45 @@ textarea.paper-ink::placeholder { color: rgba(122,101,82,.45); }
 .wf-star { font-size:22px; color:#C79A6B; }
 .wf-done { display:flex; flex-direction:column; gap:8px; align-items:center; font-size:14px; }
 .wf-done span { font-size:12.5px; color:var(--ink-muted); }
+
+/* ===== Trang chủ: nút tắt dùng icon bộ Orbit (không dùng emoji) ===== */
+.home-quick .hq-ic {
+  width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center;
+  background: #F3E7DA; color: #7A6350;
+}
+.home-quick .hq-ic .ic-img { display: block; }
+.home-quick .hq-ic.tone-pink { background: #FCE4E6; }
+.home-quick .hq-ic.tone-purple { background: #ECE6FA; }
+.home-quick .hq-ic.tone-green { background: #E4F0E5; }
+.home-quick .hq-ic.tone-orange { background: #FBE9D8; }
+
+/* ===== 7 ngày tới: ngày có sự kiện nổi hơn ===== */
+.wk-day { position: relative; }
+.wk-day.has-ev {
+  background: #FDF3E7; border-color: #D9BC96;
+  box-shadow: 0 2px 8px rgba(199,154,107,.18);
+}
+.wk-day.has-ev .wk-num { color: #8A5A28; }
+.wk-day.has-ev .wk-dot { width: 6px; height: 6px; background: #C07938; }
+.wk-day.on.has-ev { background: #17243B; border-color: #17243B; }
+.wk-day.on.has-ev .wk-num { color: #fff; }
+.wk-day.on.has-ev .wk-dot { background: #F3C68A; }
+.wk-num { font-size: 13.5px; letter-spacing: -.01em; }
+
+/* ===== 60 ngày tới: 5 bóng mây một hàng, cuộn NGANG ===== */
+.occasion-scroll {
+  max-height: none; overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+}
+.occasion-scroll .occasion-row {
+  display: flex; flex-wrap: nowrap; gap: 10px; grid-template-columns: none;
+}
+.occasion-scroll .occasion-card {
+  flex: 0 0 calc((100% - 40px) / 5);
+  height: 150px; aspect-ratio: auto; scroll-snap-align: start;
+}
+.occasion-scroll::-webkit-scrollbar { height: 6px; }
+.occasion-scroll::-webkit-scrollbar-thumb { background: #E2D0BE; border-radius: 99px; }
+@media (max-width: 899px) {
+  .occasion-scroll .occasion-card { flex-basis: 44%; height: 140px; }
+}

@@ -869,10 +869,10 @@
     /* ---------- Nút tắt nhanh ---------- */
     var quick =
       '<div class="home-quick">' +
-      '<button class="hq" data-action="open-add-person"><span class="hq-ic">＋</span><span>Thêm người</span></button>' +
-      '<button class="hq" data-action="open-add-event"><span class="hq-ic">🗓</span><span>Thêm lịch</span></button>' +
-      '<a class="hq" href="#/diary/new"><span class="hq-ic">✍</span><span>Viết nhật ký</span></a>' +
-      '<button class="hq" data-action="open-write-for-me"><span class="hq-ic">🔗</span><span>Viết cho tôi</span></button>' +
+      '<button class="hq" data-action="open-add-person"><span class="hq-ic tone-pink">' + ic('people', 20) + '</span><span>Thêm người</span></button>' +
+      '<button class="hq" data-action="open-add-event"><span class="hq-ic tone-purple">' + ic('calendar', 20) + '</span><span>Thêm lịch</span></button>' +
+      '<a class="hq" href="#/diary/new"><span class="hq-ic tone-green">' + ic('diary', 20) + '</span><span>Viết nhật ký</span></a>' +
+      '<button class="hq" data-action="open-write-for-me"><span class="hq-ic tone-orange">' + ic('envelope', 20) + '</span><span>Viết cho tôi</span></button>' +
       '</div>';
 
     /* ---------- 7 ngày tới: dải ngày + lịch của ngày đang chọn ---------- */
@@ -880,11 +880,14 @@
     if (!homeDay || !week.some(function (w) { return w.iso === homeDay; })) homeDay = todayIso;
     var selDay = week.filter(function (w) { return w.iso === homeDay; })[0] || week[0];
     var weekStrip = '<div class="wk-strip">' + week.map(function (w) {
-      return '<button class="wk-day' + (w.iso === homeDay ? ' on' : '') + (w.iso === todayIso ? ' today' : '') + '" ' +
-        'data-action="home-day" data-date="' + w.iso + '" aria-pressed="' + (w.iso === homeDay) + '">' +
+      var hasEv = w.events.length > 0;
+      return '<button class="wk-day' + (w.iso === homeDay ? ' on' : '') + (w.iso === todayIso ? ' today' : '') +
+        (hasEv ? ' has-ev' : '') + '" ' +
+        'data-action="home-day" data-date="' + w.iso + '" aria-pressed="' + (w.iso === homeDay) + '" ' +
+        'aria-label="' + shortDayLabel(w.iso) + (hasEv ? ', ' + w.events.length + ' sự kiện' : '') + '">' +
         '<span class="wk-wd">' + ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][w.d.getDay()] + '</span>' +
-        '<span class="wk-num">' + w.d.getDate() + '</span>' +
-        '<span class="wk-dot' + (w.events.length ? ' on' : '') + '"></span></button>';
+        '<span class="wk-num">' + w.d.getDate() + '/' + (w.d.getMonth() + 1) + '</span>' +
+        '<span class="wk-dot' + (hasEv ? ' on' : '') + '"></span></button>';
     }).join('') + '</div>';
     var weekList = selDay.events.length ? selDay.events.map(function (e) {
       var cat = EV_BY_KEY[e.type];

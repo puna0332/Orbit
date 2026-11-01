@@ -295,13 +295,12 @@ a { color: inherit; text-decoration: none; }
      Ảnh 1672x941, nội dung nằm ở 8–41% trên cùng, phần dưới là kem trống -> neo
      center top, rộng đúng 100% vùng nội dung, nền kem đỡ phía dưới. */
   .view-root.page-home {
-    /* cover: tranh phủ KÍN cả trang (không còn mảng kem trống dưới ảnh), neo mép trên
-       để nhân vật + mặt trời luôn nằm ở dải trên, phần dưới là vùng kem trống của
-       chính bức tranh nên thẻ nội dung đặt lên vẫn sạch. */
+    /* 100% auto: tranh rộng đúng bề ngang, KHÔNG phóng to. Trước đây để `cover` nên
+       khi trang dài ra là ảnh bị zoom kín chiều cao, nhìn méo và mất chi tiết. */
     background-image: url('assets/home-bg-desktop.png');
     background-repeat: no-repeat;
     background-position: center top;
-    background-size: cover;
+    background-size: 100% auto;
     background-color: var(--cream);
   }
   .home-hero {
