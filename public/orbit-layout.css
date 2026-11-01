@@ -2212,8 +2212,8 @@ html[data-gender="male"] .pd-panel { background: #F3F8FE; }
 .onboard-shot { display: none; }
 @media (min-width: 900px) {
   .onboard-shot {
-    display: block; position: absolute; right: 4%; top: 50%; transform: translateY(-50%);
-    width: min(44%, 620px); max-height: 74vh; object-fit: contain;
+    display: block; position: absolute; right: 2.5%; top: 50%; transform: translateY(-50%);
+    width: min(52%, 720px); max-height: 78vh; object-fit: contain;
     border-radius: 16px; border: 1px solid rgba(255,255,255,.75);
     box-shadow: 0 22px 48px rgba(23,36,59,.22);
   }
@@ -2286,3 +2286,28 @@ html[data-gender="male"] .auth-google { border-color: #D6E3F3; color: #1B3358; }
 html[data-gender="male"] .auth-google:hover { background: #F2F8FF; }
 html[data-gender="male"] .auth-skip, html[data-gender="male"] .auth-remember { color: #5B7590; }
 html[data-gender="male"] .auth-remember input { accent-color: #4A7FBF; }
+
+/* ===== Hộp thông tin cơ bản sau khi đăng ký ===== */
+.setup-card { width: min(468px, 100%); }
+.setup-av-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 4px; }
+.setup-av-current {
+  width: 62px; height: 62px; flex: none; border-radius: 50%; overflow: hidden;
+  border: 3px solid #fff; box-shadow: 0 6px 16px rgba(150,116,90,.28);
+}
+.setup-av-current img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.setup-av-grid {
+  flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
+  max-height: 104px; overflow-y: auto; padding: 2px;
+}
+.setup-av {
+  padding: 0; border: 2px solid transparent; border-radius: 50%; overflow: hidden;
+  background: none; cursor: pointer; aspect-ratio: 1;
+}
+.setup-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.setup-av.on { border-color: #C08B63; box-shadow: 0 0 0 3px rgba(192,139,99,.18); }
+html[data-gender="male"] .setup-av.on { border-color: #4A7FBF; box-shadow: 0 0 0 3px rgba(74,127,191,.2); }
+html[data-gender="male"] .setup-av-current { box-shadow: 0 6px 16px rgba(35,74,124,.25); }
+@media (max-width: 420px) {
+  .setup-av-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .setup-av-current { width: 54px; height: 54px; }
+}

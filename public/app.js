@@ -3071,6 +3071,60 @@
   }
   function closeAuth() { authOpen = false; render(); }
 
+  /* ----- Hộp thông tin cơ bản, mở ngay sau khi tạo tài khoản ----- */
+  var setupOpen = false;
+  var setupAvatar = '';
+  function openProfileSetup() {
+    setupOpen = true;
+    setupAvatar = state.settings.profileAvatar || 'av-01';
+    render();
+  }
+  function closeProfileSetup() { setupOpen = false; render(); }
+  function profileSetupHtml() {
+    if (!setupOpen) return '';
+    var name = state.settings.profileName && state.settings.profileName !== 'Bạn' ? state.settings.profileName : '';
+    var bd = state.settings.profileBirthday || '';
+    var grid = AVATAR_PRESETS.map(function (a) {
+      return '<button type="button" class="setup-av' + (setupAvatar === a ? ' on' : '') + '" ' +
+        'data-action="setup-avatar" data-av="' + a + '" aria-pressed="' + (setupAvatar === a) + '" ' +
+        'aria-label="Chọn ảnh ' + a + '"><img src="assets/avatars/' + a + '.png" alt=""></button>';
+    }).join('');
+    return '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="setup-title">' +
+      '<div class="auth-scrim"></div>' +
+      '<div class="auth-card setup-card">' +
+      '<div class="auth-head">' +
+      '<h2 id="setup-title">Thông tin cơ bản</h2>' +
+      '<p>Vài thông tin để Orbit gọi tên bạn và nhắc đúng dịp. Có thể sửa lại trong Cài đặt.</p>' +
+      '</div>' +
+      '<form id="form-orbit-profile" novalidate>' +
+      '<div class="setup-av-row">' +
+      '<span class="setup-av-current"><img src="assets/avatars/' + esc(setupAvatar || 'av-01') + '.png" alt=""></span>' +
+      '<div class="setup-av-grid">' + grid + '</div>' +
+      '</div>' +
+      '<label class="auth-field"><span>Tên hiển thị</span>' +
+      '<input type="text" name="name" maxlength="32" placeholder="Vd: Trân" value="' + esc(name) + '" autocomplete="given-name"></label>' +
+      '<label class="auth-field"><span>Ngày sinh</span>' +
+      '<input type="date" name="birthday" value="' + esc(bd) + '"></label>' +
+      '<div class="auth-err" role="alert" hidden></div>' +
+      '<button class="btn btn-primary btn-block" type="submit">Bắt đầu dùng Orbit →</button>' +
+      '<button class="auth-skip" type="button" data-action="setup-skip">Để sau</button>' +
+      '</form></div></div>';
+  }
+  function saveProfileSetup(form) {
+    var fd = new FormData(form);
+    var name = String(fd.get('name') || '').trim();
+    var bd = String(fd.get('birthday') || '').trim();
+    var err = form.querySelector('.auth-err');
+    if (!name) { if (err) { err.textContent = 'Bạn nhập tên giúp mình nhé.'; err.hidden = false; } return; }
+    state.settings.profileName = name;
+    state.settings.profileAvatar = setupAvatar || '';
+    state.settings.profileBirthday = bd;
+    setupOpen = false;
+    if (!state.onboardingDone) { state.onboardingSlide = 1; }
+    save(); render();
+    showToast('Đã lưu thông tin của ' + name);
+  }
+
   function authModalHtml() {
     if (!authOpen) return '';
     var acc = state.account;
@@ -3111,9 +3165,10 @@
       '</div></div>';
   }
 
-  function afterAuth(remember) {
+  function afterAuth(remember, isNew) {
     state.settings.rememberLogin = remember !== false;
     authOpen = false;
+    if (isNew) { save(); openProfileSetup(); return; }
     save();
     if (state.onboardingDone) render(); else { state.onboardingSlide = 1; save(); render(); }
   }
@@ -3139,7 +3194,7 @@
         state.signedIn = true;
         if (!state.settings.profileName || state.settings.profileName === 'Bạn') state.settings.profileName = email.split('@')[0];
         showToast('Đã tạo tài khoản cho ' + email);
-        afterAuth(remember);
+        afterAuth(remember, true);
       });
       return;
     }
@@ -3191,13 +3246,7 @@
       '<div class="onboard-logo-badge"><img src="assets/logo-orbit.png" alt="Orbit"></div>' +
       '<h1 class="onboard-title">' + s.title + '</h1>' +
       '<p class="onboard-sub">' + s.sub + '</p>' +
-      (i === 0
-        ? '<div class="onboard-gender">' +
-          '<button class="og-card' + (gender !== 'male' ? ' on' : '') + '" data-action="set-gender" data-g="female" aria-pressed="' + (gender !== 'male') + '">' +
-          '<span class="og-art og-art-female"></span><b>Nữ</b><em>Chủ đề kem · mây hồng</em></button>' +
-          '<button class="og-card' + (gender === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male" aria-pressed="' + (gender === 'male') + '">' +
-          '<span class="og-art og-art-male"></span><b>Nam</b><em>Chủ đề xanh nước biển</em></button>' +
-          '</div>' : '') +
+
       '</div>' +
       shot +
       '<div class="onboard-bottom">' +
@@ -3209,7 +3258,7 @@
       '</div></div>' +
       /* Ảnh demo màn hình rộng: absolute so với .onboard-wrap nên không đẩy bố cục */
       (s.shot ? '<img class="onboard-shot" src="' + s.shot + '" alt="' + s.shotAlt + '" loading="lazy">' : '') +
-      authModalHtml() + '</div>'
+      authModalHtml() + profileSetupHtml() + '</div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
@@ -3727,6 +3776,11 @@
       case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
       case 'auth-open': openAuth(); break;
+      case 'setup-avatar': setupAvatar = t.dataset.av; render(); break;
+      case 'setup-skip':
+        setupOpen = false;
+        if (!state.onboardingDone) state.onboardingSlide = 1;
+        save(); render(); break;
       case 'auth-close': closeAuth(); break;
       case 'auth-tab': authTab = t.dataset.t; render(); break;
       case 'auth-google': authGoogle(); break;
@@ -3743,6 +3797,7 @@
   function onGlobalSubmit(e) {
     var form = e.target;
     if (form.id === 'form-orbit-auth') { e.preventDefault(); submitAuth(form); return; }
+    if (form.id === 'form-orbit-profile') { e.preventDefault(); saveProfileSetup(form); return; }
     if (form.id === 'form-add-group') {
       e.preventDefault();
       var gname = (new FormData(form).get('name') || '').trim();
