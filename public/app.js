@@ -399,6 +399,46 @@
     pending: false
   };
 
+  /* ---------------------- Dùng thử 7 ngày (chưa đăng nhập) ----------------------
+     Chế độ khách chỉ lưu trên máy. Hết 7 ngày thì xoá sạch dữ liệu cục bộ và
+     mời tạo tài khoản — dữ liệu thật nằm trên máy chủ (D1). */
+  var TRIAL_DAYS = 7;
+  var trialExpired = false;
+
+  function trialStart() {
+    var st = state.settings;
+    if (!st.trialStart) {
+      st.trialStart = todayISO();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    return st.trialStart;
+  }
+  function trialInfo() {
+    if (ACCT.token) return { signedIn: true, active: true, daysLeft: 0, endsAt: '' };
+    var start = new Date(trialStart() + 'T00:00:00');
+    var end = new Date(start.getTime() + TRIAL_DAYS * 86400000);
+    var msLeft = end.getTime() - Date.now();
+    return {
+      signedIn: false,
+      active: msLeft > 0,
+      daysLeft: Math.max(0, Math.ceil(msLeft / 86400000)),
+      endsAt: toISO(end)
+    };
+  }
+  function enforceTrial() {
+    if (ACCT.token) return;
+    var t = trialInfo();
+    if (t.active) return;
+    /* Hết hạn: xoá dữ liệu khách, chỉ giữ cờ để hiện hộp mời đăng ký */
+    state = emptyState(defaultSettings());
+    state.onboardingDone = false;   /* quay về bước 0 để hiện hộp mời đăng ký */
+    state.onboardingSlide = 0;
+    state.settings.trialStart = todayISO();
+    state.settings.trialExpired = true;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    trialExpired = true;
+  }
+
   function api(path, opts) {
     opts = opts || {};
     var headers = { 'content-type': 'application/json' };
@@ -2420,6 +2460,7 @@
 
   function apiCall(path, method, body) {
     var opts = { method: method || 'GET', headers: {} };
+    if (ACCT.token) opts.headers.authorization = 'Bearer ' + ACCT.token;
     if (body) { opts.headers['content-type'] = 'application/json'; opts.body = JSON.stringify(body); }
     return fetch(path, opts).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, data: j }; });
@@ -2431,11 +2472,15 @@
   function openInviteModal(pid) {
     var p = state.people.find(function (x) { return x.id === pid; });
     if (!p) return;
-    var ident = ownerIdentity();
+    /* Lời mời gắn với tài khoản: khách dùng thử phải đăng ký trước */
+    if (!ACCT.token) {
+      showToast('Đăng nhập để gửi lời mời kỷ niệm');
+      openAuth();
+      return;
+    }
     openModal('<div class="modal-sheet invite-sheet"><div class="modal-head"><h3>Mời gửi kỷ niệm</h3>' +
       '<button data-action="close-modal">✕</button></div><div class="invite-loading">Đang tạo link…</div></div>');
     apiCall('/api/invite', 'POST', {
-      ownerId: ident.id, ownerSecret: ident.secret,
       ownerName: (state.settings.profileName || 'Bạn'),
       personId: p.id, personName: p.name
     }).then(function (res) {
@@ -2481,11 +2526,12 @@
 
   var inboxSyncAt = 0;
   function syncInbox(force) {
+    if (!ACCT.token) return;
     var ident = ownerIdentity();
     var now = Date.now();
     if (!force && now - inboxSyncAt < 45000) return Promise.resolve();
     inboxSyncAt = now;
-    return apiCall('/api/inbox?owner=' + encodeURIComponent(ident.id) + '&secret=' + encodeURIComponent(ident.secret))
+    return apiCall('/api/inbox')
       .then(function (res) {
         if (!res.ok || !res.data.memories) return;
         var changed = false;
@@ -2533,7 +2579,7 @@
     if (!p) return;
     var ident = ownerIdentity();
     apiCall('/api/memory/' + encodeURIComponent(mid) + '/' + action, 'POST',
-      { ownerId: ident.id, ownerSecret: ident.secret, hidden: true }).then(function (res) {
+      { hidden: true }).then(function (res) {
         if (!res.ok) { showToast('Không thực hiện được, thử lại sau'); return; }
         if (action === 'delete') {
           p.memories = (p.memories || []).filter(function (x) { return x.id !== mid; });
@@ -2638,7 +2684,15 @@
       if (!content) { errBox.textContent = 'Bạn viết một chút gì đó trước nhé.'; errBox.hidden = false; ta.focus(); return; }
       var btn = document.getElementById('invite-send');
       btn.disabled = true; btn.textContent = 'Đang gửi…';
-      apiCall('/api/invite/' + encodeURIComponent(token), 'POST', { content: content, images: picked })
+      /* Ảnh: upload trước rồi gửi URL — bản ghi D1 không phải mang cả ảnh base64 */
+      var uploads = picked.map(function (src) {
+        return apiCall('/api/upload', 'POST', { data: src })
+          .then(function (r) { return (r.ok && r.data && r.data.url) ? r.data.url : src; })
+          .catch(function () { return src; });
+      });
+      Promise.all(uploads).then(function (urls) {
+      return apiCall('/api/invite/' + encodeURIComponent(token), 'POST', { content: content, images: urls });
+      })
         .then(function (res) {
           if (res.ok) return showInviteSuccess();
           var map = {
@@ -2850,7 +2904,9 @@
           '<span>' + esc((state.account && state.account.email) || (ACCT.user && ACCT.user.email) || '') +
           ' · dữ liệu được sao lưu và đồng bộ</span></div>' +
           '<button class="acc-out" data-action="auth-signout">Đăng xuất</button></div>'
-        : '<button class="acc-signin" data-action="auth-open">Đăng nhập để đồng bộ dữ liệu</button>') +
+        : '<button class="acc-signin" data-action="auth-open">Đăng nhập để đồng bộ dữ liệu</button>' +
+          '<div class="acc-trial">Bản dùng thử trên máy này còn <b>' + trialInfo().daysLeft + ' ngày</b> ' +
+          '(hết hạn ' + (trialInfo().endsAt || '').split('-').reverse().join('/') + '). Hết hạn dữ liệu sẽ bị xoá.</div>') +
       '<div class="field"><label>Chủ đề theo giới tính</label><div class="sk-seg">' +
       '<button class="sk-seg-btn' + ((state.settings.gender || 'female') !== 'male' ? ' on' : '') + '" data-action="set-gender" data-g="female">Nữ · kem hồng</button>' +
       '<button class="sk-seg-btn' + ((state.settings.gender) === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male">Nam · xanh biển</button>' +
@@ -3464,6 +3520,21 @@
     });
   }
 
+  function trialCardHtml() {
+    if (!trialExpired) return '';
+    return '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="trial-title">' +
+      '<div class="auth-scrim"></div>' +
+      '<div class="auth-card">' +
+      '<div class="auth-head">' +
+      '<h2 id="trial-title">Hết 7 ngày dùng thử</h2>' +
+      '<p>Dữ liệu dùng thử trên máy này đã được xoá. Tạo tài khoản miễn phí để bắt đầu lại — ' +
+      'lần này dữ liệu được lưu trên máy chủ và đồng bộ giữa các thiết bị.</p>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-block" data-action="auth-open">Tạo tài khoản / Đăng nhập</button>' +
+      '<button class="auth-skip" data-action="trial-dismiss">Để sau</button>' +
+      '</div></div>';
+  }
+
   function renderOnboarding() {
     var i = state.onboardingSlide || 0;
     var s = ONBOARD_SLIDES[i];
@@ -3490,7 +3561,7 @@
       '</div></div>' +
       /* Ảnh demo màn hình rộng: absolute so với .onboard-wrap nên không đẩy bố cục */
       (s.shot ? '<img class="onboard-shot" src="' + s.shot + '" alt="' + s.shotAlt + '" loading="lazy">' : '') +
-      authModalHtml() + profileSetupHtml() + resetCardHtml() + '</div>'
+      authModalHtml() + profileSetupHtml() + resetCardHtml() + trialCardHtml() + '</div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
@@ -3917,9 +3988,7 @@
         if (!inviteShare) break;
         if (!confirm('Thu hồi link này? Người nhận sẽ không mở được nữa.')) break;
         (function () {
-          var ident = ownerIdentity();
-          apiCall('/api/invite/' + encodeURIComponent(inviteShare.token) + '/revoke', 'POST',
-            { ownerId: ident.id, ownerSecret: ident.secret }).then(function (res) {
+          apiCall('/api/invite/' + encodeURIComponent(inviteShare.token) + '/revoke', 'POST', {}).then(function (res) {
               showToast(res.ok ? 'Đã thu hồi link' : 'Không thu hồi được');
               if (res.ok) closeModal();
             }).catch(function () { showToast('Mất kết nối'); });
@@ -4007,7 +4076,8 @@
       case 'wipe-data': wipeData(); break;
       case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
-      case 'auth-open': openAuth(); break;
+      case 'auth-open': trialExpired = false; openAuth(); break;
+      case 'trial-dismiss': trialExpired = false; render(); break;
       case 'auth-forgot': authForgot = true; authOpen = true; render(); break;
       case 'auth-forgot-back': authForgot = false; authTab = 'login'; render(); break;
       case 'reset-cancel':
@@ -4339,6 +4409,7 @@
   /* ---------------------------- init ---------------------------- */
   function init() {
     applyTheme();
+    enforceTrial();
     if (window.matchMedia) {
       var mq = window.matchMedia('(prefers-color-scheme: dark)');
       if (mq.addEventListener) mq.addEventListener('change', function () { if (state.settings.theme === 'system') applyTheme(); });

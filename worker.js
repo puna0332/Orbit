@@ -14,8 +14,8 @@
 
 const INVITE_TTL_DAYS = 30;
 const MAX_CONTENT = 500;
-const MAX_IMAGES = 3;
-const MAX_IMAGE_BYTES = 400 * 1024;
+const MAX_IMAGES = 2;
+const MAX_IMAGE_BYTES = 280 * 1024;
 const RATE_LIMIT_PER_HOUR = 20;
 
 /* ------------------------------ tiện ích ------------------------------ */
@@ -115,59 +115,56 @@ function inspectImage(input) {
 /* ------------------------------ API ------------------------------ */
 
 async function apiCreateInvite(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
   const body = await req.json().catch(() => null);
   if (!body) return json({ error: 'bad_json' }, 400);
-
-  const ownerId = String(body.ownerId || '');
-  const secret = String(body.ownerSecret || '');
-  if (!/^[A-Za-z0-9_-]{16,64}$/.test(ownerId) || secret.length < 24) return json({ error: 'bad_owner' }, 400);
-
-  let own = await ownerRecord(env, ownerId);
-  if (!own) {
-    own = { secret, name: String(body.ownerName || 'Bạn').slice(0, 40), createdAt: nowIso() };
-    await env.ORBIT_KV.put('own:' + ownerId, JSON.stringify(own));
-  } else if (!safeEqual(own.secret, secret)) {
-    return json({ error: 'bad_owner' }, 403);
-  }
 
   const personId = String(body.personId || '').slice(0, 64);
   const personName = String(body.personName || '').trim().slice(0, 60);
   if (!personId || !personName) return json({ error: 'bad_person' }, 400);
-
   if (await rateLimited(env, req, 'invite')) return json({ error: 'rate_limited' }, 429);
 
   const token = newToken(24);
   const createdAt = nowIso();
   const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 864e5).toISOString();
-  const invite = {
-    token, ownerId, personId, personName,
-    ownerName: own.name,
-    createdAt, expiresAt, usedAt: null, revoked: false,
-  };
-  await env.ORBIT_KV.put('inv:' + token, JSON.stringify(invite), { expirationTtl: INVITE_TTL_DAYS * 86400 });
+  await env.ORBIT_DB.prepare(
+    'INSERT INTO invites (token, owner_id, person_id, person_name, owner_name, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(token, u.id, personId, personName, String(u.name || body.ownerName || 'Bạn').slice(0, 40), createdAt, expiresAt).run();
   return json({ token, expiresAt, path: '/memory/invite/' + token });
 }
 
+async function inviteRow(env, token) {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token || '')) return null;
+  return await env.ORBIT_DB.prepare('SELECT * FROM invites WHERE token = ?').bind(token).first();
+}
+
+function rowState(row) {
+  if (!row) return 'missing';
+  if (row.revoked) return 'revoked';
+  if (row.used_at) return 'used';
+  if (Date.parse(row.expires_at) < Date.now()) return 'expired';
+  return 'open';
+}
+
 async function apiGetInvite(env, token) {
-  const invite = await readInvite(env, token);
-  const state = await inviteState(invite);
-  if (!invite) return json({ status: state }, 404);
-  /* Không trả ownerId/personId/token — người mở link không cần và không nên biết */
+  const row = await inviteRow(env, token);
+  if (!row) return json({ status: 'missing' }, 404);
+  /* Không trả owner_id/person_id/token — người mở link không cần biết */
   return json({
-    status: state,
-    personName: invite.personName,
-    ownerName: invite.ownerName,
-    expiresAt: invite.expiresAt,
+    status: rowState(row),
+    personName: row.person_name,
+    ownerName: row.owner_name,
+    expiresAt: row.expires_at,
     maxContent: MAX_CONTENT,
     maxImages: MAX_IMAGES,
   });
 }
 
 async function apiSubmitInvite(req, env, token) {
-  const invite = await readInvite(env, token);
-  const state = await inviteState(invite);
+  const row = await inviteRow(env, token);
+  const state = rowState(row);
   if (state !== 'open') return json({ error: state }, 410);
-
   if (await rateLimited(env, req, 'submit')) return json({ error: 'rate_limited' }, 429);
 
   const body = await req.json().catch(() => null);
@@ -181,85 +178,115 @@ async function apiSubmitInvite(req, env, token) {
   if (rawImages.length > MAX_IMAGES) return json({ error: 'too_many_images' }, 400);
   const images = [];
   for (const img of rawImages) {
+    const m = /^\/media\/([A-Za-z0-9_-]{16,64})$/.exec(String(img || ''));
+    if (m) {
+      /* Ảnh đã upload: chỉ nhận ảnh do chính chủ lời mời tải lên */
+      const got = await env.ORBIT_KV.getWithMetadata('img:' + m[1], 'arrayBuffer');
+      if (!got.value || !got.metadata || got.metadata.owner !== row.owner_id) return json({ error: 'bad_image' }, 400);
+      images.push('/media/' + m[1]);
+      continue;
+    }
     const info = inspectImage(img);
     if (!info.ok) return json({ error: 'bad_image' }, 400);
     images.push(info.data);
   }
 
-  const memoryId = newToken(12);
-  const memory = {
-    id: memoryId,
-    personId: invite.personId,
-    invitationId: token,
-    type: 'guest_message',
-    content,
-    images,
-    createdAt: nowIso(),
-    source: 'invite_link',
-    hidden: false,
-  };
-  await env.ORBIT_KV.put('mem:' + invite.ownerId + ':' + memoryId, JSON.stringify(memory));
+  /* Đánh dấu đã dùng TRƯỚC khi ghi, dùng điều kiện used_at IS NULL để hai lần
+     bấm song song không tạo được hai kỷ niệm. */
+  const mark = await env.ORBIT_DB.prepare(
+    'UPDATE invites SET used_at = ? WHERE token = ? AND used_at IS NULL AND revoked = 0'
+  ).bind(nowIso(), token).run();
+  if (!mark.meta || !mark.meta.changes) return json({ error: 'used' }, 410);
 
-  /* Đánh dấu đã dùng NGAY sau khi ghi xong, để link không gửi được lần hai */
-  invite.usedAt = nowIso();
-  await env.ORBIT_KV.put('inv:' + token, JSON.stringify(invite), { expirationTtl: INVITE_TTL_DAYS * 86400 });
+  const memoryId = newToken(12);
+  await env.ORBIT_DB.prepare(
+    'INSERT INTO memories (id, owner_id, person_id, invitation_token, type, content, images, created_at, source, hidden) ' +
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+  ).bind(memoryId, row.owner_id, row.person_id, token, 'guest_message', content,
+    JSON.stringify(images), nowIso(), 'invite_link').run();
 
   return json({ ok: true, memoryId });
 }
 
 async function apiRevoke(req, env, token) {
-  const body = await req.json().catch(() => null) || {};
-  const own = await requireOwner(env, String(body.ownerId || ''), String(body.ownerSecret || ''));
-  if (!own) return json({ error: 'bad_owner' }, 403);
-  const invite = await readInvite(env, token);
-  if (!invite) return json({ error: 'missing' }, 404);
-  if (invite.ownerId !== body.ownerId) return json({ error: 'forbidden' }, 403);
-  invite.revoked = true;
-  await env.ORBIT_KV.put('inv:' + token, JSON.stringify(invite), { expirationTtl: INVITE_TTL_DAYS * 86400 });
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const row = await inviteRow(env, token);
+  if (!row) return json({ error: 'missing' }, 404);
+  if (row.owner_id !== u.id) return json({ error: 'forbidden' }, 403);
+  await env.ORBIT_DB.prepare('UPDATE invites SET revoked = 1 WHERE token = ?').bind(token).run();
   return json({ ok: true });
 }
 
-async function apiInbox(req, env, url) {
-  const ownerId = url.searchParams.get('owner') || '';
-  const secret = url.searchParams.get('secret') || '';
-  const own = await requireOwner(env, ownerId, secret);
-  if (!own) return json({ error: 'bad_owner' }, 403);
-
-  const list = await env.ORBIT_KV.list({ prefix: 'mem:' + ownerId + ':', limit: 200 });
-  const memories = [];
-  for (const k of list.keys) {
-    const m = await env.ORBIT_KV.get(k.name, 'json');
-    if (m) memories.push({
-      id: m.id, personId: m.personId, content: m.content, images: m.images,
-      createdAt: m.createdAt, type: m.type, source: m.source, hidden: !!m.hidden,
-    });
-  }
-  memories.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+async function apiInbox(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const rows = await env.ORBIT_DB.prepare(
+    'SELECT id, person_id, content, images, created_at, type, source, hidden FROM memories WHERE owner_id = ? ORDER BY created_at DESC LIMIT 200'
+  ).bind(u.id).all();
+  const memories = (rows.results || []).map((m) => ({
+    id: m.id, personId: m.person_id, content: m.content,
+    images: JSON.parse(m.images || '[]'), createdAt: m.created_at,
+    type: m.type, source: m.source, hidden: !!m.hidden,
+  }));
   return json({ memories });
 }
 
-async function apiMemoryAction(req, env, url, memoryId, action) {
-  const body = await req.json().catch(() => null) || {};
-  const ownerId = String(body.ownerId || '');
-  const own = await requireOwner(env, ownerId, String(body.ownerSecret || ''));
-  if (!own) return json({ error: 'bad_owner' }, 403);
-
-  const key = 'mem:' + ownerId + ':' + memoryId;
-  const m = await env.ORBIT_KV.get(key, 'json');
-  if (!m) return json({ error: 'missing' }, 404);
+async function apiMemoryAction(req, env, memoryId, action) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const body = await req.json().catch(() => ({})) || {};
+  const row = await env.ORBIT_DB.prepare('SELECT id, owner_id FROM memories WHERE id = ?').bind(memoryId).first();
+  if (!row) return json({ error: 'missing' }, 404);
+  if (row.owner_id !== u.id) return json({ error: 'forbidden' }, 403);
 
   if (action === 'hide') {
-    m.hidden = body.hidden !== false;
-    await env.ORBIT_KV.put(key, JSON.stringify(m));
-    return json({ ok: true, hidden: m.hidden });
+    const hidden = body.hidden !== false ? 1 : 0;
+    await env.ORBIT_DB.prepare('UPDATE memories SET hidden = ? WHERE id = ?').bind(hidden, memoryId).run();
+    return json({ ok: true, hidden: !!hidden });
   }
   if (action === 'delete') {
-    await env.ORBIT_KV.delete(key);
+    await env.ORBIT_DB.prepare('DELETE FROM memories WHERE id = ?').bind(memoryId).run();
     return json({ ok: true });
   }
   return json({ error: 'bad_action' }, 400);
 }
 
+/* ------------------------- Ảnh kỷ niệm (KV) -------------------------
+   Ảnh được tách khỏi bản ghi D1: upload trước, chỉ lưu URL /media/<id>.
+   KV hiện dùng thay cho R2 (chưa bật R2 trên tài khoản); khi bật R2 chỉ cần
+   đổi phần put/get bên dưới, phần còn lại giữ nguyên. */
+
+async function apiUpload(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const info = inspectImage(String(body.data || ''));
+  if (!info.ok) return json({ error: 'bad_image' }, 400);
+
+  const id = newToken(16).replace(/[^A-Za-z0-9_-]/g, '');
+  const bin = atob(info.data.split(',')[1]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  await env.ORBIT_KV.put('img:' + id, bytes, {
+    metadata: { owner: u.id, mime: info.mime },
+    expirationTtl: 60 * 60 * 24 * 365,
+  });
+  return json({ ok: true, url: '/media/' + id });
+}
+
+async function serveMedia(env, id) {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(id || '')) return new Response('not found', { status: 404 });
+  const { value, metadata } = await env.ORBIT_KV.getWithMetadata('img:' + id, 'arrayBuffer');
+  if (!value) return new Response('not found', { status: 404 });
+  return new Response(value, {
+    headers: {
+      'content-type': (metadata && metadata.mime) || 'image/jpeg',
+      'cache-control': 'public, max-age=31536000, immutable',
+    },
+  });
+}
 
 /* ======================================================================
    Tài khoản + đồng bộ dữ liệu người dùng (Cloudflare D1)
@@ -653,6 +680,7 @@ async function handleApi(req, env, url) {
   if (p === '/api/auth/reset' && req.method === 'POST') return apiReset(req, env);
   if (p === '/api/auth/google' && req.method === 'POST') return apiGoogle(req, env);
   if (p === '/api/config' && req.method === 'GET') return apiConfig(env);
+  if (p === '/api/upload' && req.method === 'POST') return apiUpload(req, env);
   if (p === '/api/auth/login' && req.method === 'POST') return apiLogin(req, env);
   if (p === '/api/auth/logout' && req.method === 'POST') return apiLogout(req, env);
   if (p === '/api/auth/me' && req.method === 'GET') return apiMe(req, env);
@@ -665,7 +693,7 @@ async function handleApi(req, env, url) {
 
   if (req.method === 'POST' && p === '/api/invite') return apiCreateInvite(req, env);
 
-  if (p === '/api/inbox' && req.method === 'GET') return apiInbox(req, env, url);
+  if (p === '/api/inbox' && req.method === 'GET') return apiInbox(req, env);
 
   let m = /^\/api\/invite\/([A-Za-z0-9_-]+)(\/revoke)?$/.exec(p);
   if (m) {
@@ -676,7 +704,7 @@ async function handleApi(req, env, url) {
   }
 
   m = /^\/api\/memory\/([A-Za-z0-9_-]+)\/(hide|delete)$/.exec(p);
-  if (m && req.method === 'POST') return apiMemoryAction(req, env, url, m[1], m[2]);
+  if (m && req.method === 'POST') return apiMemoryAction(req, env, m[1], m[2]);
 
   return json({ error: 'not_found' }, 404);
 }
@@ -684,6 +712,10 @@ async function handleApi(req, env, url) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname.startsWith('/media/')) {
+      try { return await serveMedia(env, url.pathname.slice(7)); }
+      catch { return new Response('error', { status: 500 }); }
+    }
     if (url.pathname.startsWith('/api/')) {
       try {
         return await handleApi(req, env, url);

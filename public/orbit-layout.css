@@ -2346,3 +2346,12 @@ html[data-gender="male"] .acc-signin { border-color: #C3D8E8; background: #F7FBF
 }
 .auth-forgot:hover { color: #5C4231; }
 html[data-gender="male"] .auth-forgot { color: #3D6398; }
+
+/* Ghi chú dùng thử trong Cài đặt */
+.acc-trial {
+  margin-top: 8px; padding: 9px 12px; border-radius: 12px;
+  background: #FFF7EC; border: 1px solid #F0DFC6; font-size: 12px; line-height: 1.5; color: #7A5B3A;
+}
+.acc-trial b { color: #8C4F1F; }
+html[data-gender="male"] .acc-trial { background: #F1F8FE; border-color: #D3E5F4; color: #43617A; }
+html[data-gender="male"] .acc-trial b { color: #1F4E75; }

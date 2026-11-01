@@ -52,3 +52,33 @@ CREATE TABLE IF NOT EXISTS reset_tokens (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_reset_user ON reset_tokens(user_id);
+
+-- Lời mời "gửi một kỷ niệm" gắn với tài khoản (trước đây nằm ở KV theo máy)
+CREATE TABLE IF NOT EXISTS invites (
+  token       TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL,
+  person_id   TEXT NOT NULL,
+  person_name TEXT NOT NULL,
+  owner_name  TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  used_at     TEXT,
+  revoked     INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_invites_owner ON invites(owner_id, created_at);
+
+CREATE TABLE IF NOT EXISTS memories (
+  id               TEXT PRIMARY KEY,
+  owner_id         TEXT NOT NULL,
+  person_id        TEXT,
+  invitation_token TEXT,
+  type             TEXT NOT NULL,
+  content          TEXT NOT NULL,
+  images           TEXT NOT NULL DEFAULT '[]',
+  created_at       TEXT NOT NULL,
+  source           TEXT,
+  hidden           INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_memories_owner ON memories(owner_id, created_at);
