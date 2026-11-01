@@ -581,10 +581,25 @@
     var page = parts[0] || 'home';
     var inner = '';
     if (page === 'onboarding') { page = 'home'; parts = ['home']; }
+    /* Link/QR "Viết cho tôi": trang riêng, không có thanh điều hướng */
+    if (page === 'write') {
+      document.getElementById('app').innerHTML = renderWriteForMe(parts[1] || '');
+      return;
+    }
     if (page === 'home') inner = renderHome();
     else if (page === 'people') inner = parts[1] ? renderPersonDetail(parts[1]) : renderPeople();
     else if (page === 'me') inner = renderMe();
-    else if (page === 'diary') inner = renderDiary();
+    else if (page === 'diary') {
+      /* #/diary/new = mở sổ và bắt đầu viết ngay (nút tắt từ trang chủ) */
+      if (parts[1] === 'new' && !diaryDraft) {
+        diaryDraft = {
+          text: '', target: 'me', paperId: (state.settings.diaryPaperId || 'paper-rule'),
+          free: null, font: (state.settings.diaryFont || 'serif'), date: todayISO(), remind: true
+        };
+        diaryLayingIn = true;
+      }
+      inner = renderDiary();
+    }
     else if (page === 'calendar') inner = renderCalendar();
     else if (page === 'settings') inner = parts[1] ? renderSettingsSub(parts[1]) : renderSettings();
     else inner = renderHome();
@@ -765,19 +780,19 @@
       if (!p.birthday) return;
       var nb = nextBirthdayISO(p.birthday, today);
       var daysAway = daysBetween(today, nb);
-      if (daysAway <= windowDays) list.push({ id: 'bday-' + p.id, title: 'Sinh nhật ' + p.name, icon: ICONS.birthday, tone: TONE.birthday, daysAway: daysAway, personId: p.id, kind: 'birthday' });
+      if (daysAway <= windowDays) list.push({ id: 'bday-' + p.id, title: 'Sinh nhật ' + p.name, icon: ICONS.birthday, tone: TONE.birthday, daysAway: daysAway, personId: p.id, kind: 'birthday', dateISO: nb, time: '' });
     });
     state.events.forEach(function (ev) {
       if (ev.type === 'memory' && ev.annMMDD) {
         if (ev.annMMDD === todayMMDD) {
-          list.push({ id: ev.id, title: ev.title, icon: ICONS.memory, tone: TONE.memory, daysAway: 0, special: 'Ngày này năm ngoái', kind: 'memory', personId: ev.personId });
+          list.push({ id: ev.id, title: ev.title, icon: ICONS.memory, tone: TONE.memory, daysAway: 0, special: 'Ngày này năm ngoái', kind: 'memory', personId: ev.personId, dateISO: today, time: ev.time || '' });
         }
         return;
       }
       if (!ev.date) return;
       var daysAway = daysBetween(today, ev.date);
       if (daysAway >= 0 && daysAway <= windowDays) {
-        list.push({ id: ev.id, title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom, daysAway: daysAway, kind: ev.type });
+        list.push({ id: ev.id, title: ev.title, icon: ICONS[ev.type] || ICONS.custom, tone: TONE[ev.type] || TONE.custom, daysAway: daysAway, kind: ev.type, personId: ev.personId, dateISO: ev.date, time: ev.time || '', place: ev.location || '' });
       }
     });
     // Mockup xếp: dịp sắp tới theo ngày trước, "kỷ niệm ngày này năm ngoái" ở cuối.
@@ -789,10 +804,22 @@
     return list;
   }
   function occasionSubtitle(o) {
-    if (o.special) return o.special;
-    if (o.daysAway === 0) return 'Hôm nay';
-    if (o.daysAway === 1) return 'Ngày mai';
-    return 'Sau ' + o.daysAway + ' ngày';
+    var bits = [];
+    if (o.special) bits.push(o.special);
+    else if (o.daysAway === 0) bits.push('Hôm nay');
+    else if (o.daysAway === 1) bits.push('Ngày mai');
+    else bits.push('Sau ' + o.daysAway + ' ngày');
+    var d = o.dateISO ? shortDayLabel(o.dateISO) : '';
+    if (d) bits.push(d);
+    if (o.time) bits.push(o.time);
+    return bits.join(' · ');
+  }
+  /* "T2, 12/11" — nhãn ngày ngắn dùng ở trang chủ */
+  function shortDayLabel(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d.getTime())) return '';
+    var wd = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d.getDay()];
+    return wd + ', ' + d.getDate() + '/' + (d.getMonth() + 1);
   }
   function buildSuggestion() {
     if (!state.settings.aiEnabled) return null;
@@ -808,8 +835,27 @@
   }
 
   /* ---------------------------- Home ---------------------------- */
+  /* Ngày đang chọn ở dải "7 ngày tới" của trang chủ */
+  var homeDay = null;
+  function isoOfDate(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function homeWeekDays() {
+    var out = [], now = new Date();
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      var iso = isoOfDate(d);
+      out.push({
+        iso: iso, d: d,
+        events: state.events.filter(function (e) { return e.date === iso; })
+      });
+    }
+    return out;
+  }
+
   function renderHome() {
     var today = new Date();
+    var todayIso = todayISO();
     var dateLabel = cap(today.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' }));
     var occasions = getOccasions(60);
     var windowNote = '';
@@ -820,17 +866,64 @@
     var hasOccasions = occasions.length > 0;
     var withoutBday = state.people.filter(function (p) { return !p.birthday; });
 
+    /* ---------- Nút tắt nhanh ---------- */
+    var quick =
+      '<div class="home-quick">' +
+      '<button class="hq" data-action="open-add-person"><span class="hq-ic">＋</span><span>Thêm người</span></button>' +
+      '<button class="hq" data-action="open-add-event"><span class="hq-ic">🗓</span><span>Thêm lịch</span></button>' +
+      '<a class="hq" href="#/diary/new"><span class="hq-ic">✍</span><span>Viết nhật ký</span></a>' +
+      '<button class="hq" data-action="open-write-for-me"><span class="hq-ic">🔗</span><span>Viết cho tôi</span></button>' +
+      '</div>';
+
+    /* ---------- 7 ngày tới: dải ngày + lịch của ngày đang chọn ---------- */
+    var week = homeWeekDays();
+    if (!homeDay || !week.some(function (w) { return w.iso === homeDay; })) homeDay = todayIso;
+    var selDay = week.filter(function (w) { return w.iso === homeDay; })[0] || week[0];
+    var weekStrip = '<div class="wk-strip">' + week.map(function (w) {
+      return '<button class="wk-day' + (w.iso === homeDay ? ' on' : '') + (w.iso === todayIso ? ' today' : '') + '" ' +
+        'data-action="home-day" data-date="' + w.iso + '" aria-pressed="' + (w.iso === homeDay) + '">' +
+        '<span class="wk-wd">' + ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][w.d.getDay()] + '</span>' +
+        '<span class="wk-num">' + w.d.getDate() + '</span>' +
+        '<span class="wk-dot' + (w.events.length ? ' on' : '') + '"></span></button>';
+    }).join('') + '</div>';
+    var weekList = selDay.events.length ? selDay.events.map(function (e) {
+      var cat = EV_BY_KEY[e.type];
+      return '<a class="wk-ev" href="#/calendar">' +
+        '<span class="wk-ev-time">' + esc(e.time || '--:--') + '</span>' +
+        '<span class="wk-ev-b"><b>' + esc(e.title) + '</b><em>' +
+        (cat ? cat.label : 'Sự kiện') + (e.location ? ' · ' + esc(e.location) : '') + '</em></span>' +
+        '<span class="wk-ev-ic">' + evIcon(e.type, 26) + '</span></a>';
+    }).join('') : '<div class="wk-empty">Không có sự kiện trong ngày này. <a href="#/calendar">Mở lịch ›</a></div>';
+
+    /* ---------- Sự kiện sắp tới ---------- */
+    var upcoming = state.events.filter(function (e) { return e.date && e.date >= todayIso; })
+      .sort(function (a, b) { return (a.date + (a.time || '99:99')).localeCompare(b.date + (b.time || '99:99')); })
+      .slice(0, 5);
+    var upList = upcoming.length ? upcoming.map(function (e) {
+      var d = new Date(e.date + 'T00:00:00');
+      return '<a class="up-row" href="#/calendar">' +
+        '<span class="up-date"><b>' + (isNaN(d.getTime()) ? '' : d.getDate()) + '</b>' +
+        '<em>Th' + (isNaN(d.getTime()) ? '' : d.getMonth() + 1) + '</em></span>' +
+        '<span class="up-t"><b>' + esc(e.title) + '</b><em>' + shortDayLabel(e.date) +
+        (e.time ? ' · ' + esc(e.time) : '') + (e.location ? ' · ' + esc(e.location) : '') + '</em></span>' +
+        '</a>';
+    }).join('') : '<p class="muted" style="margin:0;font-size:13px;">Chưa có sự kiện nào sắp tới. ' +
+      '<a href="#/calendar">Thêm sự kiện ›</a></p>';
+
+    /* ---------- 60 ngày tới: hộp cuộn, ~5-6 đám mây ---------- */
     var occBody;
     if (hasOccasions) {
-      occBody = '<div class="occasion-row">' + occasions.slice(0, 3).map(function (o) {
-        return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '" style="--cloud-img:url(assets/clouds/' + cloudImg(o.tone) + ')">' +
-          '<div class="ic">' + evIcon(o.kind, 56) + '</div><div class="t">' + esc(o.title) + '</div>' +
-          '<div class="s">' + occasionSubtitle(o) + windowNote + '</div></a>';
-      }).join('') + '</div>';
+      occBody = '<div class="occasion-scroll"><div class="occasion-row">' + occasions.map(function (o) {
+        return '<a class="occasion-card cloud ' + o.tone + '" href="' + (o.personId ? '#/people/' + o.personId : '#/calendar') + '" ' +
+          'style="--cloud-img:url(assets/clouds/' + cloudImg(o.tone) + ')">' +
+          '<div class="ic">' + evIcon(o.kind, 42) + '</div><div class="t">' + esc(o.title) + '</div>' +
+          '<div class="s">' + occasionSubtitle(o) + '</div></a>';
+      }).join('') + '</div></div>' +
+        (windowNote ? '<div class="occ-note">Không có dịp trong 60 ngày — đang hiện' + windowNote + '</div>' : '');
     } else if (withoutBday.length > 0) {
       occBody = '<p class="muted" style="margin:0 0 12px;font-size:13px;">' + withoutBday.length + ' người bạn chưa lưu ngày sinh.</p>' +
         '<div class="occasion-row">' + withoutBday.slice(0, 3).map(function (p) {
-          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '" style="--cloud-img:url(assets/clouds/' + cloudImg('tone-purple') + ')"><div class="ic">' + evIcon('birthday', 56) + '</div>' +
+          return '<a class="occasion-card cloud tone-purple" href="#/people/' + p.id + '" style="--cloud-img:url(assets/clouds/' + cloudImg('tone-purple') + ')"><div class="ic">' + evIcon('birthday', 42) + '</div>' +
             '<div class="t">' + esc(p.name) + '</div><div class="s">Thêm ngày sinh</div></a>';
         }).join('') + '</div>';
     } else {
@@ -839,7 +932,6 @@
     }
 
     var suggestion = buildSuggestion();
-    var initial = (state.settings.profileName || 'B').trim().charAt(0).toUpperCase();
 
     return (
       '<div class="home-hero">' +
@@ -850,12 +942,27 @@
       '<div class="home-hero-art"></div>' +
       '</div>' +
 
-      /* Mỗi khối trên trang chủ bật/tắt được trong Cài đặt -> Trang chủ */
+      quick +
+
+      /* 7 ngày tới */
+      '<section class="home-section">' +
+      '<div class="home-section-head"><h2>7 ngày tới</h2>' +
+      '<a class="link-more" href="#/calendar">Mở lịch ›</a></div>' +
+      weekStrip + '<div class="wk-list">' + weekList + '</div>' +
+      '</section>' +
+
+      /* 60 ngày tới */
       (state.settings.homeOccasions === false ? '' :
         '<section class="home-section">' +
         '<div class="home-section-head"><h2>60 ngày tới</h2>' +
         '<button class="link-more" data-action="open-all-upcoming">Xem tất cả ›</button></div>' +
         occBody + '</section>') +
+
+      /* Sự kiện sắp tới */
+      '<section class="home-section">' +
+      '<div class="home-section-head"><h2>Sự kiện sắp tới</h2>' +
+      '<button class="link-more" data-action="open-add-event">+ Thêm</button></div>' +
+      '<div class="up-list">' + upList + '</div></section>' +
 
       /* Gợi ý chỉ là thông báo phụ: thu thành một dải mảnh, có nút ẩn ngay tại chỗ */
       (suggestion && state.settings.homeSuggest !== false && !state.settings.homeSuggestHidden ?
@@ -866,6 +973,42 @@
         '<button class="sb-hide" data-action="hide-home-suggest" aria-label="Ẩn gợi ý" title="Ẩn gợi ý">✕</button>' +
         '</div>' : '')
     );
+  }
+
+  /* "Viết cho tôi": link + mã QR để người khác mở viết cho bạn */
+  function openWriteForMe() {
+    if (!state.settings.shareToken) {
+      state.settings.shareToken = 'w' + Math.random().toString(36).slice(2, 9);
+      save();
+    }
+    var url = location.origin + '/#/write/' + state.settings.shareToken;
+    var qr = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=0&data=' + encodeURIComponent(url);
+    openModal(
+      '<div class="modal-sheet"><div class="modal-head"><h3>Viết cho tôi</h3>' +
+      '<button data-action="close-modal">✕</button></div>' +
+      '<p class="muted" style="margin:0 0 12px;font-size:13px;">Gửi link hoặc cho quét mã này — người nhận mở ra sẽ viết được một lời nhắn gửi thẳng vào Orbit của bạn.</p>' +
+      '<div class="wf-qr"><img src="' + qr + '" alt="Mã QR viết cho tôi" width="180" height="180"></div>' +
+      '<div class="wf-link"><input id="wfLink" type="text" readonly value="' + esc(url) + '">' +
+      '<button class="btn btn-primary" data-action="copy-write-link">Sao chép</button></div>' +
+      '<div class="gap-note">Mã QR tạo qua dịch vụ qrserver.com. Bản demo lưu lời nhắn ngay trên máy này — muốn nhận từ máy khác cần backend.</div>' +
+      '</div>'
+    );
+  }
+
+  /* Trang mở từ link/QR: người khác viết lời nhắn cho chủ tài khoản */
+  function renderWriteForMe(token) {
+    var to = state.settings.profileName || 'Bạn';
+    return '<div class="wf-page"><div class="card wf-card">' +
+      '<div class="wf-star">✦</div>' +
+      '<h1>Viết cho ' + esc(to) + '</h1>' +
+      '<p class="muted">Một lời nhắn nhỏ sẽ được gửi vào Orbit của ' + esc(to) + '.</p>' +
+      '<form id="form-write-for-me">' +
+      '<input type="hidden" name="token" value="' + esc(token || '') + '">' +
+      '<textarea name="text" rows="5" placeholder="Bạn muốn nhắn gì?" required></textarea>' +
+      '<input type="text" name="from" placeholder="Tên của bạn (không bắt buộc)">' +
+      '<button type="submit" class="btn btn-primary btn-block">Gửi lời nhắn</button></form>' +
+      '<a class="link-more" href="#/home">Mở Orbit ›</a>' +
+      '</div></div>';
   }
 
   function openAllUpcomingModal() {
@@ -3265,6 +3408,20 @@
       case 'pd-tab': pdTab = t.dataset.tab || 'all'; render(); break;
       case 'me-tab': meTab = t.dataset.tab || 'overview'; render(); break;
       case 'hide-home-suggest': state.settings.homeSuggestHidden = true; save(); render(); showToast('Đã ẩn gợi ý — bật lại trong Cài đặt'); break;
+      case 'home-day': homeDay = t.dataset.date; render(); break;
+      case 'open-write-for-me': openWriteForMe(); break;
+      case 'copy-write-link': {
+        var wf = document.getElementById('wfLink');
+        if (!wf) break;
+        wf.select();
+        var done = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(wf.value).then(function () { showToast('Đã sao chép link'); });
+          done = true;
+        }
+        if (!done) { try { document.execCommand('copy'); showToast('Đã sao chép link'); } catch (e) { showToast('Chọn link và copy tay nhé'); } }
+        break;
+      }
       case 'toggle-home-occasions': state.settings.homeOccasions = state.settings.homeOccasions === false; save(); render(); break;
       case 'toggle-home-suggest': state.settings.homeSuggest = state.settings.homeSuggest === false; if (state.settings.homeSuggest) state.settings.homeSuggestHidden = false; save(); render(); break;
       case 'edit-me-name': {
@@ -3412,6 +3569,20 @@
       if (!state.settings.msgTemplates) state.settings.msgTemplates = {};
       if (txt) state.settings.msgTemplates[cat] = txt.slice(0, 240);
       save(); closeModal(); render(); showToast('Đã lưu mẫu tin nhắn');
+    } else if (form.id === 'form-write-for-me') {
+      e.preventDefault();
+      var wfd = new FormData(form);
+      var wtext = (wfd.get('text') || '').trim();
+      if (!wtext) return;
+      state.messages = state.messages || [];
+      state.messages.unshift({
+        id: uid('ms'), text: wtext, from: (wfd.get('from') || '').trim() || 'Một người bạn',
+        at: new Date().toISOString(), token: wfd.get('token') || ''
+      });
+      save();
+      form.innerHTML = '<div class="wf-done">✨<b>Đã gửi lời nhắn!</b><span>Cảm ơn bạn, ' +
+        esc(state.settings.profileName || 'chủ tài khoản') + ' sẽ nhận được nó trong Orbit.</span>' +
+        '<a class="btn btn-primary btn-block" href="#/home">Mở Orbit</a></div>';
     } else if (form.id === 'form-add-event') {
       e.preventDefault();
       var fd2 = new FormData(form);
