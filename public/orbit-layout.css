@@ -1956,30 +1956,24 @@ html[data-gender="male"] {
   --pink: #D8E6FF;
   --pink-ink: #2F5C96;
 }
-/* Nền home nam: tranh phủ NGANG hết khung như bên nữ (100% auto) */
+/* Nền home nam: tranh cậu bé + mèo (đã tách nền) neo góc phải-trên như bản nữ,
+   phần nhân vật nằm gọn trong dải chào nên không bị các thẻ phía dưới đè lên. */
 html[data-gender="male"] .view-root.page-home {
   background-color: var(--cream);
-  background-image: none;
-}
-@media (min-width:900px) {
-  html[data-gender="male"] .view-root.page-home {
-    background-image: url('assets/home-bg-male-desktop.png');
-    background-size: 100% auto;
-    background-position: center top;
-    background-repeat: no-repeat;
-  }
-  html[data-gender="male"] .page-home .home-hero { min-height: 430px; }
-  html[data-gender="male"] .home-hero-art { display: none; }
+  background-image: url('assets/home-art-male-cut.png');
+  background-repeat: no-repeat;
+  background-position: right -6px top -8px;
+  background-size: min(48%, 600px) auto;
 }
 @media (max-width:899px) {
   html[data-gender="male"] .view-root.page-home {
-    background-image: url('assets/home-bg-male-mobile.png');
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
+    background-image: url('assets/home-art-male-mobile-cut.png');
+    background-position: right top;
+    background-size: 82% auto;
   }
-  html[data-gender="male"] .home-hero-art { display: none; }
 }
+html[data-gender="male"] .page-home .home-hero { min-height: 470px; }
+html[data-gender="male"] .home-hero-art { display: none; }
 
 /* Onboarding NAM: tranh cậu bé + mèo (PC/điện thoại riêng), phủ kín bằng cover */
 @media (min-width:900px) {
@@ -2146,3 +2140,31 @@ html[data-gender="male"] .pd-quote { background: #E9F2FC; color: #3D6398; }
 html[data-gender="male"] .pd-head .meta { color: #6A87AC; }
 html[data-gender="male"] .me-link { color: #2F5C96; }
 html[data-gender="male"] .pd-side-toggle { background: #fff; border-color: #D6E3F3; color: #2F5C96; }
+
+/* Nam: tăng tương phản chữ trong sidebar + nhãn số + phụ đề */
+html[data-gender="male"] .sidebar-link,
+html[data-gender="male"] .nav-item { color: #24405F; }
+html[data-gender="male"] .sidebar-link:hover,
+html[data-gender="male"] .nav-item:hover { background: rgba(255,255,255,.55); color: #14263D; }
+html[data-gender="male"] .sidebar .slogan,
+html[data-gender="male"] .sidebar-illustration .slogan { color: #33506F; font-weight: 600; }
+html[data-gender="male"] .nav-count { background: #4A7FBF; color: #fff; }
+html[data-gender="male"] .sidebar-link.active .nav-count { background: #DDF3EA; color: #1F6B55; }
+html[data-gender="male"] .home-hero-text .date { color: #5B7590; }
+html[data-gender="male"] .home-hero-text .sub { color: #4A5F78; }
+html[data-gender="male"] .wk-empty,
+html[data-gender="male"] .muted { color: #5B7590; }
+
+/* Nam: badge số ở sidebar dùng nền phẳng xanh (bản gốc là gradient hồng nên phải đè cả background) */
+html[data-gender="male"] .sidebar-link .nav-count,
+html[data-gender="male"] .nav-item .nav-count {
+  color: #fff;
+  background: #4A7FBF;
+  box-shadow: inset 0 0 0 1px rgba(35,74,124,.25), 0 1px 2px rgba(35,74,124,.18);
+}
+html[data-gender="male"] .sidebar-link.active .nav-count,
+html[data-gender="male"] .nav-item.active .nav-count {
+  color: #1F6B55;
+  background: #DDF3EA;
+  box-shadow: inset 0 0 0 1px rgba(44,127,101,.25);
+}
