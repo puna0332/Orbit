@@ -1946,7 +1946,7 @@ textarea.paper-ink::placeholder { color: rgba(122,101,82,.45); }
   background-size: cover; background-position: center top; margin-bottom: 4px;
 }
 .og-art-female { background-image: url('assets/home-bg-desktop.png'); }
-.og-art-male { background-image: url('assets/home-bg-male-desktop.jpg'); }
+.og-art-male { background-image: url('assets/onboard-bg-male-desktop.jpg'); }
 .og-card b { font-size: 13.5px; }
 .og-card em { font-size: 10.5px; font-style: normal; color: #6B7488; text-align: center; line-height: 1.25; }
 
@@ -1956,26 +1956,29 @@ html[data-gender="male"] {
   --pink: #D8E6FF;
   --pink-ink: #2F5C96;
 }
+/* Nền trang chỉ là màu xanh nhạt; tranh cậu bé + mèo nằm trong khối chào (bên phải),
+   blend multiply để nền trắng của tranh tan vào màu trang thay vì thành một ô trắng. */
 html[data-gender="male"] .view-root.page-home {
   background-color: var(--cream);
+  background-image: none;
 }
-@media (min-width:900px) {
-  html[data-gender="male"] .view-root.page-home {
-    background-image: url('assets/home-bg-male-desktop.jpg');
-    background-size: 100% auto;
-    background-position: center top;
-    background-repeat: no-repeat;
-  }
+html[data-gender="male"] .page-home .home-hero { min-height: 400px; overflow: visible; }
+html[data-gender="male"] .home-hero-art {
+  display: block; position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(60%, 780px); pointer-events: none;
+  /* tranh đã tách nền (alpha keying từ 4 góc) nên hoà thẳng vào nền trang */
+  background: url('assets/home-art-male-cut.png') right bottom / contain no-repeat;
 }
-@media (max-width:899px) {
-  html[data-gender="male"] .view-root.page-home {
-    background-image: url('assets/home-bg-male-mobile.jpg');
-    background-size: cover;
-    background-position: center top;
-  }
-}
-html[data-gender="male"] .home-hero { background: transparent; }
 html[data-gender="male"] .home-section-head h2 { color: #1B3358; }
+@media (max-width:899px) {
+  html[data-gender="male"] .page-home .home-hero { min-height: 0; }
+  html[data-gender="male"] .home-hero-art {
+    position: relative; width: 100%; margin-top: 10px; bottom: auto;
+    aspect-ratio: 4 / 3;
+    background-image: url('assets/home-art-male-mobile-cut.png');
+    background-position: center bottom; background-size: contain;
+  }
+}
 
 /* Onboarding mang luôn nền của giới tính đã chọn */
 html[data-gender="male"] .onboard-wrap {
