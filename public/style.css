@@ -571,7 +571,7 @@ a { color: inherit; text-decoration: none; }
 .onboard-art-band {
   /* Tăng khoảng thở giữa khối thương hiệu (logo+chữ) và khối CTA — 2 khung user khoanh bị dính */
   flex:1; min-height: 230px; margin: var(--space-6) calc(var(--space-5) * -1) var(--space-7);
-  background: url('assets/onboard-bg-mobile.png') center 72% / cover no-repeat;
+  background: url('assets/onboard-bg-mobile.jpg') center 72% / cover no-repeat;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 26%, #000 80%, transparent 100%);
 }
@@ -596,7 +596,7 @@ a { color: inherit; text-decoration: none; }
 @media (min-width:900px) {
   /* cover + neo mép trên: tranh phủ kín 2 bên (không còn dải kem hai bên),
      phần bị cắt chỉ là rìa trên/dưới nơi không có chi tiết quan trọng */
-  .onboard-wrap { background: var(--cream) url('assets/onboard-bg-desktop.png') center top / cover no-repeat; }
+  .onboard-wrap { background: var(--cream) url('assets/onboard-bg-desktop.jpg') center top / cover no-repeat; }
   .onboard-art-band { display:none; }
   .onboard-content { width:50%; align-items:center; justify-content:center; gap: var(--space-9); padding: var(--space-8) var(--space-6); }
   /* Desktop: phóng to cả cụm (logo + chữ + nút + dots) cho cân với khổ màn hình */
