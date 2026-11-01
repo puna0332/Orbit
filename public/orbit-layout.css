@@ -1968,7 +1968,7 @@ html[data-gender="male"] .view-root.page-home {
     background-position: center top;
     background-repeat: no-repeat;
   }
-  html[data-gender="male"] .page-home .home-hero { min-height: 330px; }
+  html[data-gender="male"] .page-home .home-hero { min-height: 430px; }
   html[data-gender="male"] .home-hero-art { display: none; }
 }
 @media (max-width:899px) {
@@ -2113,3 +2113,36 @@ html[data-gender="male"] .rm-person { background: #FBFDFF; border-color: #E2EBF7
 html[data-gender="male"] .diary-side { background: #F7FBFF; border-color: #DCE7F5; }
 html[data-gender="male"] .sk-title { color: #4B6E9B; border-bottom-color: rgba(75,110,155,.28); }
 html[data-gender="male"] .home-quick .hq-ic.tone-pink { background: #E6D8F5; }
+
+/* ===== Nam: lịch + các khối hồ sơ/người theo tông xanh ===== */
+html[data-gender="male"] .cal-board,
+html[data-gender="male"] .cal-strip { background: #FBFDFF; border-color: #E2EBF7; }
+html[data-gender="male"] .cal-strip.empty { background: #F7FBFF; }
+html[data-gender="male"] .cal-dowrow { background: #EEF5FD; }
+html[data-gender="male"] .cal-dow { color: #4B6E9B; border-right-color: #E2EBF7; }
+html[data-gender="male"] .cal-cell { border-right-color: #EAF1FA; border-bottom-color: #EAF1FA; }
+html[data-gender="male"] .cal-cell.outside { background: rgba(232, 241, 251, .72); }
+html[data-gender="male"] .cal-cell.outside, html[data-gender="male"] .cal-cell.outside .daynum { color: #A9BCD4; }
+html[data-gender="male"] .cal-cell .daynum { color: #1B3358; }
+html[data-gender="male"] .cal-cell.today .daynum { background: #1D3A63; color: #fff; }
+html[data-gender="male"] .cal-cell.selected { background: #E9F2FC; box-shadow: inset 0 0 0 1.5px #7FA6D0; }
+html[data-gender="male"] .cal-tag-more { background: #E9F2FC; color: #4B6E9B; }
+html[data-gender="male"] .cal-nav .btn-icon:hover,
+html[data-gender="male"] .cal-actions .btn-ghost:hover { background: #E9F2FC; }
+
+/* Khối hồ sơ (trang cá nhân + người khác) */
+html[data-gender="male"] .pd-panel { background: #FBFDFF; border-color: #E2EBF7; }
+html[data-gender="male"] .pd-block { background: #F7FBFF; }
+html[data-gender="male"] .pd-block .section-head .link-more { background: #E4EEFB; color: #2F5C96; }
+html[data-gender="male"] .pd-block .section-head .link-more:hover { background: #D6E6F8; }
+html[data-gender="male"] .pd-tabs { background: #FBFDFF; border-bottom-color: #E2EBF7; }
+html[data-gender="male"] .pd-tab { color: #4B6E9B; }
+html[data-gender="male"] .pd-tab:hover { background: #E9F2FC; color: #1B3358; }
+html[data-gender="male"] .pd-tab.on { background: #E4EEFB; color: #1B3358; }
+html[data-gender="male"] .quickinfo-row { background: #F7FBFF; }
+html[data-gender="male"] .pd-side { background: #F7FBFF; border-color: #E2EBF7; }
+html[data-gender="male"] .pd-add { background: #E4EEFB; color: #2F5C96; }
+html[data-gender="male"] .pd-quote { background: #E9F2FC; color: #3D6398; }
+html[data-gender="male"] .pd-head .meta { color: #6A87AC; }
+html[data-gender="male"] .me-link { color: #2F5C96; }
+html[data-gender="male"] .pd-side-toggle { background: #fff; border-color: #D6E3F3; color: #2F5C96; }
