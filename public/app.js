@@ -352,7 +352,7 @@
         var parsed = JSON.parse(raw);
         // Luôn quay về Lớp 0 (onboarding) mỗi lần mở lại app — dữ liệu người/sự
         // kiện/ghi chú vẫn giữ nguyên, chỉ riêng tiến trình onboarding reset mỗi phiên.
-        if (!localStorage.getItem('orbit_token')) {
+        if (!(localStorage.getItem('orbit_token') || sessionStorage.getItem('orbit_token'))) {
           parsed.onboardingDone = false;
           parsed.onboardingSlide = 0;
         }
@@ -388,8 +388,11 @@
      - Token phiên lưu ở localStorage; gửi kèm header Bearer.
      - Mọi thay đổi `state` được đẩy lên D1 sau 900ms (gộp nhiều lần lưu).
      - Chưa đăng nhập thì app vẫn chạy như cũ, chỉ dùng localStorage. */
+  function readToken() {
+    return localStorage.getItem('orbit_token') || sessionStorage.getItem('orbit_token') || '';
+  }
   var ACCT = {
-    token: localStorage.getItem('orbit_token') || '',
+    token: readToken(),
     user: null,
     pushTimer: 0,
     pushing: false,
@@ -412,10 +415,16 @@
     });
   }
 
-  function setToken(t) {
+  /* "Nhớ đăng nhập" = lưu token bền (localStorage). Không nhớ = chỉ sống trong tab
+     hiện tại (sessionStorage) — đóng trình duyệt là hết, tránh người sau mở máy
+     lại thấy dữ liệu của tài khoản trước. */
+  function setToken(t, remember) {
     ACCT.token = t || '';
-    if (t) localStorage.setItem('orbit_token', t);
-    else localStorage.removeItem('orbit_token');
+    localStorage.removeItem('orbit_token');
+    sessionStorage.removeItem('orbit_token');
+    if (!t) return;
+    if (remember === false) sessionStorage.setItem('orbit_token', t);
+    else localStorage.setItem('orbit_token', t);
   }
 
   function stateForServer() {
@@ -3321,7 +3330,7 @@
 
     var ep = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
     api(ep, { method: 'POST', body: { email: email, password: pass } }).then(function (r) {
-      setToken(r.token);
+      setToken(r.token, remember);
       ACCT.user = r.user;
       state.account = { email: r.user.email, provider: 'server', at: todayISO() };
       state.signedIn = true;
