@@ -468,6 +468,13 @@ async function sendMail(env, to, subject, html, text) {
         to: [to], subject: subject, html: html, text: text,
       }),
     });
+    if (!r.ok) {
+      /* Ghi lý do vào log Worker (không trả ra client) để dễ chẩn đoán:
+         thường gặp 403 vì gửi từ onboarding@resend.dev tới địa chỉ khác chủ tài khoản. */
+      let detail = '';
+      try { detail = (await r.text()).slice(0, 400); } catch {}
+      console.warn('resend_failed', r.status, detail);
+    }
     return r.ok;
   }
   if (env.SEND_EMAIL) {
