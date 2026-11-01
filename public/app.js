@@ -953,6 +953,7 @@
       '<h1>Chào bạn ' + ic('sun', 26) + '</h1>' +
       '<p class="sub">Những người bạn yêu thương luôn ở gần đây ✨</p></div>' +
       '<div class="home-hero-art"></div>' +
+      '<div class="home-deco" aria-hidden="true"><i></i><i></i><i></i><i></i></div>' +
       '</div>' +
 
       quick +
@@ -1126,6 +1127,12 @@
     var p = state.people.find(function (x) { return x.id === id; });
     return p ? (p.photo || p.avatar || '') : '';
   }
+  /* Ảnh bìa hồ sơ mặc định đổi theo giới tính (nam: tranh biển hoàng hôn) */
+  function defaultCover(kind) {
+    var male = state.settings.gender === 'male';
+    if (kind === 'tall') return male ? 'assets/cover-male-tall.jpg' : 'assets/cover-default-tall.jpg';
+    return male ? 'assets/cover-male-wide.jpg' : 'assets/cover-default-wide.jpg';
+  }
   function profileCoverOf(id) {
     if (id === 'me') return state.settings.profileCover || '';
     var p = state.people.find(function (x) { return x.id === id; });
@@ -1178,9 +1185,9 @@
   function openCoverPicker(id) {
     var cur = profileCoverOf(id);
     var presets = [
-      { v: '', label: 'Mặc định', css: 'background-image:url(assets/cover-default-wide.jpg)' },
+      { v: '', label: 'Mặc định', css: 'background-image:url(' + defaultCover('wide') + ')' },
       { v: 'assets/cover-default-tall.jpg', label: 'Mây hồng', css: 'background-image:url(assets/cover-default-tall.jpg)' },
-      { v: 'assets/home-art-desktop.png', label: 'Đồi xanh', css: 'background-image:url(assets/home-art-desktop.png)' }
+      { v: 'assets/cover-male-wide.jpg', label: 'Biển hoàng hôn', css: 'background-image:url(assets/cover-male-wide.jpg)' }
     ];
     var grid = presets.map(function (p) {
       return '<button class="cover-pick' + (cur === p.v ? ' on' : '') + '" data-action="pick-cover" ' +
@@ -1554,8 +1561,8 @@
         (q.favorite ? '<span class="pd-fav">★</span>' : '') + '</a>';
     }).join('');
 
-    var cover = p.cover ? esc(p.cover) : 'assets/cover-default-wide.jpg';
-    var coverTall = p.coverTall ? esc(p.coverTall) : 'assets/cover-default-tall.jpg';
+    var cover = p.cover ? esc(p.cover) : defaultCover('wide');
+    var coverTall = p.coverTall ? esc(p.coverTall) : defaultCover('tall');
 
     return (
       '<div class="pd-shell' + (collapsed ? ' side-collapsed' : '') + '">' +
@@ -1821,7 +1828,7 @@
       '<i>' + (railCollapsed ? '›' : '‹') + '</i><span>Mọi người</span></button>' +
 
       '<div class="pd-panel">' +
-      '<div class="pd-cover" style="--pd-cover:url(\'' + (profileCoverOf('me') || 'assets/cover-default-wide.jpg') + '\');--pd-cover-tall:url(\'' + (profileCoverOf('me') || 'assets/cover-default-tall.jpg') + '\')">' +
+      '<div class="pd-cover" style="--pd-cover:url(\'' + (profileCoverOf('me') || defaultCover('wide')) + '\');--pd-cover-tall:url(\'' + (profileCoverOf('me') || defaultCover('tall')) + '\')">' +
       '<button class="pd-more" data-action="nav" data-to="settings" aria-label="Cài đặt">' + ic('settings', 18) + '</button>' +
       '<button class="pd-cover-edit" data-action="open-cover-picker" data-id="me" title="Đổi ảnh nền" aria-label="Đổi ảnh nền">🖼 <span>Ảnh nền</span></button>' +
       '</div>' +
