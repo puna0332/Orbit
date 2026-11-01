@@ -217,11 +217,13 @@
 
   var ONBOARD_SLIDES = [
     { title: 'Lưu giữ những điều ta trân trọng', sub: 'Cho những khoảnh khắc không muốn phải quên đi', primary: 'Bắt đầu', showSkip: true },
-    { title: 'Không bỏ lỡ dịp nào', sub: 'Orbit nhắc bạn trước những ngày sinh nhật, kỷ niệm quan trọng', primary: 'Tiếp tục' },
-    { title: 'Giữ kết nối qua Orbit', sub: 'Sắp xếp người thân, bạn bè theo mức độ gắn bó của riêng bạn', primary: 'Tiếp tục' },
-    { title: 'Sẵn sàng bắt đầu?', sub: 'Thêm người đầu tiên của bạn và để Orbit lo phần còn lại', primary: 'Vào ứng dụng' }
+    { title: 'Không bỏ lỡ dịp nào', sub: 'Orbit nhắc bạn trước những ngày sinh nhật, kỷ niệm quan trọng', primary: 'Tiếp tục',
+      shot: 'assets/shots/shot-events.jpg', shotAlt: 'Trang Sự kiện với lịch tháng và các dịp sắp tới' },
+    { title: 'Giữ kết nối qua Orbit', sub: 'Sắp xếp người thân, bạn bè theo mức độ gắn bó của riêng bạn', primary: 'Tiếp tục',
+      shot: 'assets/shots/shot-people.jpg', shotAlt: 'Trang Mọi người với sơ đồ quỹ đạo và danh sách liên kết' },
+    { title: 'Sẵn sàng bắt đầu?', sub: 'Thêm người đầu tiên của bạn và để Orbit lo phần còn lại', primary: 'Vào ứng dụng',
+      shot: 'assets/shots/shot-profile.jpg', shotAlt: 'Trang cá nhân với ảnh bìa, các thẻ nhật ký và quỹ đạo' }
   ];
-  // NOTE: slide 1 dùng đúng nội dung + material đã cấp; slide 2–4 vẫn là bản nháp (chưa có mockup/material riêng) — cần duyệt lại.
 
   /* ---------------------------- utils ---------------------------- */
   function uid(prefix) { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
@@ -3041,10 +3043,99 @@
   }
 
   /* ---------------------------- Onboarding ---------------------------- */
+  /* ---------------------- Đăng nhập / tạo tài khoản ----------------------
+     Ứng dụng chạy hoàn toàn trên máy người dùng nên tài khoản được lưu cục bộ:
+     mật khẩu chỉ giữ dạng băm SHA-256 kèm salt, không lưu chuỗi gốc. */
+  var authTab = 'login';
+  function authRand() {
+    var a = new Uint8Array(16); crypto.getRandomValues(a);
+    return Array.from(a).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+  function authHash(salt, pass) {
+    var data = new TextEncoder().encode(salt + ':' + pass);
+    return crypto.subtle.digest('SHA-256', data).then(function (buf) {
+      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    });
+  }
+  function authBoxHtml() {
+    var acc = state.account;
+    return '<div class="auth-box">' +
+      '<div class="auth-tabs">' +
+      '<button class="auth-tab' + (authTab === 'login' ? ' on' : '') + '" data-action="auth-tab" data-t="login">Đăng nhập</button>' +
+      '<button class="auth-tab' + (authTab === 'signup' ? ' on' : '') + '" data-action="auth-tab" data-t="signup">Tạo tài khoản</button>' +
+      '</div>' +
+      '<form id="form-orbit-auth" data-mode="' + authTab + '" novalidate>' +
+      '<label class="auth-field"><span>Email</span>' +
+      '<input type="email" name="email" autocomplete="email" placeholder="ban@orbit.app" value="' + (acc && authTab === 'login' ? esc(acc.email) : '') + '"></label>' +
+      '<label class="auth-field"><span>Mật khẩu</span>' +
+      '<input type="password" name="password" autocomplete="' + (authTab === 'login' ? 'current-password' : 'new-password') + '" placeholder="Ít nhất 6 ký tự"></label>' +
+      (authTab === 'signup'
+        ? '<label class="auth-field"><span>Nhập lại mật khẩu</span><input type="password" name="password2" autocomplete="new-password" placeholder="Nhập lại mật khẩu"></label>'
+        : '') +
+      '<div class="auth-err" role="alert" hidden></div>' +
+      '<button class="btn btn-primary btn-block" type="submit">' +
+      (authTab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản') + '</button>' +
+      '</form>' +
+      '<div class="auth-or"><span>hoặc</span></div>' +
+      '<button class="auth-google" data-action="auth-google">' + ic('link', 18) + ' Tiếp tục với Google</button>' +
+      '<button class="auth-skip" data-action="onboard-next">Bỏ qua, dùng thử ngay</button>' +
+      '</div>';
+  }
+  function submitAuth(form) {
+    var fd = new FormData(form);
+    var email = String(fd.get('email') || '').trim().toLowerCase();
+    var pass = String(fd.get('password') || '');
+    var pass2 = String(fd.get('password2') || '');
+    var err = form.querySelector('.auth-err');
+    var mode = form.dataset.mode || 'login';
+    function fail(msg) { if (err) { err.textContent = msg; err.hidden = false; } showToast(msg); }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Email chưa đúng định dạng.');
+    if (pass.length < 6) return fail('Mật khẩu cần ít nhất 6 ký tự.');
+    if (mode === 'signup') {
+      if (pass !== pass2) return fail('Hai mật khẩu chưa khớp nhau.');
+      if (state.account && state.account.email === email) return fail('Email này đã có tài khoản trên máy — chuyển sang Đăng nhập.');
+      var salt = authRand();
+      authHash(salt, pass).then(function (hash) {
+        state.account = { email: email, salt: salt, hash: hash, provider: 'password', at: todayISO() };
+        state.signedIn = true;
+        if (!state.settings.profileName) state.settings.profileName = email.split('@')[0];
+        save(); showToast('Đã tạo tài khoản cho ' + email); render();
+      });
+      return;
+    }
+    if (!state.account) return fail('Máy này chưa có tài khoản — chọn "Tạo tài khoản" trước nhé.');
+    if (state.account.email !== email) return fail('Email không khớp với tài khoản trên máy.');
+    authHash(state.account.salt, pass).then(function (hash) {
+      if (hash !== state.account.hash) return fail('Mật khẩu chưa đúng.');
+      state.signedIn = true; save(); showToast('Đã đăng nhập'); render();
+    });
+  }
+  function authGoogle() {
+    /* Cần Google Client ID (OAuth) mới bật được nút này; chưa cấu hình thì nói rõ
+       thay vì giả vờ đăng nhập thành công. */
+    var cid = window.ORBIT_GOOGLE_CLIENT_ID;
+    if (!cid) { showToast('Chưa cấu hình Google Client ID — hãy dùng email & mật khẩu.'); return; }
+    var sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client';
+    sc.onload = function () {
+      window.google.accounts.id.initialize({
+        client_id: cid,
+        callback: function (res) {
+          var p = JSON.parse(atob(res.credential.split('.')[1]));
+          state.account = { email: p.email, name: p.name, provider: 'google', at: todayISO(), hash: '', salt: '' };
+          state.signedIn = true;
+          if (!state.settings.profileName) state.settings.profileName = p.name || p.email.split('@')[0];
+          save(); showToast('Xin chào ' + (p.name || p.email)); render();
+        }
+      });
+      window.google.accounts.id.prompt();
+    };
+    document.head.appendChild(sc);
+  }
+
   function renderOnboarding() {
     var i = state.onboardingSlide || 0;
     var s = ONBOARD_SLIDES[i];
-    var isDraft = i > 0;
     var gender = state.settings.gender === 'male' ? 'male' : 'female';
     return (
       '<div class="onboard-wrap"><div class="onboard-content">' +
@@ -3058,9 +3149,12 @@
           '<span class="og-art og-art-female"></span><b>Nữ</b><em>Chủ đề kem · mây hồng</em></button>' +
           '<button class="og-card' + (gender === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male" aria-pressed="' + (gender === 'male') + '">' +
           '<span class="og-art og-art-male"></span><b>Nam</b><em>Chủ đề xanh nước biển</em></button>' +
-          '</div>' : '') +
-      (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;background:rgba(255,255,255,.9);">Nội dung slide này là bản nháp — chưa có mockup/material riêng, cần bạn duyệt lại.</div>' : '') +
-      '</div><div class="onboard-art-band"></div><div class="onboard-bottom">' +
+          '</div>' + authBoxHtml() : '') +
+      '</div>' +
+      (s.shot
+        ? '<div class="onboard-shot"><img src="' + s.shot + '" alt="' + s.shotAlt + '" loading="lazy"></div>'
+        : '<div class="onboard-art-band"></div>') +
+      '<div class="onboard-bottom">' +
       '<button class="btn btn-primary btn-block" data-action="' + (i < ONBOARD_SLIDES.length - 1 ? 'onboard-next' : 'onboard-finish') + '">' + s.primary + ' →</button>' +
       (s.showSkip ? '<button class="onboard-skip" data-action="contacts-import">Nhập danh bạ</button>' : '') +
       '<div class="onboard-dots">' + ONBOARD_SLIDES.map(function (_, idx) { return '<span class="d ' + (idx === i ? 'on' : '') + '" data-action="onboard-dot" data-i="' + idx + '"></span>'; }).join('') + '</div>' +
@@ -3581,6 +3675,8 @@
       case 'wipe-data': wipeData(); break;
       case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
+      case 'auth-tab': authTab = t.dataset.t; render(); break;
+      case 'auth-google': authGoogle(); break;
       case 'onboard-next': onboardNext(); break;
       case 'onboard-dot': state.onboardingSlide = Number(t.dataset.i); save(); render(); break;
       case 'onboard-finish': finishOnboarding(); break;
@@ -3589,6 +3685,7 @@
   }
   function onGlobalSubmit(e) {
     var form = e.target;
+    if (form.id === 'form-orbit-auth') { e.preventDefault(); submitAuth(form); return; }
     if (form.id === 'form-add-group') {
       e.preventDefault();
       var gname = (new FormData(form).get('name') || '').trim();
