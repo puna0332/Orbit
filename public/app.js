@@ -2614,23 +2614,34 @@
       '<button type="submit" class="sk-btn primary">Lưu mẫu tin</button></div></form></div>'
     );
   }
-  /* Bộ lọc + người đang mở của mục "Theo người" — để ngoài render cho khỏi mất khi vẽ lại */
-  var rmRel = 'all', rmGroup = 'all', rmQuery = '', rmOpen = null;
+  /* Người đang chọn + bộ lọc của khối "Theo người" (để ngoài render cho khỏi mất) */
+  var rmRel = 'all', rmGroup = 'all', rmQuery = '', rmSel = null;
   function rmDateLabel(v) {
     if (!v) return '';
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     return m ? (m[3] + '/' + m[2] + '/' + m[1]) : v;
   }
-  /* Gom mọi thứ có thể nhắc của một người: sinh nhật → nhắc tay → sự kiện → nhật ký */
+  /* Gom mọi thứ có thể nhắc của một người: sinh nhật → nhắc tay → sự kiện → nhật ký.
+     Chống trùng: nếu đã có sự kiện loại "sinh nhật" hoặc nhắc tay tên "Sinh nhật" thì
+     không sinh thêm dòng sinh nhật tự động (lỗi trước đây: 2 dòng sinh nhật). */
   function personReminderItems(p) {
     var items = [];
-    if (p.birthday) {
-      items.push({ key: 'bd', group: 'Sinh nhật', label: 'Sinh nhật', date: formatMMDD(p.birthday), on: p.remindBirthday !== false });
+    var bd = p.birthday ? formatMMDD(p.birthday) : '';
+    var hasBdEvent = state.events.some(function (e) {
+      return e.personId === p.id && e.type === 'birthday';
+    });
+    if (p.birthday && !hasBdEvent) {
+      items.push({
+        key: 'bd', group: 'Sinh nhật', label: 'Sinh nhật', date: formatMMDD(p.birthday),
+        on: p.remindBirthday !== false, lead: p.remindBirthdayLead
+      });
     }
     (p.reminders || []).forEach(function (r) {
+      var dupBd = /sinh\s*nhật/i.test(r.label || '') || (bd && r.mmdd === bd);
+      if (dupBd && (p.birthday || hasBdEvent)) return;   /* đã có dòng sinh nhật rồi */
       items.push({
         key: 'rm:' + r.id, group: 'Nhắc hẹn', label: r.label,
-        date: r.mmdd ? formatMMDD(r.mmdd) : rmDateLabel(r.date), on: r.enabled !== false
+        date: r.mmdd ? formatMMDD(r.mmdd) : rmDateLabel(r.date), on: r.enabled !== false, lead: r.lead
       });
     });
     state.events.filter(function (e) { return e.personId === p.id; }).forEach(function (e) {
@@ -2638,13 +2649,44 @@
       items.push({
         key: 'ev:' + e.id, group: c ? c.label : 'Sự kiện', label: e.title,
         date: e.date ? rmDateLabel(e.date) : (e.annMMDD ? formatMMDD(e.annMMDD) : ''),
-        on: e.remind !== false
+        on: e.remind !== false, lead: e.lead
       });
     });
     state.diaries.filter(function (d) { return d.target === p.id; }).forEach(function (d) {
-      items.push({ key: 'dy:' + d.id, group: 'Nhật ký', label: 'Trang nhật ký', date: rmDateLabel(d.date), on: d.remind !== false });
+      items.push({
+        key: 'dy:' + d.id, group: 'Nhật ký', label: 'Trang nhật ký',
+        date: rmDateLabel(d.date), on: d.remind !== false, lead: d.lead
+      });
     });
     return items;
+  }
+  /* Bật/tắt + đặt "nhắc trước" cho một mục nhắc (dùng chung cho toggle lẻ và toggle cả nhóm) */
+  function setReminderFlag(p, key, val) {
+    if (key === 'bd') p.remindBirthday = !!val;
+    else if (key.indexOf('rm:') === 0) {
+      var r = (p.reminders || []).find(function (x) { return x.id === key.slice(3); });
+      if (r) r.enabled = !!val;
+    } else if (key.indexOf('ev:') === 0) {
+      var e = state.events.find(function (x) { return x.id === key.slice(3); });
+      if (e) e.remind = !!val;
+    } else if (key.indexOf('dy:') === 0) {
+      var d = state.diaries.find(function (x) { return x.id === key.slice(3); });
+      if (d) d.remind = !!val;
+    }
+  }
+  function setReminderLead(p, key, val) {
+    var v = Math.max(0, Math.min(30, Number(val) || 0));
+    if (key === 'bd') p.remindBirthdayLead = v;
+    else if (key.indexOf('rm:') === 0) {
+      var r = (p.reminders || []).find(function (x) { return x.id === key.slice(3); });
+      if (r) r.lead = v;
+    } else if (key.indexOf('ev:') === 0) {
+      var e = state.events.find(function (x) { return x.id === key.slice(3); });
+      if (e) e.lead = v;
+    } else if (key.indexOf('dy:') === 0) {
+      var d = state.diaries.find(function (x) { return x.id === key.slice(3); });
+      if (d) d.lead = v;
+    }
   }
   function subReminders() {
     var people = state.people;
@@ -2666,19 +2708,16 @@
         'data-cat="' + c.k + '"');
     }).join('');
 
-    /* ---- Bộ lọc cho phần Theo người ---- */
-    var relChips = ['all'].concat(REL_TYPES.map(function (r) { return r.k; })).map(function (k) {
-      var label = k === 'all' ? 'Tất cả' : REL_LABEL[k];
-      return '<button class="rm-chip' + (rmRel === k ? ' on' : '') + '" data-action="rm-filter-rel" data-rel="' + k + '">' +
-        label + '</button>';
+    /* ---- Bộ lọc: 2 dropdown (quan hệ + nhóm) + ô tìm, dính trên đầu danh sách ---- */
+    var relOpts = ['all'].concat(REL_TYPES.map(function (r) { return r.k; })).map(function (k) {
+      return '<option value="' + k + '"' + (rmRel === k ? ' selected' : '') + '>' +
+        (k === 'all' ? 'Mọi mối quan hệ' : REL_LABEL[k]) + '</option>';
     }).join('');
     var gs = cfg.groups || [];
-    var groupChips = gs.length ? ['all'].concat(gs.map(function (g) { return g.id; })).map(function (gid) {
-      var g = gs.filter(function (x) { return x.id === gid; })[0];
-      var label = gid === 'all' ? 'Tất cả nhóm' : (g ? g.name : gid);
-      return '<button class="rm-chip' + (rmGroup === gid ? ' on' : '') + '" data-action="rm-filter-group" data-gid="' + esc(gid) + '">' +
-        esc(label) + '</button>';
-    }).join('') : '';
+    var groupOpts = '<option value="all"' + (rmGroup === 'all' ? ' selected' : '') + '>Mọi nhóm</option>' +
+      gs.map(function (g) {
+        return '<option value="' + esc(g.id) + '"' + (rmGroup === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>';
+      }).join('');
 
     var q = (rmQuery || '').trim().toLowerCase();
     var list = people.filter(function (p) {
@@ -2688,43 +2727,59 @@
       return true;
     });
 
-    var personCards = list.length ? list.map(function (p) {
-      var items = personReminderItems(p).filter(function (it) { return evMap[it.group] !== false; });
+    /* Người đang xem: giữ lựa chọn cũ, nếu không còn trong danh sách thì lấy người đầu */
+    var sel = list.filter(function (p) { return p.id === rmSel; })[0] || list[0] || null;
+    rmSel = sel ? sel.id : null;
+    var leadDefault = cfg.remindBefore == null ? 3 : cfg.remindBefore;
+
+    var listRows = list.length ? list.map(function (p) {
+      var items = personReminderItems(p);
       var active = items.filter(function (it) { return it.on; }).length;
-      var open = rmOpen === p.id;
-      var on = p.remindOn !== false;
-
-      var body = '';
-      if (open) {
-        if (!items.length) {
-          body = '<div class="rm-empty">Chưa có sự kiện hay nhắc hẹn nào của ' + esc(p.name) + '.</div>';
-        } else {
-          var groups = {};
-          items.forEach(function (it) { (groups[it.group] = groups[it.group] || []).push(it); });
-          body = Object.keys(groups).map(function (g) {
-            return '<div class="rm-sub">' + esc(g) + '</div>' + groups[g].map(function (it) {
-              return '<div class="rm-item">' +
-                '<div class="t"><b>' + esc(it.label) + '</b><span>' + esc(it.date) +
-                ' · nhắc trước ' + (cfg.remindBefore == null ? 3 : cfg.remindBefore) + ' ngày</span></div>' +
-                '<button class="toggle ' + (it.on && on ? 'on' : '') + '" data-action="toggle-remind-item" ' +
-                'data-pid="' + p.id + '" data-key="' + esc(it.key) + '" aria-label="Bật nhắc cho ' + esc(it.label) + '"></button>' +
-                '</div>';
-            }).join('');
-          }).join('');
-        }
-      }
-
-      return '<div class="rm-person' + (open ? ' open' : '') + '">' +
-        '<div class="rm-person-head">' +
-        '<button class="rm-person-btn" data-action="rm-open" data-pid="' + p.id + '" aria-expanded="' + open + '">' +
+      return '<button class="rm-prow' + (sel && sel.id === p.id ? ' on' : '') + '" ' +
+        'data-action="rm-select" data-pid="' + p.id + '">' +
         '<span class="rm-av">' + avatarInner(p) + '</span>' +
-        '<span class="rm-name"><b>' + esc(p.name) + '</b>' +
-        '<em>' + (REL_LABEL[p.relationship] || 'Khác') + ' · ' + active + '/' + items.length + ' mục đang nhắc</em></span>' +
-        '<span class="rm-chev">' + (open ? '⌃' : '⌄') + '</span></button>' +
-        '<button class="toggle ' + (on ? 'on' : '') + '" data-action="toggle-person-remind" data-pid="' + p.id + '" ' +
-        'aria-label="Bật nhắc cho ' + esc(p.name) + '"></button>' +
-        '</div>' + (open ? '<div class="rm-person-body">' + body + '</div>' : '') + '</div>';
+        '<span class="rm-prow-t"><b>' + esc(p.name) + '</b><em>' +
+        (REL_LABEL[p.relationship] || 'Khác') + '</em></span>' +
+        '<span class="rm-count">' + active + '</span></button>';
     }).join('') : '<div class="rm-empty">Không tìm thấy ai khớp bộ lọc.</div>';
+
+    var detail = '<div class="rm-empty">Chọn một người ở danh sách bên trái.</div>';
+    if (sel) {
+      var items = personReminderItems(sel).filter(function (it) { return evMap[it.group] !== false; });
+      var personOn = sel.remindOn !== false;
+      var groups = {};
+      items.forEach(function (it) { (groups[it.group] = groups[it.group] || []).push(it); });
+      var body = Object.keys(groups).length ? Object.keys(groups).map(function (g) {
+        var arr = groups[g];
+        var allOn = arr.every(function (it) { return it.on; });
+        return '<div class="rm-grp">' +
+          '<div class="rm-grp-head"><span class="rm-grp-name">' + esc(g) +
+          ' <em>(' + arr.length + ')</em></span>' +
+          '<button class="toggle sm ' + (allOn && personOn ? 'on' : '') + '" data-action="toggle-remind-group" ' +
+          'data-pid="' + sel.id + '" data-group="' + esc(g) + '" aria-label="Bật/tắt cả nhóm ' + esc(g) + '"></button></div>' +
+          arr.map(function (it) {
+            var lead = it.lead == null ? leadDefault : it.lead;
+            return '<div class="rm-item">' +
+              '<div class="t"><b>' + esc(it.label) + '</b><span>' + esc(it.date) + '</span></div>' +
+              '<select class="rm-lead" data-role="rm-lead" data-pid="' + sel.id + '" data-key="' + esc(it.key) + '" ' +
+              'aria-label="Nhắc trước cho ' + esc(it.label) + '">' +
+              [0, 1, 2, 3, 5, 7].map(function (v) {
+                return '<option value="' + v + '"' + (Number(lead) === v ? ' selected' : '') + '>' + v + ' ngày</option>';
+              }).join('') + '</select>' +
+              '<button class="toggle ' + (it.on && personOn ? 'on' : '') + '" data-action="toggle-remind-item" ' +
+              'data-pid="' + sel.id + '" data-key="' + esc(it.key) + '" aria-label="Bật nhắc cho ' + esc(it.label) + '"></button>' +
+              '</div>';
+          }).join('') + '</div>';
+      }).join('') : '<div class="rm-empty">Chưa có sự kiện hay nhắc hẹn nào.</div>';
+
+      detail = '<div class="rm-detail-head">' +
+        '<span class="rm-av lg">' + avatarInner(sel) + '</span>' +
+        '<div class="rm-detail-id"><b>' + esc(sel.name) + '</b><em>' +
+        (REL_LABEL[sel.relationship] || 'Khác') + ' · ' + items.length + ' mục</em></div>' +
+        '<button class="toggle ' + (personOn ? 'on' : '') + '" data-action="toggle-person-remind" data-pid="' + sel.id + '" ' +
+        'aria-label="Bật nhắc cho ' + esc(sel.name) + '"></button>' +
+        '</div><div class="rm-detail-body">' + body + '</div>';
+    }
 
     var tplRows = EVENT_CATS.slice(0, 6).map(function (c) {
       return '<div class="rm-row"><div class="t"><b>' + c.label + '</b><span>' +
@@ -2767,12 +2822,18 @@
       '</div></section>' +
 
       '<section class="settings-group"><h2 class="settings-group-title">Theo người</h2>' +
-      '<div class="rm-filters">' +
+      '<div class="rm-shell">' +
+      '<div class="rm-pane rm-left">' +
+      '<div class="rm-left-top">' +
       '<input class="rm-search" id="rmSearch" type="search" placeholder="Tìm đích danh…" value="' + esc(rmQuery) + '">' +
-      '<div class="rm-chips">' + relChips + '</div>' +
-      (groupChips ? '<div class="rm-chips">' + groupChips + '</div>' : '') +
+      '<div class="rm-selects">' +
+      '<select class="rm-select" data-role="rm-rel" aria-label="Lọc theo quan hệ">' + relOpts + '</select>' +
+      '<select class="rm-select" data-role="rm-group" aria-label="Lọc theo nhóm">' + groupOpts + '</select>' +
+      '</div></div>' +
+      '<div class="rm-left-list">' + listRows + '</div>' +
       '</div>' +
-      '<div class="rm-people">' + personCards + '</div></section>' +
+      '<div class="rm-pane rm-right">' + detail + '</div>' +
+      '</div></section>' +
 
       '<section class="settings-group"><h2 class="settings-group-title">Mẫu tin nhắn</h2>' +
       '<div class="card rm-card">' + tplRows + '</div></section>' +
@@ -3152,34 +3213,24 @@
         (pp.reminders || []).forEach(function (r) { r.enabled = pp.remindOn; });
         save(); render(); break;
       }
-      case 'rm-open': {
-        rmOpen = rmOpen === t.dataset.pid ? null : t.dataset.pid;
+      case 'rm-select': {
+        rmSel = t.dataset.pid;
         render(); break;
       }
-      case 'rm-filter-rel': {
-        rmRel = t.dataset.rel || 'all';
-        render(); break;
-      }
-      case 'rm-filter-group': {
-        rmGroup = t.dataset.gid || 'all';
-        render(); break;
+      case 'toggle-remind-group': {
+        var pg = state.people.find(function (x) { return x.id === t.dataset.pid; });
+        if (!pg) break;
+        var gName = t.dataset.group;
+        var gItems = personReminderItems(pg).filter(function (it) { return it.group === gName; });
+        var turnOn = !gItems.every(function (it) { return it.on; });
+        gItems.forEach(function (it) { setReminderFlag(pg, it.key, turnOn); });
+        save(); render(); break;
       }
       case 'toggle-remind-item': {
         var pItem = state.people.find(function (x) { return x.id === t.dataset.pid; });
-        var key = t.dataset.key || '';
         if (!pItem) break;
-        if (key === 'bd') {
-          pItem.remindBirthday = pItem.remindBirthday === false;
-        } else if (key.indexOf('rm:') === 0) {
-          var rItem = (pItem.reminders || []).find(function (x) { return x.id === key.slice(3); });
-          if (rItem) rItem.enabled = rItem.enabled === false;
-        } else if (key.indexOf('ev:') === 0) {
-          var evItem = state.events.find(function (x) { return x.id === key.slice(3); });
-          if (evItem) evItem.remind = evItem.remind === false;
-        } else if (key.indexOf('dy:') === 0) {
-          var dyItem = state.diaries.find(function (x) { return x.id === key.slice(3); });
-          if (dyItem) dyItem.remind = dyItem.remind === false;
-        }
+        setReminderFlag(pItem, t.dataset.key || '', !(personReminderItems(pItem)
+          .filter(function (it) { return it.key === t.dataset.key; })[0] || {}).on);
         save(); render(); break;
       }
       case 'toggle-event-remind': {
@@ -3598,6 +3649,14 @@
     if (el.dataset.action === 'set-priority') {
       setRelationPriority(el.dataset.rel, el.value);
       render();
+    }
+    /* Bộ lọc dropdown + "nhắc trước" của khối Theo người */
+    if (el.dataset.role === 'rm-rel') { rmRel = el.value || 'all'; render(); return; }
+    if (el.dataset.role === 'rm-group') { rmGroup = el.value || 'all'; render(); return; }
+    if (el.dataset.role === 'rm-lead') {
+      var pLead = state.people.find(function (x) { return x.id === el.dataset.pid; });
+      if (pLead) { setReminderLead(pLead, el.dataset.key || '', el.value); save(); }
+      return;
     }
   }
 
