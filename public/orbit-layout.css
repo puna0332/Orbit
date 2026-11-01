@@ -1988,10 +1988,12 @@ html[data-gender="male"] .onboard-art-band {
 }
 
 /* Onboarding NAM: tranh cậu bé + mèo (PC/điện thoại riêng), phủ kín bằng cover */
-html[data-gender="male"] .onboard-wrap {
-  background-image: url('assets/onboard-bg-male-desktop.jpg');
-  background-size: cover; background-position: center top; background-repeat: no-repeat;
-  background-color: var(--cream);
+@media (min-width:900px) {
+  html[data-gender="male"] .onboard-wrap {
+    background-image: url('assets/onboard-bg-male-desktop.jpg');
+    background-size: cover; background-position: center top; background-repeat: no-repeat;
+    background-color: var(--cream);
+  }
 }
 html[data-gender="male"] .onboard-art-band {
   background: url('assets/onboard-bg-male-mobile.jpg') center top / cover no-repeat;
