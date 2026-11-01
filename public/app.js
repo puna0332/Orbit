@@ -3282,7 +3282,8 @@
           '<div class="auth-err" role="alert" hidden></div>' +
           '<button class="btn btn-primary btn-block" type="submit">' + (authTab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản') + '</button>' +
           '</form>' +
-          '<button class="auth-forgot" data-action="auth-forgot">Quên mật khẩu?</button>' +
+          /* Chỉ hiện khi máy chủ đã cấu hình gửi mail — tránh nút chết */
+          (appConfig.mailConfigured ? '<button class="auth-forgot" data-action="auth-forgot">Quên mật khẩu?</button>' : '') +
           '<div class="auth-or"><span>hoặc</span></div>' +
           '<button class="auth-google" data-action="auth-google">' + ic('link', 18) + ' Tiếp tục với Google</button>' +
           '<button class="auth-skip" data-action="auth-guest">Dùng thử không cần tài khoản</button>')) +
