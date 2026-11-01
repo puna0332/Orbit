@@ -260,10 +260,207 @@ async function apiMemoryAction(req, env, url, memoryId, action) {
   return json({ error: 'bad_action' }, 400);
 }
 
+
+/* ======================================================================
+   Tài khoản + đồng bộ dữ liệu người dùng (Cloudflare D1)
+   ----------------------------------------------------------------------
+   - Mật khẩu băm bằng PBKDF2-SHA256 (120k vòng) + salt 16 byte ngẫu nhiên.
+   - Phiên đăng nhập là token 32 byte ngẫu nhiên, hạn 60 ngày, lưu ở bảng
+     sessions; client gửi kèm header `Authorization: Bearer <token>`.
+   - Dữ liệu ứng dụng (người, sự kiện, nhật ký, cài đặt…) là một khối JSON
+     trong user_state, khớp với `state` của SPA.
+   ====================================================================== */
+
+const SESSION_DAYS = 60;
+/* Workers giới hạn PBKDF2 tối đa 100.000 vòng — vượt là lỗi 500 ở production. */
+const PBKDF2_ITER = 100000;
+const MAX_STATE_BYTES = 900 * 1024;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function randHex(n) {
+  return Array.from(crypto.getRandomValues(new Uint8Array(n)))
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+async function pbkdf2(password, saltHex, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: iterations, hash: 'SHA-256' }, key, 256);
+  return Array.from(new Uint8Array(bits)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function plusDays(days) {
+  return new Date(Date.now() + days * 86400000).toISOString();
+}
+
+async function db(env) {
+  if (!env.ORBIT_DB) throw new Error('no_db');
+  return env.ORBIT_DB;
+}
+
+async function createSession(env, userId) {
+  const token = randHex(32);
+  await env.ORBIT_DB.prepare(
+    'INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'
+  ).bind(token, userId, nowIso(), plusDays(SESSION_DAYS)).run();
+  return token;
+}
+
+async function authUser(req, env) {
+  const h = req.headers.get('authorization') || '';
+  const m = /^Bearer ([A-Za-z0-9]{20,120})$/.exec(h);
+  if (!m) return null;
+  const row = await env.ORBIT_DB.prepare(
+    'SELECT s.token, s.expires_at, u.id, u.email, u.name, u.birthday, u.avatar, u.created_at ' +
+    'FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?'
+  ).bind(m[1]).first();
+  if (!row) return null;
+  if (Date.parse(row.expires_at) < Date.now()) {
+    await env.ORBIT_DB.prepare('DELETE FROM sessions WHERE token = ?').bind(m[1]).run();
+    return null;
+  }
+  return row;
+}
+
+function publicUser(u) {
+  return { id: u.id, email: u.email, name: u.name || '', birthday: u.birthday || '', avatar: u.avatar || '' };
+}
+
+async function apiRegister(req, env) {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const email = String(body.email || '').trim().toLowerCase();
+  const password = String(body.password || '');
+  if (!EMAIL_RE.test(email)) return json({ error: 'bad_email' }, 400);
+  if (password.length < 8) return json({ error: 'weak_password' }, 400);
+  if (password.length > 200) return json({ error: 'bad_password' }, 400);
+
+  const exists = await env.ORBIT_DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (exists) return json({ error: 'email_taken' }, 409);
+
+  const salt = randHex(16);
+  const hash = await pbkdf2(password, salt, PBKDF2_ITER);
+  const id = 'u_' + randHex(12);
+  const at = nowIso();
+  try {
+    await env.ORBIT_DB.prepare(
+      'INSERT INTO users (id, email, pass_hash, salt, iterations, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, email, hash, salt, PBKDF2_ITER, String(body.name || '').slice(0, 60), at, at).run();
+  } catch (e) {
+    return json({ error: 'email_taken' }, 409);
+  }
+  const token = await createSession(env, id);
+  return json({ ok: true, token: token, user: { id: id, email: email, name: '', birthday: '', avatar: '' } });
+}
+
+async function apiLogin(req, env) {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const email = String(body.email || '').trim().toLowerCase();
+  const password = String(body.password || '');
+  if (!email || !password) return json({ error: 'bad_credentials' }, 400);
+
+  const u = await env.ORBIT_DB.prepare(
+    'SELECT id, email, pass_hash, salt, iterations, name, birthday, avatar FROM users WHERE email = ?'
+  ).bind(email).first();
+  if (!u) return json({ error: 'bad_credentials' }, 401);
+
+  const hash = await pbkdf2(password, u.salt, u.iterations);
+  if (!safeEqual(hash, u.pass_hash)) return json({ error: 'bad_credentials' }, 401);
+
+  const token = await createSession(env, u.id);
+  return json({ ok: true, token: token, user: publicUser(u) });
+}
+
+async function apiLogout(req, env) {
+  const h = req.headers.get('authorization') || '';
+  const m = /^Bearer ([A-Za-z0-9]{20,120})$/.exec(h);
+  if (m) await env.ORBIT_DB.prepare('DELETE FROM sessions WHERE token = ?').bind(m[1]).run();
+  return json({ ok: true });
+}
+
+async function apiMe(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  return json({ ok: true, user: publicUser(u) });
+}
+
+async function apiUpdateProfile(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const name = String(body.name || '').trim().slice(0, 60);
+  const birthday = String(body.birthday || '').slice(0, 10);
+  const avatar = String(body.avatar || '').slice(0, 200);
+  await env.ORBIT_DB.prepare(
+    'UPDATE users SET name = ?, birthday = ?, avatar = ?, updated_at = ? WHERE id = ?'
+  ).bind(name, birthday, avatar, nowIso(), u.id).run();
+  return json({ ok: true, user: { id: u.id, email: u.email, name: name, birthday: birthday, avatar: avatar } });
+}
+
+async function apiGetState(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const row = await env.ORBIT_DB.prepare('SELECT payload, version, updated_at FROM user_state WHERE user_id = ?')
+    .bind(u.id).first();
+  if (!row) return json({ ok: true, state: null, version: 0, updatedAt: null });
+  let payload = null;
+  try { payload = JSON.parse(row.payload); } catch { payload = null; }
+  return json({ ok: true, state: payload, version: row.version, updatedAt: row.updated_at });
+}
+
+async function apiPutState(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body.state !== 'object' || body.state === null) return json({ error: 'bad_json' }, 400);
+  const payload = JSON.stringify(body.state);
+  if (payload.length > MAX_STATE_BYTES) return json({ error: 'too_large' }, 413);
+
+  const at = nowIso();
+  await env.ORBIT_DB.prepare(
+    'INSERT INTO user_state (user_id, payload, version, updated_at) VALUES (?, ?, 1, ?) ' +
+    'ON CONFLICT(user_id) DO UPDATE SET payload = excluded.payload, version = user_state.version + 1, updated_at = excluded.updated_at'
+  ).bind(u.id, payload, at).run();
+  await env.ORBIT_DB.prepare('INSERT INTO sync_log (user_id, kind, created_at) VALUES (?, ?, ?)')
+    .bind(u.id, 'state_put', at).run();
+
+  const v = await env.ORBIT_DB.prepare('SELECT version, updated_at FROM user_state WHERE user_id = ?').bind(u.id).first();
+  return json({ ok: true, version: v ? v.version : 1, updatedAt: v ? v.updated_at : at });
+}
+
+async function apiDeleteAccount(req, env) {
+  const u = await authUser(req, env);
+  if (!u) return json({ error: 'unauthorized' }, 401);
+  await env.ORBIT_DB.batch([
+    env.ORBIT_DB.prepare('DELETE FROM user_state WHERE user_id = ?').bind(u.id),
+    env.ORBIT_DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id),
+    env.ORBIT_DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id),
+  ]);
+  return json({ ok: true });
+}
+
 /* ------------------------------ router ------------------------------ */
 
 async function handleApi(req, env, url) {
   const p = url.pathname;
+
+  /* --- tài khoản --- */
+  if (p === '/api/auth/register' && req.method === 'POST') return apiRegister(req, env);
+  if (p === '/api/auth/login' && req.method === 'POST') return apiLogin(req, env);
+  if (p === '/api/auth/logout' && req.method === 'POST') return apiLogout(req, env);
+  if (p === '/api/auth/me' && req.method === 'GET') return apiMe(req, env);
+  if (p === '/api/account' && req.method === 'DELETE') return apiDeleteAccount(req, env);
+
+  /* --- hồ sơ + dữ liệu --- */
+  if (p === '/api/profile' && (req.method === 'PUT' || req.method === 'POST')) return apiUpdateProfile(req, env);
+  if (p === '/api/state' && req.method === 'GET') return apiGetState(req, env);
+  if (p === '/api/state' && req.method === 'PUT') return apiPutState(req, env);
+
   if (req.method === 'POST' && p === '/api/invite') return apiCreateInvite(req, env);
 
   if (p === '/api/inbox' && req.method === 'GET') return apiInbox(req, env, url);

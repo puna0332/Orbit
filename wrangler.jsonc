@@ -8,6 +8,13 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "d1_databases": [
+    {
+      "binding": "ORBIT_DB",
+      "database_name": "orbit-db",
+      "database_id": "479e7aea-9544-4478-9676-d21ad8a9162f"
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "ORBIT_KV",

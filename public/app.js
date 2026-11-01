@@ -352,8 +352,10 @@
         var parsed = JSON.parse(raw);
         // Luôn quay về Lớp 0 (onboarding) mỗi lần mở lại app — dữ liệu người/sự
         // kiện/ghi chú vẫn giữ nguyên, chỉ riêng tiến trình onboarding reset mỗi phiên.
-        parsed.onboardingDone = false;
-        parsed.onboardingSlide = 0;
+        if (!localStorage.getItem('orbit_token')) {
+          parsed.onboardingDone = false;
+          parsed.onboardingSlide = 0;
+        }
         // Thiết kế gốc là giao diện SÁNG. Theme 'system' khiến máy đang dark-mode
         // hiển thị nền đen, lệch hẳn mockup -> migrate sang 'light'; chỉ tối khi user tự chọn.
         if (parsed.settings && parsed.settings.theme === 'system') parsed.settings.theme = 'light';
@@ -382,7 +384,103 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
     return s;
   }
-  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  /* ---------------------- Tài khoản & đồng bộ máy chủ ----------------------
+     - Token phiên lưu ở localStorage; gửi kèm header Bearer.
+     - Mọi thay đổi `state` được đẩy lên D1 sau 900ms (gộp nhiều lần lưu).
+     - Chưa đăng nhập thì app vẫn chạy như cũ, chỉ dùng localStorage. */
+  var ACCT = {
+    token: localStorage.getItem('orbit_token') || '',
+    user: null,
+    pushTimer: 0,
+    pushing: false,
+    pending: false
+  };
+
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'content-type': 'application/json' };
+    if (ACCT.token) headers.authorization = 'Bearer ' + ACCT.token;
+    return fetch(path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) { var e = new Error(data.error || ('http_' + r.status)); e.status = r.status; e.data = data; throw e; }
+        return data;
+      });
+    });
+  }
+
+  function setToken(t) {
+    ACCT.token = t || '';
+    if (t) localStorage.setItem('orbit_token', t);
+    else localStorage.removeItem('orbit_token');
+  }
+
+  function stateForServer() {
+    var copy = JSON.parse(JSON.stringify(state));
+    delete copy.signedIn;
+    return copy;
+  }
+
+  function pushStateNow() {
+    if (!ACCT.token) return;
+    if (ACCT.pushing) { ACCT.pending = true; return; }
+    ACCT.pushing = true;
+    api('/api/state', { method: 'PUT', body: { state: stateForServer() } })
+      .then(function () { ACCT.pending = false; })
+      .catch(function (err) {
+        if (err.status === 401) { setToken(''); ACCT.user = null; state.signedIn = false; }
+        else { ACCT.pending = true; }
+      })
+      .then(function () { ACCT.pushing = false; if (ACCT.pending) { ACCT.pending = false; pushStateNow(); } });
+  }
+
+  function schedulePush() {
+    if (!ACCT.token) return;
+    clearTimeout(ACCT.pushTimer);
+    ACCT.pushTimer = setTimeout(pushStateNow, 900);
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    schedulePush();
+  }
+
+  function pullState() {
+    if (!ACCT.token) return Promise.resolve(null);
+    return api('/api/state').then(function (r) { return r.state; }).catch(function () { return null; });
+  }
+
+  /* Nạp dữ liệu từ máy chủ khi mở app (chỉ khi có token) */
+  function hydrateFromServer() {
+    if (!ACCT.token) return;
+    api('/api/auth/me').then(function (r) {
+      ACCT.user = r.user;
+      state.signedIn = true;
+      return pullState();
+    }).then(function (remote) {
+      if (remote) {
+        var keep = { onboardingDone: state.onboardingDone, onboardingSlide: state.onboardingSlide };
+        state = Object.assign(remote, {});
+        if (typeof state.settings !== 'object' || !state.settings) state = loadState();
+        else {
+          if (!state.settings.relationPriority) state.settings.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+          state.signedIn = true;
+          state.onboardingDone = true;
+          state.onboardingSlide = 0;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        applyTheme();
+        render();
+        /* Đã có tài khoản: vào thẳng trang chủ thay vì đứng lại ở onboarding */
+        if (location.hash === '#/onboarding' || !location.hash) location.hash = '#/home';
+      }
+    }).catch(function (err) {
+      if (err && err.status === 401) { setToken(''); ACCT.user = null; state.signedIn = false; render(); }
+    });
+  }
   function logActivity(p, text) {
     p.activity = p.activity || [];
     p.activity.push({ id: uid('ac'), text: text, at: new Date().toISOString() });
@@ -2738,6 +2836,12 @@
       '<div class="field"><label>Tên hiển thị</label>' +
       '<input type="text" id="profile-name-input" value="' + esc(nm) + '" maxlength="40"></div>' +
       '<button class="btn btn-primary btn-block" data-action="save-profile-name">Lưu tên</button>' +
+      (ACCT.token
+        ? '<div class="acc-server"><span class="acc-dot"></span><div><b>Đã kết nối máy chủ</b>' +
+          '<span>' + esc((state.account && state.account.email) || (ACCT.user && ACCT.user.email) || '') +
+          ' · dữ liệu được sao lưu và đồng bộ</span></div>' +
+          '<button class="acc-out" data-action="auth-signout">Đăng xuất</button></div>'
+        : '<button class="acc-signin" data-action="auth-open">Đăng nhập để đồng bộ dữ liệu</button>') +
       '<div class="field"><label>Chủ đề theo giới tính</label><div class="sk-seg">' +
       '<button class="sk-seg-btn' + ((state.settings.gender || 'female') !== 'male' ? ' on' : '') + '" data-action="set-gender" data-g="female">Nữ · kem hồng</button>' +
       '<button class="sk-seg-btn' + ((state.settings.gender) === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male">Nam · xanh biển</button>' +
@@ -3119,6 +3223,10 @@
     state.settings.profileName = name;
     state.settings.profileAvatar = setupAvatar || '';
     state.settings.profileBirthday = bd;
+    if (ACCT.token) {
+      api('/api/profile', { method: 'PUT', body: { name: name, birthday: bd, avatar: setupAvatar || '' } })
+        .catch(function () { });
+    }
     setupOpen = false;
     if (!state.onboardingDone) { state.onboardingSlide = 1; }
     save(); render();
@@ -3182,29 +3290,49 @@
     authRemember = remember;
     var err = form.querySelector('.auth-err');
     var mode = form.dataset.mode || 'login';
-    function fail(msg) { if (err) { err.textContent = msg; err.hidden = false; } showToast(msg); }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Email chưa đúng định dạng.');
-    if (pass.length < 6) return fail('Mật khẩu cần ít nhất 6 ký tự.');
-    if (mode === 'signup') {
-      if (pass !== pass2) return fail('Hai mật khẩu chưa khớp nhau.');
-      if (state.account && state.account.email === email) return fail('Email này đã có tài khoản trên máy — chuyển sang Đăng nhập.');
-      var salt = authRand();
-      authHash(salt, pass).then(function (hash) {
-        state.account = { email: email, salt: salt, hash: hash, provider: 'password', at: todayISO() };
-        state.signedIn = true;
-        if (!state.settings.profileName || state.settings.profileName === 'Bạn') state.settings.profileName = email.split('@')[0];
-        showToast('Đã tạo tài khoản cho ' + email);
-        afterAuth(remember, true);
-      });
-      return;
+    var btn = form.querySelector('button[type=submit]');
+    function fail(msg) {
+      if (err) { err.textContent = msg; err.hidden = false; }
+      showToast(msg);
+      if (btn) { btn.disabled = false; btn.textContent = mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'; }
     }
-    if (!state.account) return fail('Máy này chưa có tài khoản — chọn "Đăng ký" trước nhé.');
-    if (state.account.email !== email) return fail('Email không khớp với tài khoản trên máy.');
-    authHash(state.account.salt, pass).then(function (hash) {
-      if (hash !== state.account.hash) return fail('Mật khẩu chưa đúng.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Email chưa đúng định dạng.');
+    if (pass.length < 8) return fail('Mật khẩu cần ít nhất 8 ký tự.');
+    if (mode === 'signup' && pass !== pass2) return fail('Hai mật khẩu chưa khớp nhau.');
+    if (btn) { btn.disabled = true; btn.textContent = mode === 'login' ? 'Đang đăng nhập…' : 'Đang tạo…'; }
+
+    var ep = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
+    api(ep, { method: 'POST', body: { email: email, password: pass } }).then(function (r) {
+      setToken(r.token);
+      ACCT.user = r.user;
+      state.account = { email: r.user.email, provider: 'server', at: todayISO() };
       state.signedIn = true;
-      showToast('Đã đăng nhập');
-      afterAuth(remember);
+      state.settings.rememberLogin = remember;
+      if (!state.settings.profileName || state.settings.profileName === 'Bạn') {
+        state.settings.profileName = r.user.name || email.split('@')[0];
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      showToast(mode === 'signup' ? 'Đã tạo tài khoản cho ' + email : 'Đã đăng nhập');
+      authOpen = false;
+      if (mode === 'signup') { openProfileSetup(); return; }
+      return pullState().then(function (remote) {
+        if (remote) {
+          state = Object.assign(remote, {});
+          state.signedIn = true; state.onboardingDone = true; state.onboardingSlide = 0;
+          if (!state.settings.relationPriority) state.settings.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          applyTheme(); render();
+        } else {
+          if (!state.onboardingDone) state.onboardingSlide = 1;
+          save(); render();
+        }
+      });
+    }).catch(function (e) {
+      var msg = e.status === 409 ? 'Email này đã được dùng — chuyển sang Đăng nhập.'
+        : e.status === 401 ? 'Email hoặc mật khẩu chưa đúng.'
+        : e.status === 400 ? (e.data && e.data.error === 'weak_password' ? 'Mật khẩu cần ít nhất 8 ký tự.' : 'Thông tin chưa hợp lệ.')
+        : 'Không kết nối được máy chủ — kiểm tra mạng rồi thử lại.';
+      fail(msg);
     });
   }
 
@@ -3787,7 +3915,16 @@
       case 'auth-guest': authOpen = false; state.onboardingSlide = 1; save(); render(); break;
       case 'auth-continue': closeAuth(); state.onboardingSlide = 1; save(); render(); break;
       case 'auth-signout':
-        state.signedIn = false; save(); showToast('Đã đăng xuất'); render(); break;
+        if (ACCT.token) { api('/api/auth/logout', { method: 'POST' }).catch(function () { }); setToken(''); }
+        ACCT.user = null;
+        /* Xoá bản cục bộ để người đăng nhập sau không thấy dữ liệu của tài khoản trước */
+        state = emptyState(state.settings);
+        state.signedIn = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        authOpen = false;
+        showToast('Đã đăng xuất');
+        navigate('onboarding');
+        break;
       case 'onboard-next': onboardNext(); break;
       case 'onboard-dot': state.onboardingSlide = Number(t.dataset.i); save(); render(); break;
       case 'onboard-finish': finishOnboarding(); break;
@@ -4114,6 +4251,7 @@
        hộp thư chỉ đọc, gọi sớm cũng không hại gì. */
     syncInbox(true);
     setInterval(function () { syncInbox(false); }, 60000);
+    hydrateFromServer();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
