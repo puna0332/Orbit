@@ -1044,6 +1044,17 @@
   /* Nhập "nhắc trước" (ngày) và "giờ gửi" ở trang Nhắc nhở — lưu ngay, không render lại
      để con trỏ không nhảy khi đang gõ số */
   function bindReminderInputs() {
+    var rs = document.getElementById('rmSearch');
+    if (rs && !rs.dataset.bound) {
+      rs.dataset.bound = '1';
+      rs.addEventListener('input', function () {
+        rmQuery = rs.value;
+        var pos = rs.selectionStart;
+        render();
+        var again = document.getElementById('rmSearch');
+        if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) {} }
+      });
+    }
     var nb = document.querySelector('[data-role="remind-before"]');
     if (nb && !nb.dataset.bound) {
       nb.dataset.bound = '1';
@@ -2003,6 +2014,10 @@
         '<button class="sk-seg-btn' + (snapping ? ' on' : '') + '" data-action="diary-snap" data-snap="1">Canh dòng kẻ</button>' +
         '<button class="sk-seg-btn' + (!snapping ? ' on' : '') + '" data-action="diary-snap" data-snap="0">Viết tự do</button>' +
         '</div></section>' +
+        '<section class="sk-block"><h3 class="sk-title">Nhắc nhở</h3><div class="sk-seg">' +
+        '<button class="sk-seg-btn' + (diaryDraft.remind !== false ? ' on' : '') + '" data-action="diary-remind" data-on="1">Có nhắc</button>' +
+        '<button class="sk-seg-btn' + (diaryDraft.remind === false ? ' on' : '') + '" data-action="diary-remind" data-on="0">Không nhắc</button>' +
+        '</div></section>' +
         (paper.custom
           ? '<section class="sk-block"><h3 class="sk-title">Khớp đường kẻ</h3>' +
             '<label class="sk-slider">Dòng <input type="range" min="3" max="9" step="0.1" data-role="paper-gap" value="' + paper.gap + '"></label>' +
@@ -2599,6 +2614,38 @@
       '<button type="submit" class="sk-btn primary">Lưu mẫu tin</button></div></form></div>'
     );
   }
+  /* Bộ lọc + người đang mở của mục "Theo người" — để ngoài render cho khỏi mất khi vẽ lại */
+  var rmRel = 'all', rmGroup = 'all', rmQuery = '', rmOpen = null;
+  function rmDateLabel(v) {
+    if (!v) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+    return m ? (m[3] + '/' + m[2] + '/' + m[1]) : v;
+  }
+  /* Gom mọi thứ có thể nhắc của một người: sinh nhật → nhắc tay → sự kiện → nhật ký */
+  function personReminderItems(p) {
+    var items = [];
+    if (p.birthday) {
+      items.push({ key: 'bd', group: 'Sinh nhật', label: 'Sinh nhật', date: formatMMDD(p.birthday), on: p.remindBirthday !== false });
+    }
+    (p.reminders || []).forEach(function (r) {
+      items.push({
+        key: 'rm:' + r.id, group: 'Nhắc hẹn', label: r.label,
+        date: r.mmdd ? formatMMDD(r.mmdd) : rmDateLabel(r.date), on: r.enabled !== false
+      });
+    });
+    state.events.filter(function (e) { return e.personId === p.id; }).forEach(function (e) {
+      var c = EV_BY_KEY[e.type];
+      items.push({
+        key: 'ev:' + e.id, group: c ? c.label : 'Sự kiện', label: e.title,
+        date: e.date ? rmDateLabel(e.date) : (e.annMMDD ? formatMMDD(e.annMMDD) : ''),
+        on: e.remind !== false
+      });
+    });
+    state.diaries.filter(function (d) { return d.target === p.id; }).forEach(function (d) {
+      items.push({ key: 'dy:' + d.id, group: 'Nhật ký', label: 'Trang nhật ký', date: rmDateLabel(d.date), on: d.remind !== false });
+    });
+    return items;
+  }
   function subReminders() {
     var people = state.people;
     var cfg = state.settings;
@@ -2612,18 +2659,72 @@
         ' aria-pressed="' + on + '"></button></div>';
     }
 
-    var personRows = people.length ? people.map(function (p) {
-      var n = (p.reminders || []).length;
-      var on = p.remindOn !== false;
-      return toggleRow(esc(p.name), n + ' nhắc nhở · ' + (REL_LABEL[p.relationship] || 'Khác'), 'toggle-person-remind',
-        on, 'data-pid="' + p.id + '"');
-    }).join('') : '<p class="muted" style="margin:0;padding:12px 0;">Chưa có người nào trong quỹ đạo.</p>';
-
+    /* ---- Sự kiện (đứng TRÊN phần mối quan hệ) ---- */
     var evRows = EVENT_CATS.map(function (c) {
       var on = evMap[c.k] !== false;
       return toggleRow(c.label, 'Bật nhắc cho nhóm sự kiện này', 'toggle-event-remind', on,
         'data-cat="' + c.k + '"');
     }).join('');
+
+    /* ---- Bộ lọc cho phần Theo người ---- */
+    var relChips = ['all'].concat(REL_TYPES.map(function (r) { return r.k; })).map(function (k) {
+      var label = k === 'all' ? 'Tất cả' : REL_LABEL[k];
+      return '<button class="rm-chip' + (rmRel === k ? ' on' : '') + '" data-action="rm-filter-rel" data-rel="' + k + '">' +
+        label + '</button>';
+    }).join('');
+    var gs = cfg.groups || [];
+    var groupChips = gs.length ? ['all'].concat(gs.map(function (g) { return g.id; })).map(function (gid) {
+      var g = gs.filter(function (x) { return x.id === gid; })[0];
+      var label = gid === 'all' ? 'Tất cả nhóm' : (g ? g.name : gid);
+      return '<button class="rm-chip' + (rmGroup === gid ? ' on' : '') + '" data-action="rm-filter-group" data-gid="' + esc(gid) + '">' +
+        esc(label) + '</button>';
+    }).join('') : '';
+
+    var q = (rmQuery || '').trim().toLowerCase();
+    var list = people.filter(function (p) {
+      if (rmRel !== 'all' && p.relationship !== rmRel) return false;
+      if (rmGroup !== 'all' && (p.groups || []).indexOf(rmGroup) < 0) return false;
+      if (q && p.name.toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+
+    var personCards = list.length ? list.map(function (p) {
+      var items = personReminderItems(p).filter(function (it) { return evMap[it.group] !== false; });
+      var active = items.filter(function (it) { return it.on; }).length;
+      var open = rmOpen === p.id;
+      var on = p.remindOn !== false;
+
+      var body = '';
+      if (open) {
+        if (!items.length) {
+          body = '<div class="rm-empty">Chưa có sự kiện hay nhắc hẹn nào của ' + esc(p.name) + '.</div>';
+        } else {
+          var groups = {};
+          items.forEach(function (it) { (groups[it.group] = groups[it.group] || []).push(it); });
+          body = Object.keys(groups).map(function (g) {
+            return '<div class="rm-sub">' + esc(g) + '</div>' + groups[g].map(function (it) {
+              return '<div class="rm-item">' +
+                '<div class="t"><b>' + esc(it.label) + '</b><span>' + esc(it.date) +
+                ' · nhắc trước ' + (cfg.remindBefore == null ? 3 : cfg.remindBefore) + ' ngày</span></div>' +
+                '<button class="toggle ' + (it.on && on ? 'on' : '') + '" data-action="toggle-remind-item" ' +
+                'data-pid="' + p.id + '" data-key="' + esc(it.key) + '" aria-label="Bật nhắc cho ' + esc(it.label) + '"></button>' +
+                '</div>';
+            }).join('');
+          }).join('');
+        }
+      }
+
+      return '<div class="rm-person' + (open ? ' open' : '') + '">' +
+        '<div class="rm-person-head">' +
+        '<button class="rm-person-btn" data-action="rm-open" data-pid="' + p.id + '" aria-expanded="' + open + '">' +
+        '<span class="rm-av">' + avatarInner(p) + '</span>' +
+        '<span class="rm-name"><b>' + esc(p.name) + '</b>' +
+        '<em>' + (REL_LABEL[p.relationship] || 'Khác') + ' · ' + active + '/' + items.length + ' mục đang nhắc</em></span>' +
+        '<span class="rm-chev">' + (open ? '⌃' : '⌄') + '</span></button>' +
+        '<button class="toggle ' + (on ? 'on' : '') + '" data-action="toggle-person-remind" data-pid="' + p.id + '" ' +
+        'aria-label="Bật nhắc cho ' + esc(p.name) + '"></button>' +
+        '</div>' + (open ? '<div class="rm-person-body">' + body + '</div>' : '') + '</div>';
+    }).join('') : '<div class="rm-empty">Không tìm thấy ai khớp bộ lọc.</div>';
 
     var tplRows = EVENT_CATS.slice(0, 6).map(function (c) {
       return '<div class="rm-row"><div class="t"><b>' + c.label + '</b><span>' +
@@ -2656,10 +2757,7 @@
       '<button class="btn btn-ghost" data-action="remind-all-off">Tắt tất cả</button>' +
       '</div></div></section>' +
 
-      '<section class="settings-group"><h2 class="settings-group-title">Theo từng người</h2>' +
-      '<div class="card rm-card">' + personRows + '</div></section>' +
-
-      '<section class="settings-group"><h2 class="settings-group-title">Theo sự kiện</h2>' +
+      '<section class="settings-group"><h2 class="settings-group-title">Sự kiện</h2>' +
       '<div class="card rm-card">' + evRows + '</div>' +
       '<div class="card rm-card" style="margin-top:10px;">' +
       '<div class="rm-row"><div class="t"><b>Nhắc trước</b><span>Số ngày báo trước cho mỗi sự kiện</span></div>' +
@@ -2667,6 +2765,14 @@
       '<div class="rm-row"><div class="t"><b>Giờ gửi</b><span>Thời điểm gửi tin nhắc</span></div>' +
       '<input class="rm-num" type="time" value="' + esc(cfg.reminderDefaultTime || '09:00') + '" data-role="remind-time"></div>' +
       '</div></section>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Theo người</h2>' +
+      '<div class="rm-filters">' +
+      '<input class="rm-search" id="rmSearch" type="search" placeholder="Tìm đích danh…" value="' + esc(rmQuery) + '">' +
+      '<div class="rm-chips">' + relChips + '</div>' +
+      (groupChips ? '<div class="rm-chips">' + groupChips + '</div>' : '') +
+      '</div>' +
+      '<div class="rm-people">' + personCards + '</div></section>' +
 
       '<section class="settings-group"><h2 class="settings-group-title">Mẫu tin nhắn</h2>' +
       '<div class="card rm-card">' + tplRows + '</div></section>' +
@@ -2804,6 +2910,8 @@
       '<div class="field"><label>Ngày</label><input type="date" name="date" value="' + (dateIso || todayISO()) + '" required></div>' +
       '<div class="field"><label>Giờ (không bắt buộc)</label><input type="time" name="time"></div>' +
       '<div class="field"><label>Địa điểm (không bắt buộc)</label><input type="text" name="location" placeholder="Vd: Quán cà phê"></div>' +
+      '<label class="remind-opt"><input type="checkbox" name="remind" value="1" checked>' +
+      '<span><b>Nhắc nhở cho sự kiện này</b><em>Mặc định bật — tắt nếu bạn không muốn bị nhắc</em></span></label>' +
       '<button type="submit" class="btn btn-primary btn-block">Lưu sự kiện</button></form></div>'
     );
   }
@@ -3044,6 +3152,36 @@
         (pp.reminders || []).forEach(function (r) { r.enabled = pp.remindOn; });
         save(); render(); break;
       }
+      case 'rm-open': {
+        rmOpen = rmOpen === t.dataset.pid ? null : t.dataset.pid;
+        render(); break;
+      }
+      case 'rm-filter-rel': {
+        rmRel = t.dataset.rel || 'all';
+        render(); break;
+      }
+      case 'rm-filter-group': {
+        rmGroup = t.dataset.gid || 'all';
+        render(); break;
+      }
+      case 'toggle-remind-item': {
+        var pItem = state.people.find(function (x) { return x.id === t.dataset.pid; });
+        var key = t.dataset.key || '';
+        if (!pItem) break;
+        if (key === 'bd') {
+          pItem.remindBirthday = pItem.remindBirthday === false;
+        } else if (key.indexOf('rm:') === 0) {
+          var rItem = (pItem.reminders || []).find(function (x) { return x.id === key.slice(3); });
+          if (rItem) rItem.enabled = rItem.enabled === false;
+        } else if (key.indexOf('ev:') === 0) {
+          var evItem = state.events.find(function (x) { return x.id === key.slice(3); });
+          if (evItem) evItem.remind = evItem.remind === false;
+        } else if (key.indexOf('dy:') === 0) {
+          var dyItem = state.diaries.find(function (x) { return x.id === key.slice(3); });
+          if (dyItem) dyItem.remind = dyItem.remind === false;
+        }
+        save(); render(); break;
+      }
       case 'toggle-event-remind': {
         var em = state.settings.eventRemind || (state.settings.eventRemind = {});
         em[t.dataset.cat] = em[t.dataset.cat] === false;
@@ -3131,7 +3269,8 @@
       case 'diary-new':
         diaryDraft = {
           text: '', target: 'me', paperId: (state.settings.diaryPaperId || 'paper-rule'),
-          free: null, font: (state.settings.diaryFont || 'serif'), date: todayISO()
+          free: null, font: (state.settings.diaryFont || 'serif'), date: todayISO(),
+          remind: true   /* mặc định có nhắc nhở, tắt được ngay trong bảng bên phải */
         };
         diaryLayingIn = true;   /* lần render này chạy animation trải giấy */
         render(); break;
@@ -3142,6 +3281,12 @@
         if (!dEl) break;
         if (dEl.showPicker) { try { dEl.showPicker(); break; } catch (e) {} }
         dEl.click(); break;
+      }
+      case 'diary-remind': {
+        if (!diaryDraft) break;
+        syncDiaryText();
+        diaryDraft.remind = t.dataset.on === '1';
+        render(); break;
       }
       case 'diary-snap': {
         if (!diaryDraft) break;
@@ -3224,7 +3369,8 @@
       var ev = mkEvent(title, fd2.get('type'), fd2.get('date'));
       ev.location = fd2.get('location') || '';
       ev.time = fd2.get('time') || '';
-      state.events.push(ev); save(); closeModal(); showToast('Đã thêm sự kiện'); render();
+      ev.remind = !!fd2.get('remind');   /* mặc định tick sẵn, người dùng có thể bỏ trước khi lưu */
+      state.events.push(ev); save(); closeModal(); showToast(ev.remind ? 'Đã thêm sự kiện (có nhắc nhở)' : 'Đã thêm sự kiện (không nhắc)'); render();
     }
   }
 
@@ -3245,6 +3391,7 @@
       free: diaryDraft.free != null ? !!diaryDraft.free : paper.snap === false,
       font: diaryDraft.font || 'serif',
       date: diaryDraft.date || todayISO(),
+      remind: diaryDraft.remind !== false,
       at: (prev && prev.at) || new Date().toISOString()
     };
     state.diaries = state.diaries || [];

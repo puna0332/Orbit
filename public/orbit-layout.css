@@ -1687,3 +1687,53 @@ textarea.paper-ink::placeholder { color: rgba(122,101,82,.45); }
   background:#fff; color:#7A6350; font-size:11px; display:grid; place-items:center;
   box-shadow:0 1px 4px rgba(23,36,59,.2);
 }
+
+/* ===== Nhắc nhở: bộ lọc + danh sách người dạng xổ ra ===== */
+.rm-filters { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+.rm-search {
+  width:100%; padding:10px 14px; border-radius:12px; border:1.5px solid #E2D0BE;
+  background:#FFFDFA; font:inherit; font-size:13px; color:#5E4632;
+}
+.rm-search::placeholder { color:#B09A86; }
+.rm-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.rm-chip {
+  border:1.5px dashed #E2D0BE; background:#FFFDFA; color:#6B5A4A; font:inherit; font-size:12px;
+  padding:6px 12px; border-radius:999px; cursor:pointer; transition:border-color .12s, background .12s;
+}
+.rm-chip:hover { border-color:#C79A6B; }
+.rm-chip.on { border-style:solid; border-color:#C79A6B; background:#FDF3E7; color:#5E4632; font-weight:700; }
+
+.rm-people { display:flex; flex-direction:column; gap:8px; }
+.rm-person { background:#FFFDFA; border:1.5px solid #EFE2D3; border-radius:14px; overflow:hidden; }
+.rm-person.open { border-color:#D9BC96; }
+.rm-person-head { display:flex; align-items:center; gap:10px; padding:10px 12px; }
+.rm-person-btn {
+  flex:1; min-width:0; display:flex; align-items:center; gap:10px;
+  border:0; background:transparent; cursor:pointer; font:inherit; text-align:left; color:inherit; padding:0;
+}
+.rm-av { width:38px; height:38px; border-radius:50%; overflow:hidden; flex:none; display:grid; place-items:center; background:#EBD9C7; font-weight:800; color:#7A6350; }
+.rm-av .av-img { width:100%; height:100%; object-fit:cover; }
+.rm-name { min-width:0; flex:1; }
+.rm-name b { display:block; font-size:14px; }
+.rm-name em { display:block; font-size:11.5px; font-style:normal; color:var(--ink-muted); margin-top:2px; }
+.rm-chev { color:#A08064; font-size:13px; }
+.rm-person-body { border-top:1px dashed rgba(160,128,100,.3); padding:6px 12px 10px; }
+.rm-sub {
+  font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+  color:#A08064; margin:10px 0 4px;
+}
+.rm-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed rgba(160,128,100,.2); }
+.rm-item:last-child { border-bottom:0; }
+.rm-item .t { flex:1; min-width:0; }
+.rm-item .t b { display:block; font-size:13px; }
+.rm-item .t span { display:block; font-size:11px; color:var(--ink-muted); margin-top:1px; }
+.rm-empty { padding:14px 4px; font-size:12.5px; color:var(--ink-muted); text-align:center; }
+
+/* Ô "Nhắc nhở" khi thêm sự kiện */
+.remind-opt {
+  display:flex; gap:10px; align-items:flex-start; padding:12px 14px; margin:4px 0 14px;
+  border:1.5px dashed #E2D0BE; border-radius:12px; background:#FFFDFA; cursor:pointer;
+}
+.remind-opt input { width:18px; height:18px; margin-top:1px; accent-color:#C79A6B; flex:none; }
+.remind-opt b { display:block; font-size:13px; color:#5E4632; }
+.remind-opt em { display:block; font-style:normal; font-size:11px; color:#A08064; margin-top:2px; }
