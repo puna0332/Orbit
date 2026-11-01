@@ -107,6 +107,7 @@
   function defaultSettings() {
     return {
       theme: 'light', aiEnabled: true, reminderDefaultTime: '09:00', profileName: 'Bạn',
+      gender: 'female',   /* 'female' = chủ đề kem/hồng, 'male' = xanh nước biển */
       relationPriority: JSON.parse(JSON.stringify(DEFAULT_PRIORITY)), groups: [],
       homeOccasions: true, homeSuggest: true, homeSuggestHidden: false,
       diaryCoverTheme: 'sky'
@@ -363,6 +364,7 @@
         if (!Array.isArray(parsed.papers)) parsed.papers = [];
         if (!Array.isArray(st.groups)) st.groups = [];
         if (typeof st.homeOccasions !== 'boolean') st.homeOccasions = true;
+        if (st.gender !== 'male' && st.gender !== 'female') st.gender = 'female';
         if (typeof st.homeSuggest !== 'boolean') st.homeSuggest = true;
         if (typeof st.homeSuggestHidden !== 'boolean') st.homeSuggestHidden = false;
         (parsed.people || []).forEach(function (p) {
@@ -394,8 +396,16 @@
     }
     if (effective === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
     else document.documentElement.removeAttribute('data-theme');
+    /* Giới tính đổi cả nền lẫn bảng màu: nữ = kem/hồng như cũ, nam = xanh nước biển */
+    document.documentElement.setAttribute('data-gender', state.settings.gender === 'male' ? 'male' : 'female');
   }
   function setTheme(val) { state.settings.theme = val; save(); applyTheme(); render(); }
+  /* Chọn giới tính = đổi bộ nền/chủ đề (nữ: kem hồng, nam: xanh nước biển) */
+  function setGender(g) {
+    state.settings.gender = g === 'male' ? 'male' : 'female';
+    save(); applyTheme();
+    if (!state.onboardingDone) render(); else render();
+  }
   function toggleAI() { state.settings.aiEnabled = !state.settings.aiEnabled; save(); render(); }
 
   /* ---------------------------- router ---------------------------- */
@@ -2711,6 +2721,10 @@
       '<div class="field"><label>Tên hiển thị</label>' +
       '<input type="text" id="profile-name-input" value="' + esc(nm) + '" maxlength="40"></div>' +
       '<button class="btn btn-primary btn-block" data-action="save-profile-name">Lưu tên</button>' +
+      '<div class="field"><label>Chủ đề theo giới tính</label><div class="sk-seg">' +
+      '<button class="sk-seg-btn' + ((state.settings.gender || 'female') !== 'male' ? ' on' : '') + '" data-action="set-gender" data-g="female">Nữ · kem hồng</button>' +
+      '<button class="sk-seg-btn' + ((state.settings.gender) === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male">Nam · xanh biển</button>' +
+      '</div></div>' +
       '<div class="settings-list" style="margin-top:18px;">' +
       '<button class="settings-row card settings-btn" data-action="open-avatar-picker" data-id="me">' +
       '<div class="ic-wrap tone-blue">' + ic('profile', 22) + '</div>' +
@@ -3016,12 +3030,20 @@
     var i = state.onboardingSlide || 0;
     var s = ONBOARD_SLIDES[i];
     var isDraft = i > 0;
+    var gender = state.settings.gender === 'male' ? 'male' : 'female';
     return (
       '<div class="onboard-wrap"><div class="onboard-content">' +
       '<div class="onboard-top">' +
       '<div class="onboard-logo-badge"><img src="assets/logo-orbit.png" alt="Orbit"></div>' +
       '<h1 class="onboard-title">' + s.title + '</h1>' +
       '<p class="onboard-sub">' + s.sub + '</p>' +
+      (i === 0
+        ? '<div class="onboard-gender">' +
+          '<button class="og-card' + (gender !== 'male' ? ' on' : '') + '" data-action="set-gender" data-g="female" aria-pressed="' + (gender !== 'male') + '">' +
+          '<span class="og-art og-art-female"></span><b>Nữ</b><em>Chủ đề kem · mây hồng</em></button>' +
+          '<button class="og-card' + (gender === 'male' ? ' on' : '') + '" data-action="set-gender" data-g="male" aria-pressed="' + (gender === 'male') + '">' +
+          '<span class="og-art og-art-male"></span><b>Nam</b><em>Chủ đề xanh nước biển</em></button>' +
+          '</div>' : '') +
       (isDraft ? '<div class="gap-note" style="max-width:320px;margin:12px auto 0;background:rgba(255,255,255,.9);">Nội dung slide này là bản nháp — chưa có mockup/material riêng, cần bạn duyệt lại.</div>' : '') +
       '</div><div class="onboard-art-band"></div><div class="onboard-bottom">' +
       '<button class="btn btn-primary btn-block" data-action="' + (i < ONBOARD_SLIDES.length - 1 ? 'onboard-next' : 'onboard-finish') + '">' + s.primary + ' →</button>' +
@@ -3412,6 +3434,7 @@
       case 'me-tab': meTab = t.dataset.tab || 'overview'; render(); break;
       case 'hide-home-suggest': state.settings.homeSuggestHidden = true; save(); render(); showToast('Đã ẩn gợi ý — bật lại trong Cài đặt'); break;
       case 'home-day': homeDay = t.dataset.date; render(); break;
+      case 'set-gender': setGender(t.dataset.g); break;
       case 'open-write-for-me': openWriteForMe(); break;
       case 'copy-write-link': {
         var wf = document.getElementById('wfLink');

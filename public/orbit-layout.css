@@ -1927,3 +1927,62 @@ textarea.paper-ink::placeholder { color: rgba(122,101,82,.45); }
 @media (max-width: 899px) {
   .occasion-scroll .occasion-card { flex-basis: 44%; height: 140px; }
 }
+
+/* ===== Onboarding: chọn giới tính ở bước bắt đầu ===== */
+.onboard-gender {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  max-width: 380px; margin: 16px auto 0;
+}
+.og-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 8px 10px; border-radius: 16px; border: 2px solid transparent;
+  background: rgba(255,255,255,.72); cursor: pointer; font: inherit; color: #3E4A63;
+  transition: border-color .14s, transform .14s, box-shadow .14s;
+}
+.og-card:hover { transform: translateY(-1px); }
+.og-card.on { border-color: #15203D; box-shadow: 0 6px 18px rgba(21,32,61,.18); background: #fff; }
+.og-art {
+  display: block; width: 100%; aspect-ratio: 16/10; border-radius: 10px;
+  background-size: cover; background-position: center top; margin-bottom: 4px;
+}
+.og-art-female { background-image: url('assets/home-bg-desktop.png'); }
+.og-art-male { background-image: url('assets/home-bg-male-desktop.jpg'); }
+.og-card b { font-size: 13.5px; }
+.og-card em { font-size: 10.5px; font-style: normal; color: #6B7488; text-align: center; line-height: 1.25; }
+
+/* ===== Chủ đề NAM: xanh nước biển ===== */
+html[data-gender="male"] {
+  --cream: #E9F1FB;
+  --pink: #D8E6FF;
+  --pink-ink: #2F5C96;
+}
+html[data-gender="male"] .view-root.page-home {
+  background-color: var(--cream);
+}
+@media (min-width:900px) {
+  html[data-gender="male"] .view-root.page-home {
+    background-image: url('assets/home-bg-male-desktop.jpg');
+    background-size: 100% auto;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+}
+@media (max-width:899px) {
+  html[data-gender="male"] .view-root.page-home {
+    background-image: url('assets/home-bg-male-mobile.jpg');
+    background-size: cover;
+    background-position: center top;
+  }
+}
+html[data-gender="male"] .home-hero { background: transparent; }
+html[data-gender="male"] .home-section-head h2 { color: #1B3358; }
+
+/* Onboarding mang luôn nền của giới tính đã chọn */
+html[data-gender="male"] .onboard-wrap {
+  background-image: url('assets/home-bg-male-desktop.jpg');
+  background-size: contain; background-position: center center; background-repeat: no-repeat;
+  background-color: var(--cream);
+}
+html[data-gender="male"] .onboard-art-band {
+  background: url('assets/home-bg-male-mobile.jpg') center 40% / cover no-repeat;
+}
