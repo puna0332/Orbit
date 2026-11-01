@@ -2337,3 +2337,12 @@ html[data-gender="male"] .acc-server { background: #EFF7FB; border-color: #D3E7F
 html[data-gender="male"] .acc-server b { color: #1B4A63; }
 html[data-gender="male"] .acc-server span { color: #4E6E80; }
 html[data-gender="male"] .acc-signin { border-color: #C3D8E8; background: #F7FBFF; color: #3D6398; }
+
+/* Liên kết "Quên mật khẩu?" dưới nút đăng nhập */
+.auth-forgot {
+  display: block; width: 100%; margin-top: 8px; padding: 2px; background: none; border: 0;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: #7A5B45;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.auth-forgot:hover { color: #5C4231; }
+html[data-gender="male"] .auth-forgot { color: #3D6398; }

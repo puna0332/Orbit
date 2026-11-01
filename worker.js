@@ -444,6 +444,174 @@ async function apiDeleteAccount(req, env) {
   return json({ ok: true });
 }
 
+
+/* ---------------------- Quên mật khẩu + đăng nhập Google ---------------------- */
+
+const RESET_TTL_MIN = 60;
+const APP_NAME = 'Orbit';
+
+function sha256Hex(str) {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+    .then((buf) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join(''));
+}
+
+/* Gửi mail: ưu tiên Resend (secret RESEND_API_KEY), sau đó binding SEND_EMAIL của
+   Cloudflare Email Routing. Chưa cấu hình thì trả về false để API nói thật với
+   người dùng thay vì im lặng coi như đã gửi. */
+async function sendMail(env, to, subject, html, text) {
+  if (env.RESEND_API_KEY) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        from: env.MAIL_FROM || 'Orbit <onboarding@resend.dev>',
+        to: [to], subject: subject, html: html, text: text,
+      }),
+    });
+    return r.ok;
+  }
+  if (env.SEND_EMAIL) {
+    try {
+      await env.SEND_EMAIL.send({
+        to: to, from: { email: env.MAIL_FROM_ADDRESS || 'no-reply@orbit.app', name: APP_NAME },
+        subject: subject, html: html, text: text,
+      });
+      return true;
+    } catch { return false; }
+  }
+  return false;
+}
+
+function resetEmailHtml(link) {
+  return '<div style="font-family:Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#2C2A33">' +
+    '<h2 style="margin:0 0 12px;color:#1D3A63">Đặt lại mật khẩu Orbit</h2>' +
+    '<p style="margin:0 0 16px;font-size:14px;line-height:1.6">Bạn vừa yêu cầu đặt lại mật khẩu. Bấm nút bên dưới để tạo mật khẩu mới — liên kết chỉ dùng được một lần và hết hạn sau ' + RESET_TTL_MIN + ' phút.</p>' +
+    '<p style="margin:0 0 20px"><a href="' + link + '" style="display:inline-block;background:#1D3A63;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700">Đặt lại mật khẩu</a></p>' +
+    '<p style="margin:0;font-size:12px;color:#7A6A5D">Nếu không phải bạn yêu cầu, bỏ qua email này — mật khẩu hiện tại vẫn giữ nguyên.</p></div>';
+}
+
+async function apiForgot(req, env, url) {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const email = String(body.email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) return json({ error: 'bad_email' }, 400);
+  if (await rateLimited(env, req, 'forgot')) return json({ error: 'rate_limited' }, 429);
+
+  const u = await env.ORBIT_DB.prepare('SELECT id, email FROM users WHERE email = ?').bind(email).first();
+  /* Luôn trả 200 cho mọi email để phản hồi không phụ thuộc việc email có tồn tại hay
+     không; trường `known` chỉ dùng để giao diện báo đúng cho người dùng. */
+  if (!u) return json({ ok: true, delivered: false, known: false });
+
+  const token = randHex(32);
+  const hash = await sha256Hex(token);
+  const exp = new Date(Date.now() + RESET_TTL_MIN * 60000).toISOString();
+  await env.ORBIT_DB.prepare(
+    'INSERT INTO reset_tokens (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'
+  ).bind(hash, u.id, nowIso(), exp).run();
+
+  const origin = url.origin;
+  const link = origin + '/#/reset?token=' + token;
+  const delivered = await sendMail(env, email, 'Đặt lại mật khẩu ' + APP_NAME,
+    resetEmailHtml(link), 'Mở liên kết để đặt lại mật khẩu: ' + link);
+  return json({ ok: true, delivered: delivered, known: true });
+}
+
+async function apiReset(req, env) {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const token = String(body.token || '');
+  const password = String(body.password || '');
+  if (!/^[a-f0-9]{32,128}$/.test(token)) return json({ error: 'bad_token' }, 400);
+  if (password.length < 8) return json({ error: 'weak_password' }, 400);
+
+  const hash = await sha256Hex(token);
+  const row = await env.ORBIT_DB.prepare(
+    'SELECT token_hash, user_id, expires_at, used_at FROM reset_tokens WHERE token_hash = ?'
+  ).bind(hash).first();
+  if (!row || row.used_at || Date.parse(row.expires_at) < Date.now()) return json({ error: 'bad_token' }, 400);
+
+  const salt = randHex(16);
+  const passHash = await pbkdf2(password, salt, PBKDF2_ITER);
+  await env.ORBIT_DB.batch([
+    env.ORBIT_DB.prepare('UPDATE users SET pass_hash = ?, salt = ?, iterations = ?, updated_at = ? WHERE id = ?')
+      .bind(passHash, salt, PBKDF2_ITER, nowIso(), row.user_id),
+    env.ORBIT_DB.prepare('UPDATE reset_tokens SET used_at = ? WHERE token_hash = ?').bind(nowIso(), hash),
+    env.ORBIT_DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(row.user_id),
+  ]);
+  return json({ ok: true });
+}
+
+/* --- Google: xác thực id_token bằng JWKS của Google (không tin dữ liệu client) --- */
+let googleCerts = { at: 0, keys: {} };
+async function googleKeys() {
+  if (Date.now() - googleCerts.at < 3600000 && Object.keys(googleCerts.keys).length) return googleCerts.keys;
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+  const j = await r.json();
+  const keys = {};
+  for (const k of j.keys || []) keys[k.kid] = k;
+  googleCerts = { at: Date.now(), keys: keys };
+  return keys;
+}
+
+function b64urlToBytes(s) {
+  const pad = s + '==='.slice((s.length + 3) % 4);
+  const b = atob(pad.replace(/-/g, '+').replace(/_/g, '/'));
+  const out = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+  return out;
+}
+
+async function verifyGoogleIdToken(idToken, clientId) {
+  const parts = String(idToken || '').split('.');
+  if (parts.length !== 3) return null;
+  let header, payload;
+  try {
+    header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
+    payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+  } catch { return null; }
+  if (!header || !payload) return null;
+  if (payload.iss !== 'accounts.google.com' && payload.iss !== 'https://accounts.google.com') return null;
+  if (clientId && payload.aud !== clientId) return null;
+  if (payload.exp * 1000 < Date.now()) return null;
+
+  try {
+    const keys = await googleKeys();
+    const jwk = keys[header.kid];
+    if (!jwk) return null;
+    const key = await crypto.subtle.importKey('jwk',
+      { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+    const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key,
+      b64urlToBytes(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+    return ok ? payload : null;
+  } catch { return null; }
+}
+
+async function apiGoogle(req, env) {
+  const body = await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const payload = await verifyGoogleIdToken(body.credential, env.GOOGLE_CLIENT_ID || '');
+  if (!payload || !payload.email) return json({ error: 'bad_credential' }, 401);
+  if (payload.email_verified === false) return json({ error: 'email_unverified' }, 403);
+
+  const email = String(payload.email).toLowerCase();
+  let u = await env.ORBIT_DB.prepare('SELECT id, email, name, birthday, avatar FROM users WHERE email = ?').bind(email).first();
+  if (!u) {
+    const id = 'u_' + randHex(12);
+    const at = nowIso();
+    await env.ORBIT_DB.prepare(
+      'INSERT INTO users (id, email, pass_hash, salt, iterations, name, avatar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, email, '', '', 0, String(payload.name || '').slice(0, 60), String(payload.picture || '').slice(0, 200), at, at).run();
+    u = { id: id, email: email, name: payload.name || '', birthday: '', avatar: '' };
+  }
+  const token = await createSession(env, u.id);
+  return json({ ok: true, token: token, user: publicUser(u) });
+}
+
+async function apiConfig(env) {
+  return json({ ok: true, googleClientId: env.GOOGLE_CLIENT_ID || '', mailConfigured: !!(env.RESEND_API_KEY || env.SEND_EMAIL) });
+}
+
 /* ------------------------------ router ------------------------------ */
 
 async function handleApi(req, env, url) {
@@ -451,6 +619,10 @@ async function handleApi(req, env, url) {
 
   /* --- tài khoản --- */
   if (p === '/api/auth/register' && req.method === 'POST') return apiRegister(req, env);
+  if (p === '/api/auth/forgot' && req.method === 'POST') return apiForgot(req, env, url);
+  if (p === '/api/auth/reset' && req.method === 'POST') return apiReset(req, env);
+  if (p === '/api/auth/google' && req.method === 'POST') return apiGoogle(req, env);
+  if (p === '/api/config' && req.method === 'GET') return apiConfig(env);
   if (p === '/api/auth/login' && req.method === 'POST') return apiLogin(req, env);
   if (p === '/api/auth/logout' && req.method === 'POST') return apiLogout(req, env);
   if (p === '/api/auth/me' && req.method === 'GET') return apiMe(req, env);

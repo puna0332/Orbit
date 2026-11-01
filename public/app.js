@@ -3154,6 +3154,10 @@
   var authTab = 'login';
   var authOpen = false;
   var authRemember = true;
+  var authDraftEmail = '';
+  var authForgot = false;
+  var resetToken = '';
+  var appConfig = { googleClientId: '', mailConfigured: false };
 
   function authRand() {
     var a = new Uint8Array(16); crypto.getRandomValues(a);
@@ -3167,6 +3171,7 @@
   }
   function openAuth() {
     authOpen = true;
+    authForgot = false;
     authTab = state.account ? 'login' : 'signup';
     authRemember = state.settings.rememberLogin !== false;
     render();
@@ -3250,14 +3255,24 @@
       (signedIn
         ? '<button class="btn btn-primary btn-block" data-action="auth-continue">Tiếp tục →</button>' +
           '<button class="auth-skip" data-action="auth-signout">Đăng xuất khỏi thiết bị này</button>'
-        : '<div class="auth-tabs">' +
-          '<button class="auth-tab' + (authTab === 'login' ? ' on' : '') + '" data-action="auth-tab" data-t="login">Đăng nhập</button>' +
-          '<button class="auth-tab' + (authTab === 'signup' ? ' on' : '') + '" data-action="auth-tab" data-t="signup">Đăng ký</button>' +
-          '</div>' +
-          '<form id="form-orbit-auth" data-mode="' + authTab + '" novalidate>' +
+        : (authForgot
+          ? '<div class="auth-head" style="margin-bottom:4px"><h2 style="font-size:17px">Quên mật khẩu</h2>' +
+            '<p>Nhập email đã đăng ký, Orbit sẽ gửi liên kết đặt lại mật khẩu (hết hạn sau 60 phút).</p></div>' +
+            '<form id="form-orbit-forgot" novalidate>' +
+            '<label class="auth-field"><span>Email</span>' +
+            '<input type="email" name="email" autocomplete="email" placeholder="ban@orbit.app" value="' + esc(authDraftEmail) + '"></label>' +
+            '<div class="auth-err" role="alert" hidden></div>' +
+            '<button class="btn btn-primary btn-block" type="submit">Gửi liên kết đặt lại</button>' +
+            '</form>' +
+            '<button class="auth-skip" data-action="auth-forgot-back">← Quay lại đăng nhập</button>'
+          : '<div class="auth-tabs">' +
+            '<button class="auth-tab' + (authTab === 'login' ? ' on' : '') + '" data-action="auth-tab" data-t="login">Đăng nhập</button>' +
+            '<button class="auth-tab' + (authTab === 'signup' ? ' on' : '') + '" data-action="auth-tab" data-t="signup">Đăng ký</button>' +
+            '</div>' +
+            '<form id="form-orbit-auth" data-mode="' + authTab + '" novalidate>' +
           '<label class="auth-field"><span>Email</span>' +
           '<input type="email" name="email" autocomplete="email" placeholder="ban@orbit.app" value="' +
-          (acc && authTab === 'login' && authRemember ? esc(acc.email) : '') + '"></label>' +
+          (acc && authTab === 'login' && authRemember ? esc(acc.email) : esc(authDraftEmail)) + '"></label>' +
           '<label class="auth-field"><span>Mật khẩu</span>' +
           '<input type="password" name="password" autocomplete="' + (authTab === 'login' ? 'current-password' : 'new-password') + '" placeholder="Ít nhất 6 ký tự"></label>' +
           (authTab === 'signup'
@@ -3267,9 +3282,10 @@
           '<div class="auth-err" role="alert" hidden></div>' +
           '<button class="btn btn-primary btn-block" type="submit">' + (authTab === 'login' ? 'Đăng nhập' : 'Tạo tài khoản') + '</button>' +
           '</form>' +
+          '<button class="auth-forgot" data-action="auth-forgot">Quên mật khẩu?</button>' +
           '<div class="auth-or"><span>hoặc</span></div>' +
           '<button class="auth-google" data-action="auth-google">' + ic('link', 18) + ' Tiếp tục với Google</button>' +
-          '<button class="auth-skip" data-action="auth-guest">Dùng thử không cần tài khoản</button>') +
+          '<button class="auth-skip" data-action="auth-guest">Dùng thử không cần tài khoản</button>')) +
       '</div></div>';
   }
 
@@ -3288,6 +3304,7 @@
     var pass2 = String(fd.get('password2') || '');
     var remember = !!fd.get('remember');
     authRemember = remember;
+    authDraftEmail = email;
     var err = form.querySelector('.auth-err');
     var mode = form.dataset.mode || 'login';
     var btn = form.querySelector('button[type=submit]');
@@ -3322,13 +3339,17 @@
           if (!state.settings.relationPriority) state.settings.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
           applyTheme(); render();
+          if (location.hash === '#/onboarding' || !location.hash) location.hash = '#/home';
         } else {
-          if (!state.onboardingDone) state.onboardingSlide = 1;
+          /* Tài khoản đã tồn tại nhưng chưa có dữ liệu trên máy chủ: vào thẳng trang chủ */
+          state.onboardingDone = true; state.onboardingSlide = 0;
           save(); render();
+          if (location.hash === '#/onboarding' || !location.hash) location.hash = '#/home';
         }
       });
     }).catch(function (e) {
-      var msg = e.status === 409 ? 'Email này đã được dùng — chuyển sang Đăng nhập.'
+      if (e.status === 409) { authTab = 'login'; authOpen = true; }
+      var msg = e.status === 409 ? 'Email này đã có tài khoản — chuyển sang Đăng nhập giúp bạn.'
         : e.status === 401 ? 'Email hoặc mật khẩu chưa đúng.'
         : e.status === 400 ? (e.data && e.data.error === 'weak_password' ? 'Mật khẩu cần ít nhất 8 ký tự.' : 'Thông tin chưa hợp lệ.')
         : 'Không kết nối được máy chủ — kiểm tra mạng rồi thử lại.';
@@ -3337,27 +3358,100 @@
   }
 
   function authGoogle() {
-    /* Cần Google Client ID (OAuth) mới bật được nút này; chưa cấu hình thì nói rõ
-       thay vì giả vờ đăng nhập thành công. */
-    var cid = window.ORBIT_GOOGLE_CLIENT_ID;
+    var cid = appConfig.googleClientId || window.ORBIT_GOOGLE_CLIENT_ID;
     if (!cid) { showToast('Chưa cấu hình Google Client ID — hãy dùng email & mật khẩu.'); return; }
-    var sc = document.createElement('script');
-    sc.src = 'https://accounts.google.com/gsi/client';
-    sc.onload = function () {
+    function boot() {
       window.google.accounts.id.initialize({
         client_id: cid,
         callback: function (res) {
-          var p = JSON.parse(atob(res.credential.split('.')[1]));
-          state.account = { email: p.email, name: p.name, provider: 'google', at: todayISO(), hash: '', salt: '' };
-          state.signedIn = true;
-          if (!state.settings.profileName || state.settings.profileName === 'Bạn') state.settings.profileName = p.name || p.email.split('@')[0];
-          showToast('Xin chào ' + (p.name || p.email));
-          afterAuth(true);
+          api('/api/auth/google', { method: 'POST', body: { credential: res.credential } }).then(function (r) {
+            setToken(r.token);
+            ACCT.user = r.user;
+            state.account = { email: r.user.email, provider: 'google', at: todayISO() };
+            state.signedIn = true;
+            authOpen = false;
+            showToast('Xin chào ' + (r.user.name || r.user.email));
+            return pullState().then(function (remote) {
+              if (remote) {
+                state = Object.assign(remote, {});
+                state.signedIn = true; state.onboardingDone = true; state.onboardingSlide = 0;
+                if (!state.settings.relationPriority) state.settings.relationPriority = JSON.parse(JSON.stringify(DEFAULT_PRIORITY));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                applyTheme(); render();
+                if (location.hash === '#/onboarding' || !location.hash) location.hash = '#/home';
+              } else { save(); render(); if (location.hash === '#/onboarding' || !location.hash) location.hash = '#/home'; }
+            });
+          }).catch(function () { showToast('Đăng nhập Google chưa thành công — thử lại nhé.'); });
         }
       });
       window.google.accounts.id.prompt();
-    };
+    }
+    if (window.google && window.google.accounts) return boot();
+    var sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client';
+    sc.onload = boot;
     document.head.appendChild(sc);
+  }
+
+  function resetCardHtml() {
+    if (!resetToken) return '';
+    return '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title">' +
+      '<div class="auth-scrim"></div>' +
+      '<div class="auth-card">' +
+      '<div class="auth-head"><h2 id="reset-title">Đặt mật khẩu mới</h2>' +
+      '<p>Liên kết chỉ dùng một lần. Sau khi đổi, mọi thiết bị khác sẽ phải đăng nhập lại.</p></div>' +
+      '<form id="form-orbit-reset" novalidate>' +
+      '<label class="auth-field"><span>Mật khẩu mới</span>' +
+      '<input type="password" name="password" autocomplete="new-password" placeholder="Ít nhất 8 ký tự"></label>' +
+      '<label class="auth-field"><span>Nhập lại mật khẩu</span>' +
+      '<input type="password" name="password2" autocomplete="new-password" placeholder="Nhập lại mật khẩu"></label>' +
+      '<div class="auth-err" role="alert" hidden></div>' +
+      '<button class="btn btn-primary btn-block" type="submit">Lưu mật khẩu mới</button>' +
+      '</form>' +
+      '<button class="auth-skip" data-action="reset-cancel">Để sau</button>' +
+      '</div></div>';
+  }
+
+  function submitReset(form) {
+    var fd = new FormData(form);
+    var pass = String(fd.get('password') || '');
+    var pass2 = String(fd.get('password2') || '');
+    var err = form.querySelector('.auth-err');
+    function fail(m) { if (err) { err.textContent = m; err.hidden = false; } }
+    if (pass.length < 8) return fail('Mật khẩu cần ít nhất 8 ký tự.');
+    if (pass !== pass2) return fail('Hai mật khẩu chưa khớp nhau.');
+    api('/api/auth/reset', { method: 'POST', body: { token: resetToken, password: pass } }).then(function () {
+      resetToken = '';
+      history.replaceState(null, '', location.pathname + '#/onboarding');
+      showToast('Đã đổi mật khẩu — hãy đăng nhập lại');
+      authTab = 'login'; authForgot = false; authOpen = true;
+      render();
+    }).catch(function (e) {
+      fail(e.status === 400 ? 'Liên kết đã hết hạn hoặc đã dùng — yêu cầu liên kết mới.' : 'Không kết nối được máy chủ.');
+    });
+  }
+
+  function submitForgot(form) {
+    var fd = new FormData(form);
+    var email = String(fd.get('email') || '').trim().toLowerCase();
+    var err = form.querySelector('.auth-err');
+    function fail(m) { if (err) { err.textContent = m; err.hidden = false; } }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return fail('Email chưa đúng định dạng.');
+    api('/api/auth/forgot', { method: 'POST', body: { email: email } }).then(function (r) {
+      if (r.delivered) {
+        showToast('Đã gửi liên kết tới ' + email);
+        authForgot = false;
+        render();
+      } else {
+        fail(r.known === false
+          ? 'Email này chưa có tài khoản. Kiểm tra lại hoặc tạo tài khoản mới.'
+          : (appConfig.mailConfigured
+            ? 'Chưa gửi được mail — thử lại sau ít phút.'
+            : 'Máy chủ chưa cấu hình gửi mail nên không gửi được liên kết.'));
+      }
+    }).catch(function (e) {
+      fail(e.status === 429 ? 'Bạn thử hơi nhiều lần — đợi một lát rồi thử lại.' : 'Không kết nối được máy chủ.');
+    });
   }
 
   function renderOnboarding() {
@@ -3386,7 +3480,7 @@
       '</div></div>' +
       /* Ảnh demo màn hình rộng: absolute so với .onboard-wrap nên không đẩy bố cục */
       (s.shot ? '<img class="onboard-shot" src="' + s.shot + '" alt="' + s.shotAlt + '" loading="lazy">' : '') +
-      authModalHtml() + profileSetupHtml() + '</div>'
+      authModalHtml() + profileSetupHtml() + resetCardHtml() + '</div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
@@ -3904,6 +3998,12 @@
       case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
       case 'auth-open': openAuth(); break;
+      case 'auth-forgot': authForgot = true; authOpen = true; render(); break;
+      case 'auth-forgot-back': authForgot = false; authTab = 'login'; render(); break;
+      case 'reset-cancel':
+        resetToken = '';
+        history.replaceState(null, '', location.pathname + (state.onboardingDone ? '#/home' : '#/onboarding'));
+        render(); break;
       case 'setup-avatar': setupAvatar = t.dataset.av; render(); break;
       case 'setup-skip':
         setupOpen = false;
@@ -3935,6 +4035,8 @@
     var form = e.target;
     if (form.id === 'form-orbit-auth') { e.preventDefault(); submitAuth(form); return; }
     if (form.id === 'form-orbit-profile') { e.preventDefault(); saveProfileSetup(form); return; }
+    if (form.id === 'form-orbit-forgot') { e.preventDefault(); submitForgot(form); return; }
+    if (form.id === 'form-orbit-reset') { e.preventDefault(); submitReset(form); return; }
     if (form.id === 'form-add-group') {
       e.preventDefault();
       var gname = (new FormData(form).get('name') || '').trim();
@@ -4245,13 +4347,20 @@
       layoutPapers();
       requestAnimationFrame(function () { layoutPapers(); });
     });
-    window.addEventListener('hashchange', render);
+    window.addEventListener('hashchange', function () {
+      var m = /#\/reset\?token=([a-f0-9]{32,128})/.exec(location.hash);
+      resetToken = m ? m[1] : resetToken;
+      render();
+    });
     render();
     /* loadState luôn đưa về onboarding nên không thể chờ cờ onboardingDone ở đây;
        hộp thư chỉ đọc, gọi sớm cũng không hại gì. */
     syncInbox(true);
     setInterval(function () { syncInbox(false); }, 60000);
     hydrateFromServer();
+    api('/api/config').then(function (r) { appConfig = r; }).catch(function () { });
+    var rm = /#\/reset\?token=([a-f0-9]{32,128})/.exec(location.hash);
+    if (rm) { resetToken = rm[1]; render(); }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

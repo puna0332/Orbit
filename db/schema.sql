@@ -41,3 +41,14 @@ CREATE TABLE IF NOT EXISTS sync_log (
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sync_user ON sync_log(user_id, created_at);
+
+-- Token đặt lại mật khẩu: chỉ lưu SHA-256 của token, hạn 1 giờ, dùng một lần
+CREATE TABLE IF NOT EXISTS reset_tokens (
+  token_hash  TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  used_at     TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_reset_user ON reset_tokens(user_id);
