@@ -1986,3 +1986,13 @@ html[data-gender="male"] .onboard-wrap {
 html[data-gender="male"] .onboard-art-band {
   background: url('assets/home-bg-male-mobile.jpg') center 40% / cover no-repeat;
 }
+
+/* Onboarding NAM: tranh cậu bé + mèo (PC/điện thoại riêng), phủ kín bằng cover */
+html[data-gender="male"] .onboard-wrap {
+  background-image: url('assets/onboard-bg-male-desktop.jpg');
+  background-size: cover; background-position: center top; background-repeat: no-repeat;
+  background-color: var(--cream);
+}
+html[data-gender="male"] .onboard-art-band {
+  background: url('assets/onboard-bg-male-mobile.jpg') center top / cover no-repeat;
+}
