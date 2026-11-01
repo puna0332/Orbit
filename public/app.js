@@ -410,6 +410,7 @@
   var peopleGroupSel = [];    // chọn nhiều nhóm; rỗng = tất cả
   var peopleFavOnly = false;
   var openAddPersonRel = 'friend';
+  var openAddPersonAvatar = '';   /* avatar chọn trong modal Thêm người */
   var pdTab = 'all';        // tab đang chọn ở trang cá nhân (của người khác)
   var pdTabFor = null;      // hồ sơ đang xem, đổi người thì reset về Tổng
   var meTab = 'overview';   // tab đang chọn ở Trang cá nhân của chính bạn
@@ -599,6 +600,8 @@
     if (page === 'diary') { layoutPapers(); if (document.getElementById('paperImportInput')) bindPaperImport(); }
     else if (page === 'me' || (page === 'people' && parts[1])) layoutPapers();
     if (diaryDraft) syncDiaryText();
+    bindProfileUploads();
+    bindReminderInputs();
     /* hiệu ứng quét giấy chỉ chạy đúng một lần lúc mở; hết animation thì dọn class + mép sáng */
     if (diaryLayingIn) setTimeout(function () {
       diaryLayingIn = false;
@@ -942,15 +945,171 @@
   }
 
   /* Avatar: ưu tiên ảnh người dùng tải lên (p.photo = dataURL), sau đó tới avatar
-     chọn từ bộ element (p.avatar = 'av-07'), cuối cùng mới fallback chữ cái. */
+     chọn từ bộ sẵn có (p.avatar = 'av-07' hoặc dataURL), cuối cùng mới fallback chữ cái. */
   var AVATAR_COUNT = 26;
+  var AVATAR_PRESETS = ['av-01', 'av-02', 'av-03', 'av-04', 'av-05', 'av-06', 'av-07', 'av-08',
+    'av-09', 'av-10', 'av-11', 'av-12', 'av-13', 'av-14', 'av-15', 'av-16', 'av-17', 'av-18',
+    'av-19', 'av-20'];
+  /* Giá trị avatar ('av-07' | dataURL | đường dẫn) → src dùng được cho <img> */
+  function avatarSrc(v) {
+    if (!v) return '';
+    return /^av-\d+$/.test(v) ? 'assets/avatars/' + v + '.png' : v;
+  }
   function avatarInner(p, size) {
-    if (p.photo) return '<img class="av-img" src="' + esc(p.photo) + '" alt="">';
-    if (p.avatar) return '<img class="av-img" src="assets/avatars/' + esc(p.avatar) + '.png" alt="">';
+    var v = p.photo || p.avatar;
+    if (v) return '<img class="av-img" src="' + esc(avatarSrc(v)) + '" alt="">';
     return initials(p.name);
   }
   function avatarStyle(p) {
     return (p.photo || p.avatar) ? 'background:transparent;' : 'background:' + avatarColor(p.id) + ';';
+  }
+
+  /* ===== Ảnh đại diện + ảnh nền: dùng chung cho trang của bạn ('me') và người khác ===== */
+  function profileAvatarOf(id) {
+    if (id === 'me') return state.settings.profileAvatar || '';
+    var p = state.people.find(function (x) { return x.id === id; });
+    return p ? (p.photo || p.avatar || '') : '';
+  }
+  function profileCoverOf(id) {
+    if (id === 'me') return state.settings.profileCover || '';
+    var p = state.people.find(function (x) { return x.id === id; });
+    return p ? (p.cover || '') : '';
+  }
+  function profileNameOf(id) {
+    if (id === 'me') return state.settings.profileName || 'Bạn';
+    var p = state.people.find(function (x) { return x.id === id; });
+    return p ? p.name : '';
+  }
+  function setProfileAvatar(id, val) {
+    if (id === 'me') {
+      state.settings.profileAvatar = val || '';
+    } else {
+      var p = state.people.find(function (x) { return x.id === id; });
+      if (!p) return;
+      p.photo = ''; p.avatar = val || '';
+    }
+    save(); closeModal(); render();
+    showToast(val ? 'Đã đổi ảnh đại diện' : 'Đã bỏ ảnh đại diện');
+  }
+  function setProfileCover(id, val) {
+    if (id === 'me') {
+      state.settings.profileCover = val || '';
+    } else {
+      var p = state.people.find(function (x) { return x.id === id; });
+      if (!p) return;
+      p.cover = val || '';
+    }
+    save(); closeModal(); render();
+    showToast(val ? 'Đã đổi ảnh nền' : 'Đã bỏ ảnh nền');
+  }
+  function openAvatarPicker(id) {
+    var cur = profileAvatarOf(id);
+    var grid = AVATAR_PRESETS.map(function (a) {
+      return '<button class="av-pick' + (cur === a ? ' on' : '') + '" data-action="pick-avatar" ' +
+        'data-id="' + esc(id) + '" data-av="' + a + '" aria-label="Chọn ảnh ' + a + '">' +
+        '<img src="assets/avatars/' + a + '.png" alt=""></button>';
+    }).join('');
+    openModal(
+      '<div class="modal-sheet avatar-sheet"><div class="modal-head"><h3>Ảnh đại diện — ' +
+      esc(profileNameOf(id)) + '</h3><button data-action="close-modal">✕</button></div>' +
+      '<div class="av-grid">' + grid + '</div>' +
+      '<label class="btn btn-block av-upload">Tải ảnh từ máy' +
+      '<input type="file" accept="image/*" id="avatarUpload" data-id="' + esc(id) + '" hidden></label>' +
+      (cur ? '<button class="btn btn-block av-clear" data-action="clear-avatar" data-id="' + esc(id) + '">Bỏ ảnh đại diện</button>' : '') +
+      '</div>'
+    );
+  }
+  function openCoverPicker(id) {
+    var cur = profileCoverOf(id);
+    var presets = [
+      { v: '', label: 'Mặc định', css: 'background-image:url(assets/cover-default-wide.jpg)' },
+      { v: 'assets/cover-default-tall.jpg', label: 'Mây hồng', css: 'background-image:url(assets/cover-default-tall.jpg)' },
+      { v: 'assets/home-art-desktop.png', label: 'Đồi xanh', css: 'background-image:url(assets/home-art-desktop.png)' }
+    ];
+    var grid = presets.map(function (p) {
+      return '<button class="cover-pick' + (cur === p.v ? ' on' : '') + '" data-action="pick-cover" ' +
+        'data-id="' + esc(id) + '" data-v="' + esc(p.v) + '"><span class="cover-pick-thumb" style="' + p.css + '"></span>' +
+        '<span>' + p.label + '</span></button>';
+    }).join('');
+    openModal(
+      '<div class="modal-sheet cover-sheet"><div class="modal-head"><h3>Ảnh nền — ' +
+      esc(profileNameOf(id)) + '</h3><button data-action="close-modal">✕</button></div>' +
+      '<div class="cover-grid">' + grid + '</div>' +
+      '<label class="btn btn-block av-upload">Tải ảnh từ máy' +
+      '<input type="file" accept="image/*" id="coverUpload" data-id="' + esc(id) + '" hidden></label>' +
+      (cur ? '<button class="btn btn-block av-clear" data-action="clear-cover" data-id="' + esc(id) + '">Bỏ ảnh nền</button>' : '') +
+      '</div>'
+    );
+  }
+  /* Nhập "nhắc trước" (ngày) và "giờ gửi" ở trang Nhắc nhở — lưu ngay, không render lại
+     để con trỏ không nhảy khi đang gõ số */
+  function bindReminderInputs() {
+    var nb = document.querySelector('[data-role="remind-before"]');
+    if (nb && !nb.dataset.bound) {
+      nb.dataset.bound = '1';
+      nb.addEventListener('change', function () {
+        var v = parseInt(nb.value, 10);
+        state.settings.remindBefore = isNaN(v) ? 3 : Math.max(0, Math.min(30, v));
+        save();
+      });
+    }
+    var nt = document.querySelector('[data-role="remind-time"]');
+    if (nt && !nt.dataset.bound) {
+      nt.dataset.bound = '1';
+      nt.addEventListener('change', function () {
+        if (nt.value) { state.settings.reminderDefaultTime = nt.value; save(); }
+      });
+    }
+  }
+
+  /* 2 ô chọn file trong modal avatar/cover: đọc + nén rồi lưu */
+  function bindProfileUploads() {
+    var a = document.getElementById('avatarUpload');
+    if (a && !a.dataset.bound) {
+      a.dataset.bound = '1';
+      a.addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        compressImage(f).then(function (url) {
+          if (!url) { showToast('Không đọc được ảnh'); return; }
+          setProfileAvatar(a.dataset.id, url);
+        });
+      });
+    }
+    var c = document.getElementById('coverUpload');
+    if (c && !c.dataset.bound) {
+      c.dataset.bound = '1';
+      c.addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        compressImage(f).then(function (url) {
+          if (!url) { showToast('Không đọc được ảnh'); return; }
+          setProfileCover(c.dataset.id, url);
+        });
+      });
+    }
+    var ap = document.getElementById('addPersonAvatarUpload');
+    if (ap && !ap.dataset.bound) {
+      ap.dataset.bound = '1';
+      ap.addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        compressImage(f).then(function (url) {
+          if (!url) { showToast('Không đọc được ảnh'); return; }
+          openAddPersonAvatar = url;
+          var box = ap.parentElement.parentElement.querySelector('.av-grid');
+          if (box) {
+            var picks = box.querySelectorAll('.av-pick');
+            for (var i = 0; i < picks.length; i++) picks[i].classList.remove('on');
+            var prev = box.querySelector('.av-upload-preview');
+            if (!prev) {
+              prev = document.createElement('span');
+              prev.className = 'av-pick av-upload-preview on';
+              box.appendChild(prev);
+            }
+            prev.innerHTML = '<img src="' + url + '" alt="">';
+          }
+          showToast('Đã chọn ảnh từ máy');
+        });
+      });
+    }
   }
 
   /* ===== Quỹ đạo: số vòng theo sĩ số (rule người dùng đặt) ===== */
@@ -1245,9 +1404,10 @@
       '<i>' + (collapsed ? '›' : '‹') + '</i><span>Mọi người</span></button>' +
 
       '<div class="pd-panel">' +
-      '<div class="pd-cover" style="--pd-cover:url(\'' + cover + '\');--pd-cover-tall:url(\'' + coverTall + '\')">' +
+      '<div class="pd-cover" style="--pd-cover:url(\'' + (profileCoverOf(p.id) || cover) + '\');--pd-cover-tall:url(\'' + (profileCoverOf(p.id) || coverTall) + '\')">' +
       '<button class="pd-back" data-action="nav" data-to="people" aria-label="Quay lại">‹</button>' +
       '<button class="pd-more" data-action="toast" data-msg="Thêm tuỳ chọn — demo" aria-label="Tuỳ chọn">⋯</button>' +
+      '<button class="pd-cover-edit" data-action="open-cover-picker" data-id="' + p.id + '" title="Đổi ảnh nền" aria-label="Đổi ảnh nền">🖼 <span>Ảnh nền</span></button>' +
       '</div>' +
 
       '<div class="pd-head">' +
@@ -1494,12 +1654,17 @@
       '<i>' + (railCollapsed ? '›' : '‹') + '</i><span>Mọi người</span></button>' +
 
       '<div class="pd-panel">' +
-      '<div class="pd-cover" style="--pd-cover:url(\'assets/cover-default-wide.jpg\');--pd-cover-tall:url(\'assets/cover-default-tall.jpg\')">' +
+      '<div class="pd-cover" style="--pd-cover:url(\'' + (profileCoverOf('me') || 'assets/cover-default-wide.jpg') + '\');--pd-cover-tall:url(\'' + (profileCoverOf('me') || 'assets/cover-default-tall.jpg') + '\')">' +
       '<button class="pd-more" data-action="nav" data-to="settings" aria-label="Cài đặt">' + ic('settings', 18) + '</button>' +
+      '<button class="pd-cover-edit" data-action="open-cover-picker" data-id="me" title="Đổi ảnh nền" aria-label="Đổi ảnh nền">🖼 <span>Ảnh nền</span></button>' +
       '</div>' +
 
       '<div class="pd-head">' +
-      '<div class="pd-avatar"><img class="av-img" src="assets/avatars/av-01.png" alt=""></div>' +
+      '<button class="pd-avatar" data-action="open-avatar-picker" data-id="me" style="' + (state.settings.profileAvatar ? 'background:transparent;' : '') + '" title="Đổi ảnh đại diện" aria-label="Đổi ảnh đại diện">' +
+      (state.settings.profileAvatar
+        ? '<img class="av-img" src="' + esc(avatarSrc(state.settings.profileAvatar)) + '" alt="">'
+        : initials(name)) +
+      '<span class="pd-avatar-edit" aria-hidden="true">✎</span></button>' +
       '<div class="pd-id">' +
       '<h2>' + esc(name) + '</h2>' +
       '<div class="meta">' + state.people.length + ' người trong quỹ đạo</div>' +
@@ -1779,7 +1944,7 @@
     if (diaryDraft.free != null) paper.snap = !diaryDraft.free;
 
     var cur = diaryDraft.target || 'me';
-    var targets = [{ id: 'me', name: 'Trang của bạn' }].concat(state.people.map(function (p) {
+    var targets = [{ id: 'me', name: state.settings.profileName || 'Bạn' }].concat(state.people.map(function (p) {
       return { id: p.id, name: p.name };
     }));
     var head =
@@ -2260,17 +2425,31 @@
     return '<a class="settings-row card" href="#/settings/' + key + '"><div class="ic-wrap ' + tone + '">' + icon + '</div>' +
       '<div class="t"><b>' + title + '</b><span>' + sub + '</span></div><div class="chev">›</div></a>';
   }
+  function settingsGroup(title, rows) {
+    return '<section class="settings-group"><h2 class="settings-group-title">' + title + '</h2>' +
+      '<div class="settings-list">' + rows + '</div></section>';
+  }
+  /* Cài đặt chia nhóm: Tài khoản lên đầu, rồi tới nhóm hiển thị, nhóm trợ lý & nhắc nhở,
+     nhóm quỹ đạo & nhóm, cuối cùng là dữ liệu. */
   function renderSettings() {
-    return '<h1 class="page-title">Cài đặt</h1><div class="settings-list">' +
-      settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở', 'Kênh, thời gian, nội dung') +
-      settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Tự động') +
-      settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá') +
-      settingsRow('home', ic('home', 22), 'tone-peach', 'Trang chủ', 'Bật/tắt các khối trên trang chủ') +
-      settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo', 'Mức ưu tiên xếp vòng theo mối quan hệ') +
-      settingsRow('groups', ic('people', 24), 'tone-mint', 'Nhóm', 'Tự tạo nhóm để lọc và sắp xếp') +
-      settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu', 'Sao lưu và quản lý dữ liệu') +
-      settingsRow('account', ic('avatar', 26), 'tone-blue', 'Tài khoản', 'Thông tin cá nhân, bảo mật') +
-      '</div>';
+    return '<h1 class="page-title">Cài đặt</h1>' +
+      settingsGroup('Tài khoản',
+        settingsRow('account', ic('profile', 24), 'tone-blue', 'Tài khoản',
+          'Tên hiển thị, ảnh đại diện, ảnh nền')) +
+      settingsGroup('Chủ đề & hiển thị',
+        settingsRow('appearance', ic('sun', 24), 'tone-purple', 'Chế độ hiển thị', 'Sáng / Tối / Theo hệ thống') +
+        settingsRow('home', ic('home', 22), 'tone-peach', 'Trang chủ', 'Bật/tắt các khối trên trang chủ')) +
+      settingsGroup('Trợ lý & nhắc nhở',
+        settingsRow('reminders', ic('bell', 24), 'tone-pink', 'Nhắc nhở',
+          'Người nhận, sự kiện, mẫu tin, kênh gửi') +
+        settingsRow('ai', ic('sun', 24), 'tone-orange', 'Tính năng AI', 'Bật / Tắt, gợi ý cá nhân hoá')) +
+      settingsGroup('Quỹ đạo & nhóm',
+        settingsRow('orbit', ic('calendar', 24), 'tone-purple', 'Quỹ đạo',
+          'Mức ưu tiên xếp vòng theo mối quan hệ') +
+        settingsRow('groups', ic('people', 24), 'tone-mint', 'Nhóm', 'Tự tạo nhóm để lọc và sắp xếp')) +
+      settingsGroup('Dữ liệu',
+        settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
+          'Sao lưu và quản lý dữ liệu'));
   }
   function backBtn() { return '<button class="subpage-back" data-action="nav" data-to="settings">‹ Cài đặt</button>'; }
 
@@ -2344,19 +2523,6 @@
       '<button class="toggle ' + (on ? 'on' : '') + '" data-action="toggle-ai"></button></div>' +
       '<div class="gap-note">⚠️ Đây là gợi ý theo luật đơn giản (rule-based), CHƯA dùng mô hình AI thật. Muốn gợi ý AI thật cần tích hợp một API model (OpenAI/Claude...) ở backend — phần này cần bạn chọn dịch vụ và cấp API key.</div>';
   }
-  function subReminders() {
-    var rows = [];
-    state.people.forEach(function (p) { (p.reminders || []).forEach(function (r) { rows.push({ r: r, personId: p.id, personName: p.name }); }); });
-    return backBtn() + '<h1 class="page-title">Nhắc nhở</h1>' +
-      '<p class="muted" style="margin-bottom:12px;">Giờ nhắc mặc định: ' + state.settings.reminderDefaultTime + '</p>' +
-      '<div class="card" style="padding:0 16px;">' +
-      (rows.length ? rows.map(function (row) {
-        var r = row.r;
-        return '<div class="reminder-row"><div class="t"><a href="#/people/' + row.personId + '">' + esc(row.personName) + '</a> — ' + esc(r.label) + '<span>' + (r.mmdd ? formatMMDD(r.mmdd) : (r.date || '')) + '</span></div>' +
-          '<button class="toggle ' + (r.enabled ? 'on' : '') + '" data-action="toggle-reminder" data-pid="' + row.personId + '" data-rid="' + r.id + '"></button></div>';
-      }).join('') : '<p class="muted" style="padding:16px 0;">Chưa có nhắc nhở nào.</p>') +
-      '</div><div class="gap-note">⚠️ Nhắc nhở ở đây chỉ lưu trong máy — bản demo web chưa gửi push notification/email thật. Muốn nhắc nhở thật cần backend + dịch vụ thông báo (web push, email, hoặc app di động).</div>';
-  }
   function subData() {
     return backBtn() + '<h1 class="page-title">Xuất / Xoá dữ liệu</h1><div class="settings-list">' +
       '<button class="settings-row card" style="width:100%;border:none;text-align:left;background:var(--card);cursor:pointer;color:inherit;font:inherit;" data-action="export-data">' +
@@ -2371,10 +2537,144 @@
       '<div class="gap-note">⚠️ Dữ liệu hiện chỉ lưu trên trình duyệt của thiết bị này (localStorage). Muốn đồng bộ nhiều thiết bị cần backend thật (vd Supabase) — xem mục Tài khoản.</div>';
   }
   function subAccount() {
+    var nm = state.settings.profileName || 'Bạn';
+    var av = state.settings.profileAvatar;
     return backBtn() + '<h1 class="page-title">Tài khoản</h1>' +
-      '<div class="field"><label>Tên hiển thị</label><input type="text" id="profile-name-input" value="' + esc(state.settings.profileName) + '"></div>' +
-      '<button class="btn btn-primary" data-action="save-profile-name">Lưu</button>' +
+      '<div class="card acc-card">' +
+      '<button class="acc-avatar" data-action="open-avatar-picker" data-id="me" title="Đổi ảnh đại diện" ' +
+      'style="' + (av ? 'background:transparent;' : '') + '">' +
+      (av ? '<img src="' + esc(avatarSrc(av)) + '" alt="">' : initials(nm)) +
+      '<span class="acc-avatar-edit" aria-hidden="true">✎</span></button>' +
+      '<div class="acc-id"><b>' + esc(nm) + '</b><span>Tên này hiện ở "Viết cho", trang cá nhân và lời nhắn</span></div>' +
+      '</div>' +
+      '<div class="field"><label>Tên hiển thị</label>' +
+      '<input type="text" id="profile-name-input" value="' + esc(nm) + '" maxlength="40"></div>' +
+      '<button class="btn btn-primary btn-block" data-action="save-profile-name">Lưu tên</button>' +
+      '<div class="settings-list" style="margin-top:18px;">' +
+      '<button class="settings-row card settings-btn" data-action="open-avatar-picker" data-id="me">' +
+      '<div class="ic-wrap tone-blue">' + ic('profile', 22) + '</div>' +
+      '<div class="t"><b>Ảnh đại diện</b><span>Chọn trong bộ có sẵn hoặc tải ảnh lên</span></div><div class="chev">›</div></button>' +
+      '<button class="settings-row card settings-btn" data-action="open-cover-picker" data-id="me">' +
+      '<div class="ic-wrap tone-purple">' + ic('sun', 22) + '</div>' +
+      '<div class="t"><b>Ảnh nền trang cá nhân</b><span>Ảnh bìa phía trên hồ sơ của bạn</span></div><div class="chev">›</div></button>' +
+      '</div>' +
       '<div class="gap-note" style="margin-top:16px;">⚠️ Chưa có đăng nhập/đồng bộ thật. Đây là hồ sơ lưu cục bộ trên thiết bị. Muốn đăng nhập (email, Google...) và đồng bộ nhiều máy cần dựng backend auth thật (vd Supabase Auth) — cần bạn cung cấp project &amp; khoá API khi muốn triển khai.</div>';
+  }
+
+  /* ---------- Nhắc nhở: hàng loạt, từng người, theo sự kiện, mẫu tin, kênh gửi ---------- */
+  var NOTIFY_CHANNELS = [
+    { k: 'push', label: 'Thông báo trên app', sub: 'Máy đã cài Orbit (push notification)', ph: 'Tên thiết bị, vd: iPhone của bạn', icon: '📱' },
+    { k: 'telegram', label: 'Telegram', sub: 'Nhận tin qua bot Telegram', ph: 'vd: @username hoặc chat id', icon: '✈️' },
+    { k: 'zalo', label: 'Zalo', sub: 'Nhận tin qua Zalo OA', ph: 'vd: 09xx xxx xxx', icon: '💬' }
+  ];
+  function notifyCfg() {
+    if (!state.settings.notify) state.settings.notify = {};
+    return state.settings.notify;
+  }
+  function chCfg(k) {
+    var n = notifyCfg();
+    if (!n[k]) n[k] = { on: false, id: '' };
+    return n[k];
+  }
+  function defaultMsgTemplate(catKey) {
+    var c = EV_BY_KEY[catKey];
+    return 'Nhắc nhẹ: ' + (c ? c.label.toLowerCase() : 'sự kiện') + ' của {tên} vào {ngày}. Bạn chuẩn bị gì chưa?';
+  }
+  function msgTemplateFor(catKey) {
+    var t = state.settings.msgTemplates || {};
+    return t[catKey] || defaultMsgTemplate(catKey);
+  }
+  function openTemplateEditor(catKey) {
+    var c = EV_BY_KEY[catKey];
+    openModal(
+      '<div class="modal-sheet"><div class="modal-head"><h3>Mẫu tin — ' + esc(c ? c.label : catKey) +
+      '</h3><button data-action="close-modal">✕</button></div>' +
+      '<form id="form-msg-template">' +
+      '<input type="hidden" name="cat" value="' + esc(catKey) + '">' +
+      '<div class="field"><label>Nội dung tin nhắc</label>' +
+      '<textarea name="text" rows="4" maxlength="240" required>' + esc(msgTemplateFor(catKey)) + '</textarea>' +
+      '<em class="field-hint">Dùng được các thẻ: {tên} · {sự kiện} · {ngày} · {giờ}</em></div>' +
+      '<div class="sk-actions"><button type="button" class="sk-btn ghost" data-action="reset-msg-template" data-cat="' +
+      esc(catKey) + '">Mặc định</button>' +
+      '<button type="submit" class="sk-btn primary">Lưu mẫu tin</button></div></form></div>'
+    );
+  }
+  function subReminders() {
+    var people = state.people;
+    var cfg = state.settings;
+    var peopleAll = cfg.remindPeopleAll !== false;
+    var eventsAll = cfg.remindEventsAll !== false;
+    var evMap = cfg.eventRemind || {};
+
+    function toggleRow(title, sub, action, on, data) {
+      return '<div class="rm-row"><div class="t"><b>' + title + '</b><span>' + sub + '</span></div>' +
+        '<button class="toggle ' + (on ? 'on' : '') + '" data-action="' + action + '" ' + (data || '') +
+        ' aria-pressed="' + on + '"></button></div>';
+    }
+
+    var personRows = people.length ? people.map(function (p) {
+      var n = (p.reminders || []).length;
+      var on = p.remindOn !== false;
+      return toggleRow(esc(p.name), n + ' nhắc nhở · ' + (REL_LABEL[p.relationship] || 'Khác'), 'toggle-person-remind',
+        on, 'data-pid="' + p.id + '"');
+    }).join('') : '<p class="muted" style="margin:0;padding:12px 0;">Chưa có người nào trong quỹ đạo.</p>';
+
+    var evRows = EVENT_CATS.map(function (c) {
+      var on = evMap[c.k] !== false;
+      return toggleRow(c.label, 'Bật nhắc cho nhóm sự kiện này', 'toggle-event-remind', on,
+        'data-cat="' + c.k + '"');
+    }).join('');
+
+    var tplRows = EVENT_CATS.slice(0, 6).map(function (c) {
+      return '<div class="rm-row"><div class="t"><b>' + c.label + '</b><span>' +
+        esc(msgTemplateFor(c.k)).slice(0, 58) + '…</span></div>' +
+        '<button class="rm-pencil" data-action="edit-msg-template" data-cat="' + c.k + '" aria-label="Sửa mẫu tin ' + c.label + '">✎</button></div>';
+    }).join('');
+
+    var chRows = NOTIFY_CHANNELS.map(function (ch) {
+      var c = chCfg(ch.k);
+      return '<div class="notify-card' + (c.on ? ' on' : '') + '">' +
+        '<div class="notify-head"><span class="notify-emoji">' + ch.icon + '</span>' +
+        '<div class="t"><b>' + ch.label + '</b><span>' + ch.sub + '</span></div>' +
+        '<button class="toggle ' + (c.on ? 'on' : '') + '" data-action="toggle-notify" data-ch="' + ch.k + '"></button></div>' +
+        (c.on
+          ? '<div class="notify-body"><input type="text" data-role="notify-input" data-ch="' + ch.k + '" value="' +
+            esc(c.id || '') + '" placeholder="' + ch.ph + '">' +
+            '<button class="btn btn-primary" data-action="save-notify" data-ch="' + ch.k + '">Kết nối</button></div>'
+          : '') +
+        '</div>';
+    }).join('');
+
+    return backBtn() + '<h1 class="page-title">Nhắc nhở</h1>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Bật hàng loạt</h2>' +
+      '<div class="card rm-card">' +
+      toggleRow('Tất cả mọi người', people.length + ' người trong quỹ đạo', 'toggle-remind-people-all', peopleAll) +
+      toggleRow('Tất cả sự kiện', EVENT_CATS.length + ' nhóm sự kiện', 'toggle-remind-events-all', eventsAll) +
+      '<div class="rm-bulk-actions">' +
+      '<button class="btn btn-ghost" data-action="remind-all-on">Bật tất cả</button>' +
+      '<button class="btn btn-ghost" data-action="remind-all-off">Tắt tất cả</button>' +
+      '</div></div></section>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Theo từng người</h2>' +
+      '<div class="card rm-card">' + personRows + '</div></section>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Theo sự kiện</h2>' +
+      '<div class="card rm-card">' + evRows + '</div>' +
+      '<div class="card rm-card" style="margin-top:10px;">' +
+      '<div class="rm-row"><div class="t"><b>Nhắc trước</b><span>Số ngày báo trước cho mỗi sự kiện</span></div>' +
+      '<input class="rm-num" type="number" min="0" max="30" value="' + (cfg.remindBefore == null ? 3 : cfg.remindBefore) + '" data-role="remind-before"></div>' +
+      '<div class="rm-row"><div class="t"><b>Giờ gửi</b><span>Thời điểm gửi tin nhắc</span></div>' +
+      '<input class="rm-num" type="time" value="' + esc(cfg.reminderDefaultTime || '09:00') + '" data-role="remind-time"></div>' +
+      '</div></section>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Mẫu tin nhắn</h2>' +
+      '<div class="card rm-card">' + tplRows + '</div></section>' +
+
+      '<section class="settings-group"><h2 class="settings-group-title">Kênh nhận thông báo</h2>' +
+      chRows +
+      '<div class="gap-note">⚠️ Phần này mới lưu cấu hình trên máy — chưa gửi tin thật. Muốn gửi thật cần bot Telegram '
+      + '/ Zalo OA token hoặc web push + backend, cấp khoá khi bạn muốn triển khai.</div></section>';
   }
 
   function bindImportInput() {
@@ -2471,6 +2771,17 @@
       '<div class="modal-sheet"><div class="modal-head"><h3>Thêm người mới</h3><button data-action="close-modal">✕</button></div>' +
       '<form id="form-add-person">' +
       '<div class="field"><label>Tên</label><input type="text" name="name" required placeholder="Vd: Hoa"></div>' +
+      '<div class="field"><label>Ảnh đại diện <em class="field-hint">chọn từ bộ có sẵn hoặc tải ảnh lên</em></label>' +
+      '<div class="av-grid av-grid-sm">' +
+      AVATAR_PRESETS.slice(0, 12).map(function (a) {
+        return '<button type="button" class="av-pick' + (openAddPersonAvatar === a ? ' on' : '') + '" ' +
+          'data-action="add-person-avatar" data-av="' + a + '" aria-label="Chọn ảnh ' + a + '">' +
+          '<img src="assets/avatars/' + a + '.png" alt=""></button>';
+      }).join('') +
+      '</div>' +
+      '<label class="btn btn-block av-upload" style="margin-top:8px;">Tải ảnh từ máy' +
+      '<input type="file" accept="image/*" id="addPersonAvatarUpload" hidden></label>' +
+      '</div>' +
       '<div class="field"><label>Mối quan hệ</label><div class="chip-picker rel-picker">' + relHtml + '</div></div>' +
       '<div class="field"><label>Nhóm <em class="field-hint">không bắt buộc, chọn nhiều được</em></label>' +
       '<div class="chip-picker group-picker">' + groupHtml +
@@ -2658,8 +2969,18 @@
         break;
       }
       case 'open-avatar-picker': openAvatarPicker(t.dataset.id); break;
-      case 'pick-avatar': setPersonAvatar(t.dataset.id, t.dataset.av); break;
-      case 'clear-avatar': clearPersonAvatar(t.dataset.id); break;
+      case 'add-person-avatar': {
+        openAddPersonAvatar = t.dataset.av || '';
+        var picks = t.parentElement.querySelectorAll('.av-pick');
+        for (var pi = 0; pi < picks.length; pi++) picks[pi].classList.remove('on');
+        t.classList.add('on');
+        break;
+      }
+      case 'pick-avatar': setProfileAvatar(t.dataset.id, t.dataset.av); break;
+      case 'clear-avatar': setProfileAvatar(t.dataset.id, ''); break;
+      case 'open-cover-picker': openCoverPicker(t.dataset.id); break;
+      case 'pick-cover': setProfileCover(t.dataset.id, t.dataset.v); break;
+      case 'clear-cover': setProfileCover(t.dataset.id, ''); break;
       case 'toggle-rel-filter': {
         var rel = t.dataset.rel, ri = peopleRelSel.indexOf(rel);
         if (ri > -1) peopleRelSel.splice(ri, 1); else peopleRelSel.push(rel);
@@ -2692,6 +3013,61 @@
       case 'toggle-favorite': toggleFavorite(t.dataset.id); break;
       case 'delete-person': if (confirm('Xoá liên hệ này?')) deletePerson(t.dataset.id); break;
       case 'toggle-reminder': toggleReminder(t.dataset.pid, t.dataset.rid); break;
+      case 'toggle-remind-people-all': {
+        state.settings.remindPeopleAll = state.settings.remindPeopleAll === false;
+        save(); render(); break;
+      }
+      case 'toggle-remind-events-all': {
+        state.settings.remindEventsAll = state.settings.remindEventsAll === false;
+        save(); render(); break;
+      }
+      case 'remind-all-on': {
+        state.settings.remindPeopleAll = true;
+        state.settings.remindEventsAll = true;
+        state.people.forEach(function (p) { p.remindOn = true; (p.reminders || []).forEach(function (r) { r.enabled = true; }); });
+        var evOn = {}; EVENT_CATS.forEach(function (c) { evOn[c.k] = true; });
+        state.settings.eventRemind = evOn;
+        save(); render(); showToast('Đã bật toàn bộ nhắc nhở'); break;
+      }
+      case 'remind-all-off': {
+        state.settings.remindPeopleAll = false;
+        state.settings.remindEventsAll = false;
+        state.people.forEach(function (p) { p.remindOn = false; (p.reminders || []).forEach(function (r) { r.enabled = false; }); });
+        var evOff = {}; EVENT_CATS.forEach(function (c) { evOff[c.k] = false; });
+        state.settings.eventRemind = evOff;
+        save(); render(); showToast('Đã tắt toàn bộ nhắc nhở'); break;
+      }
+      case 'toggle-person-remind': {
+        var pp = state.people.find(function (x) { return x.id === t.dataset.pid; });
+        if (!pp) break;
+        pp.remindOn = pp.remindOn === false;
+        (pp.reminders || []).forEach(function (r) { r.enabled = pp.remindOn; });
+        save(); render(); break;
+      }
+      case 'toggle-event-remind': {
+        var em = state.settings.eventRemind || (state.settings.eventRemind = {});
+        em[t.dataset.cat] = em[t.dataset.cat] === false;
+        save(); render(); break;
+      }
+      case 'edit-msg-template': openTemplateEditor(t.dataset.cat); break;
+      case 'reset-msg-template': {
+        if (state.settings.msgTemplates) delete state.settings.msgTemplates[t.dataset.cat];
+        save(); closeModal(); render(); showToast('Đã khôi phục mẫu tin mặc định'); break;
+      }
+      case 'toggle-notify': {
+        var ch = chCfg(t.dataset.ch);
+        ch.on = !ch.on;
+        save(); render(); break;
+      }
+      case 'save-notify': {
+        var cc = chCfg(t.dataset.ch);
+        var inp = document.querySelector('[data-role="notify-input"][data-ch="' + t.dataset.ch + '"]');
+        cc.id = inp ? inp.value.trim() : '';
+        if (!cc.id) { showToast('Nhập tài khoản muốn nhận tin trước đã'); break; }
+        cc.on = true; save(); render();
+        showToast('Đã lưu kênh ' + (t.dataset.ch === 'push' ? 'thông báo app' : t.dataset.ch === 'telegram' ? 'Telegram' : 'Zalo') + ' (chưa gửi thật)');
+        break;
+      }
       case 'add-reminder-inline': openInlineReminderForm(t.dataset.pid); break;
       case 'quick-birthday': quickActionBirthday(t.dataset.id); break;
       case 'quick-note-focus': var ta = document.getElementById('notes-area'); if (ta) ta.focus(); break;
@@ -2829,7 +3205,17 @@
       var birthday = birthdayRaw ? toMMDD(new Date(birthdayRaw + 'T00:00:00')) : '';
       var p = mkPerson(name, fd.get('relationship'), null, false, birthday, null, '', '');
       p.groups = (fd.getAll('groups') || []).filter(Boolean);
+      if (openAddPersonAvatar) p.avatar = openAddPersonAvatar;
+      openAddPersonAvatar = '';
       state.people.push(p); save(); closeModal(); showToast('Đã thêm ' + name); navigate('people');
+    } else if (form.id === 'form-msg-template') {
+      e.preventDefault();
+      var tfd = new FormData(form);
+      var cat = tfd.get('cat');
+      var txt = (tfd.get('text') || '').trim();
+      if (!state.settings.msgTemplates) state.settings.msgTemplates = {};
+      if (txt) state.settings.msgTemplates[cat] = txt.slice(0, 240);
+      save(); closeModal(); render(); showToast('Đã lưu mẫu tin nhắn');
     } else if (form.id === 'form-add-event') {
       e.preventDefault();
       var fd2 = new FormData(form);
