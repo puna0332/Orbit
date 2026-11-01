@@ -1973,7 +1973,7 @@ html[data-gender="male"] .view-root.page-home {
     background-position: center top;
   }
 }
-html[data-gender="male"] .page-home .home-hero { min-height: 540px; }
+html[data-gender="male"] .page-home .home-hero { min-height: 400px; }
 html[data-gender="male"] .home-hero-art { display: none; }
 
 /* Onboarding NAM: tranh cậu bé + mèo (PC/điện thoại riêng), phủ kín bằng cover */
