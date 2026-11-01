@@ -1913,7 +1913,9 @@ textarea.paper-ink::placeholder { color: rgba(122,101,82,.45); }
 /* ===== 60 ngày tới: 5 bóng mây một hàng, cuộn NGANG ===== */
 .occasion-scroll {
   max-height: none; overflow-x: auto; overflow-y: hidden;
-  padding-bottom: 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+  /* chừa đệm trên/dưới để mây và bóng đổ không bị cắt cụt ở mép khung cuộn */
+  padding: 16px 4px 30px; margin: -10px 0 -18px;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
 }
 .occasion-scroll .occasion-row {
   display: flex; flex-wrap: nowrap; gap: 10px; grid-template-columns: none;
@@ -1971,7 +1973,7 @@ html[data-gender="male"] .view-root.page-home {
     background-position: center top;
   }
 }
-html[data-gender="male"] .page-home .home-hero { min-height: 400px; }
+html[data-gender="male"] .page-home .home-hero { min-height: 540px; }
 html[data-gender="male"] .home-hero-art { display: none; }
 
 /* Onboarding NAM: tranh cậu bé + mèo (PC/điện thoại riêng), phủ kín bằng cover */

@@ -956,14 +956,15 @@
       '<div class="home-deco" aria-hidden="true"><i></i><i></i><i></i><i></i></div>' +
       '</div>' +
 
-      quick +
+      (state.settings.homeQuick === false ? '' : quick) +
 
       /* 7 ngày tới */
-      '<section class="home-section">' +
-      '<div class="home-section-head"><h2>7 ngày tới</h2>' +
-      '<a class="link-more" href="#/calendar">Mở lịch ›</a></div>' +
-      weekStrip + '<div class="wk-list">' + weekList + '</div>' +
-      '</section>' +
+      (state.settings.homeWeek === false ? '' :
+        '<section class="home-section">' +
+        '<div class="home-section-head"><h2>7 ngày tới</h2>' +
+        '<a class="link-more" href="#/calendar">Mở lịch ›</a></div>' +
+        weekStrip + '<div class="wk-list">' + weekList + '</div>' +
+        '</section>') +
 
       /* 60 ngày tới */
       (state.settings.homeOccasions === false ? '' :
@@ -973,10 +974,11 @@
         occBody + '</section>') +
 
       /* Sự kiện sắp tới */
-      '<section class="home-section">' +
-      '<div class="home-section-head"><h2>Sự kiện sắp tới</h2>' +
-      '<button class="link-more" data-action="open-add-event">+ Thêm</button></div>' +
-      '<div class="up-list">' + upList + '</div></section>' +
+      (state.settings.homeUpcoming === false ? '' :
+        '<section class="home-section">' +
+        '<div class="home-section-head"><h2>Sự kiện sắp tới</h2>' +
+        '<button class="link-more" data-action="open-add-event">+ Thêm</button></div>' +
+        '<div class="up-list">' + upList + '</div></section>') +
 
       /* Gợi ý chỉ là thông báo phụ: thu thành một dải mảnh, có nút ẩn ngay tại chỗ */
       (suggestion && state.settings.homeSuggest !== false && !state.settings.homeSuggestHidden ?
@@ -2659,8 +2661,14 @@
         '<div class="t"><b>' + title + '</b><span>' + sub + '</span></div>' +
         '<button class="toggle ' + (on ? 'on' : '') + '" data-action="' + action + '" aria-pressed="' + on + '"></button></div>';
     }
+    var quick = state.settings.homeQuick !== false;
+    var week = state.settings.homeWeek !== false;
+    var up = state.settings.homeUpcoming !== false;
     return backBtn() + '<h1 class="page-title">Trang chủ</h1>' +
-      row('calendar', 'tone-purple', 'Khối "60 ngày tới"', 'Ba tấm mây tóm tắt dịp sắp tới', 'toggle-home-occasions', occ) +
+      row('people', 'tone-pink', 'Bốn nút tắt nhanh', 'Thêm người · Thêm lịch · Viết nhật ký · Viết cho tôi', 'toggle-home-quick', quick) +
+      row('calendar', 'tone-green', 'Khối "7 ngày tới"', 'Dải ngày trong tuần và lịch của ngày đang chọn', 'toggle-home-week', week) +
+      row('cake', 'tone-purple', 'Khối "60 ngày tới"', 'Năm tấm mây tóm tắt dịp sắp tới, cuộn ngang', 'toggle-home-occasions', occ) +
+      row('bell', 'tone-blue', 'Khối "Sự kiện sắp tới"', 'Năm sự kiện gần nhất kèm ngày và giờ', 'toggle-home-upcoming', up) +
       row('sun', 'tone-orange', 'Gợi ý hôm nay', 'Dải nhắc việc nhỏ, có nút ẩn ngay trên trang chủ', 'toggle-home-suggest', sug) +
       '<div class="gap-note">Tắt bớt để trang chủ gọn hơn. Gợi ý đã ẩn bằng nút ✕ vẫn có thể bật lại ở đây.</div>';
   }
@@ -3455,6 +3463,12 @@
         if (!done) { try { document.execCommand('copy'); showToast('Đã sao chép link'); } catch (e) { showToast('Chọn link và copy tay nhé'); } }
         break;
       }
+      case 'toggle-home-quick':
+        state.settings.homeQuick = state.settings.homeQuick === false; save(); render(); break;
+      case 'toggle-home-week':
+        state.settings.homeWeek = state.settings.homeWeek === false; save(); render(); break;
+      case 'toggle-home-upcoming':
+        state.settings.homeUpcoming = state.settings.homeUpcoming === false; save(); render(); break;
       case 'toggle-home-occasions': state.settings.homeOccasions = state.settings.homeOccasions === false; save(); render(); break;
       case 'toggle-home-suggest': state.settings.homeSuggest = state.settings.homeSuggest === false; if (state.settings.homeSuggest) state.settings.homeSuggestHidden = false; save(); render(); break;
       case 'edit-me-name': {
