@@ -458,13 +458,30 @@ function sha256Hex(str) {
 /* Gửi mail: ưu tiên Resend (secret RESEND_API_KEY), sau đó binding SEND_EMAIL của
    Cloudflare Email Routing. Chưa cấu hình thì trả về false để API nói thật với
    người dùng thay vì im lặng coi như đã gửi. */
+/* Địa chỉ gửi: ưu tiên MAIL_FROM; nếu chưa đặt thì hỏi Resend xem có domain nào
+   đã verify chưa. Chưa có domain thì trả '' (chỉ còn hộp cát onboarding@resend.dev,
+   gửi được đúng chủ tài khoản — không tính là "đã cấu hình mail"). */
+let mailCache = { at: 0, from: '' };
+async function resendFrom(env) {
+  if (env.MAIL_FROM) return env.MAIL_FROM;
+  if (!env.RESEND_API_KEY) return '';
+  if (Date.now() - mailCache.at < 600000) return mailCache.from;
+  try {
+    const r = await fetch('https://api.resend.com/domains', { headers: { authorization: 'Bearer ' + env.RESEND_API_KEY } });
+    const j = await r.json();
+    const d = (j.data || []).find((x) => x.status === 'verified');
+    mailCache = { at: Date.now(), from: d ? 'Orbit <no-reply@' + d.name + '>' : '' };
+  } catch { mailCache = { at: Date.now(), from: '' }; }
+  return mailCache.from;
+}
+
 async function sendMail(env, to, subject, html, text) {
   if (env.RESEND_API_KEY) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({
-        from: env.MAIL_FROM || 'Orbit <onboarding@resend.dev>',
+        from: (await resendFrom(env)) || 'Orbit <onboarding@resend.dev>',
         to: [to], subject: subject, html: html, text: text,
       }),
     });
@@ -616,7 +633,13 @@ async function apiGoogle(req, env) {
 }
 
 async function apiConfig(env) {
-  return json({ ok: true, googleClientId: env.GOOGLE_CLIENT_ID || '', mailConfigured: !!(env.RESEND_API_KEY || env.SEND_EMAIL) });
+  const from = await resendFrom(env);
+  return json({
+    ok: true,
+    googleClientId: env.GOOGLE_CLIENT_ID || '',
+    /* Chỉ coi là "gửi được mail" khi có domain đã verify (hoặc binding SEND_EMAIL) */
+    mailConfigured: !!(from || env.SEND_EMAIL),
+  });
 }
 
 /* ------------------------------ router ------------------------------ */
