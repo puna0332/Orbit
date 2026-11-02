@@ -2921,7 +2921,11 @@
                 '<button class="settings-row card settings-btn" data-action="start-tour">' +
         '<div class="ic-wrap tone-blue">' + ic('sun', 22) + '</div>' +
         '<div class="t"><b>Hướng dẫn sử dụng</b><span>Xem lại các bước cơ bản ngay trên app</span></div>' +
-        '<div class="chev">›</div></button>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
+        '<div class="chev">›</div></button>' +
+        '<a class="settings-row card settings-btn" href="huong-dan.html" target="_blank" rel="noopener">' +
+        '<div class="ic-wrap tone-peach">' + ic('envelope', 22) + '</div>' +
+        '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF, 8 ảnh khoanh vùng</span></div>' +
+        '<div class="chev">›</div></a>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
           'Sao lưu và quản lý dữ liệu'));
   }
   function backBtn() { return '<button class="subpage-back" data-action="nav" data-to="settings">‹ Cài đặt</button>'; }

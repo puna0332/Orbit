@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn sử dụng Orbit</title>
+<style>
+  :root { --ink:#2C2A33; --muted:#6F655C; --line:#E7DCD1; --cream:#FBF6F0; --accent:#E23744; --navy:#1D3A63; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; line-height:1.6; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 20px 72px; }
+  header { text-align:center; margin-bottom: 30px; }
+  .logo { width:64px; height:64px; border-radius:18px; background:#fff; display:inline-flex;
+    align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(150,116,90,.18); margin-bottom:12px; }
+  .logo img { width:40px; height:40px; }
+  h1 { font-size: 30px; margin: 6px 0 8px; color: var(--navy); letter-spacing:-.3px; }
+  header p { margin:0; color: var(--muted); font-size: 15px; }
+  .toolbar { display:flex; gap:10px; justify-content:center; margin: 18px 0 8px; }
+  .btn { border:0; border-radius:12px; padding:10px 18px; font:inherit; font-weight:700; font-size:14px;
+    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .btn-primary { background: var(--navy); color:#fff; }
+  .btn-ghost { background:#fff; color:var(--navy); box-shadow: inset 0 0 0 1px var(--line); }
+  .step { background:#fff; border-radius:20px; padding:22px; margin: 22px 0;
+    box-shadow: 0 10px 30px rgba(150,116,90,.12); }
+  .step-head { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+  .num { flex:none; width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
+    font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .step h2 { margin:0 0 4px; font-size:18px; color:var(--navy); }
+  .lead { margin:0; font-size:14px; color:#4A4038; }
+  figure { margin:0; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff; }
+  figure img { display:block; width:100%; height:auto; }
+  .tip { margin:12px 0 0; font-size:13px; color:var(--muted); }
+  .tip span { display:inline-block; background:#FFF1F2; color:#B3242F; font-weight:700; font-size:11px;
+    letter-spacing:.4px; text-transform:uppercase; padding:2px 8px; border-radius:999px; margin-right:6px; }
+  footer { text-align:center; margin-top:34px; font-size:13px; color:var(--muted); }
+  footer a { color: var(--navy); font-weight:700; }
+  @media print {
+    body { background:#fff; }
+    .wrap { max-width:none; padding:0; }
+    .toolbar { display:none; }
+    .step { box-shadow:none; border:1px solid #E3DAD1; page-break-inside: avoid; break-inside: avoid; margin:14px 0; }
+    header { margin-bottom:14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><img src="assets/logo-orbit.png" alt="Orbit"></div>
+    <h1>Hướng dẫn sử dụng Orbit</h1>
+    <p>Tám bước để làm quen: từ trang chủ, lịch, nhật ký đến quỹ đạo những người bạn quan tâm.</p>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="window.print()">In / Lưu PDF</button>
+      <a class="btn btn-ghost" href="./">← Mở ứng dụng</a>
+    </div>
+  </header>
+  
+    <section class="step">
+      <div class="step-head">
+        <span class="num">1</span>
+        <div><h2>Trang chủ — nơi mọi thứ bắt đầu</h2><p class="lead">Khối chào cho biết hôm nay là ngày nào và tên của bạn. Bên dưới là toàn bộ lối tắt: thêm người, thêm lịch, viết nhật ký và tạo link “Viết cho tôi”.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-1.jpg" alt="Bước 1: Trang chủ — nơi mọi thứ bắt đầu" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Ảnh nền và câu chào đổi theo chủ đề Nữ / Nam trong Cài đặt.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">2</span>
+        <div><h2>Bốn nút tắt nhanh</h2><p class="lead">Thêm người (mối quan hệ mới), Thêm lịch (sự kiện), Viết nhật ký (mở sẵn một trang giấy mới) và Viết cho tôi (tạo link + mã QR để người khác gửi điều họ muốn nói).</p></div>
+      </div>
+      <figure><img src="assets/guide/step-2.jpg" alt="Bước 2: Bốn nút tắt nhanh" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> “Viết nhật ký” mở thẳng trang giấy, không phải qua bước trung gian nào.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">3</span>
+        <div><h2>7 ngày tới</h2><p class="lead">Dải ngày của tuần hiện tại. Ngày có sự kiện được tô đậm kèm dấu chấm, ngày đang chọn có nền navy. Bấm một ngày để xem danh sách việc của ngày đó.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-3.jpg" alt="Bước 3: 7 ngày tới" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Ngày hiển thị dạng ngày/tháng, ví dụ 11/11.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">4</span>
+        <div><h2>Lịch sự kiện</h2><p class="lead">Tất cả sinh nhật, kỷ niệm và cuộc hẹn nằm trên một lịch tháng. Bấm vào ô bất kỳ để thêm sự kiện cho đúng ngày đó.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-4.jpg" alt="Bước 4: Lịch sự kiện" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Nút “Hôm nay” đưa bạn về tháng hiện tại; dấu + góc phải thêm nhanh sự kiện.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">5</span>
+        <div><h2>Nhật ký</h2><p class="lead">Cuốn sổ lật từng trang: chọn bìa, mẫu giấy (kẻ dòng / chấm / trắng / ảnh tự tải) và kiểu chữ ở cột bên phải, rồi chạm vào trang để viết.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-5.jpg" alt="Bước 5: Nhật ký" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Nội dung lưu dạng chữ, nên cùng một bài hiển thị đúng trên cả máy tính và điện thoại.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">6</span>
+        <div><h2>Mọi người — quỹ đạo của bạn</h2><p class="lead">Mỗi người nằm trên một vòng tròn quanh bạn: càng gần tâm càng thân thiết. Bấm vào một người để xem hồ sơ, kỷ niệm và lời nhắn.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-6.jpg" alt="Bước 6: Mọi người — quỹ đạo của bạn" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Kéo để xoay quỹ đạo, dùng nút thu nhỏ/phóng to ở góc để nhìn rộng hơn.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">7</span>
+        <div><h2>Trang cá nhân</h2><p class="lead">Đổi ảnh bìa, ảnh đại diện và tên ngay tại đây. Tên này cũng chính là “Viết cho …” trong mỗi trang nhật ký.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-7.jpg" alt="Bước 7: Trang cá nhân" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Mỗi người khác cũng có trang riêng cùng bố cục, kèm nút nhắc nhở nhanh.</p>
+    </section>
+    <section class="step">
+      <div class="step-head">
+        <span class="num">8</span>
+        <div><h2>Cài đặt</h2><p class="lead">Tài khoản, chủ đề nam/nữ, các khối trang chủ, nhắc nhở, mẫu tin nhắn, xuất dữ liệu — mọi thứ gom theo nhóm ở đây.</p></div>
+      </div>
+      <figure><img src="assets/guide/step-8.jpg" alt="Bước 8: Cài đặt" loading="lazy"></figure>
+      <p class="tip"><span>Mẹo</span> Mở lại hướng dẫn này bất cứ lúc nào ở mục “Hướng dẫn sử dụng”.</p>
+    </section>
+  <footer>
+    Vùng khoanh đỏ là chỗ cần bấm hoặc nhìn. Có thể mở lại hướng dẫn trực tiếp trong app tại
+    <b>Cài đặt → Hướng dẫn sử dụng</b>.<br><a href="./">orbit-app.meomeothehero.workers.dev</a>
+  </footer>
+</div>
+</body>
+</html>
