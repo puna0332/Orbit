@@ -2387,4 +2387,4 @@ html[data-gender="male"] .tour-next { background: #1D3A63; }
 html[data-gender="male"] .tour-prev { background: #E9F1FB; color: #24405F; }
 
 /* Khi đang chạy hướng dẫn: không cho trang cuộn để lỗ sáng không lệch */
-html.tour-open, body.tour-open { overflow: hidden !important; height: 100%; }
+html.tour-open, body.tour-open { overflow: hidden !important; }

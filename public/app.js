@@ -624,10 +624,19 @@
     if ((location.hash || '').indexOf('#/' + step.route) !== 0) {
       navigate(step.route);
     }
-    /* Đợi layout xong (2 frame) rồi mới đo — nếu đo sớm sẽ ra toạ độ 0 */
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { positionTour(); });
-    });
+    /* Đo sau khi layout xong. Không chỉ dựa vào requestAnimationFrame: ở tab bị ẩn
+       (hoặc trình duyệt headless) rAF bị hoãn vô hạn nên lỗ sáng không được đặt. */
+    /* Trang đích có thể render chậm (quỹ đạo, lịch). Thử đo nhiều lần cho tới khi
+       phần tử cần chỉ xuất hiện và có kích thước thật. */
+    var tries = 0;
+    (function attempt() {
+      tries++;
+      var target = document.querySelector(step.sel);
+      var ready = target && target.getBoundingClientRect().width > 0;
+      positionTour();
+      if (!ready && tries < 12) setTimeout(attempt, 120);
+      else if (tries < 4) setTimeout(positionTour, 200);
+    })();
   }
 
   function positionTour() {
@@ -647,8 +656,8 @@
     var pad = 8;
     var top = Math.max(6, r.top - pad);
     var left = Math.max(6, r.left - pad);
-    var w = Math.min(vw - 12, r.width + pad * 2);
-    var h = Math.min(vh - 12, r.height + pad * 2);
+    var w = Math.max(60, Math.min(vw - 12, r.width + pad * 2));
+    var h = Math.max(28, Math.min(vh - 12, r.height + pad * 2));
     hole.style.cssText = 'position:absolute;border-radius:16px;left:' + left + 'px;top:' + top +
       'px;width:' + w + 'px;height:' + h + 'px;';
 
