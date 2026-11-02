@@ -536,6 +536,133 @@
     if (p.activity.length > 30) p.activity.shift();
   }
 
+  /* ========================= Hướng dẫn từng bước =========================
+     Overlay tối + "lỗ sáng" khoét đúng vùng cần chỉ, kèm thẻ mô tả. Chạy được
+     trên mọi trang vì mỗi bước tự điều hướng rồi mới đo lại toạ độ. */
+  var TOUR_STEPS = [
+    { route: 'home', sel: '.home-hero', title: 'Đây là Orbit của bạn',
+      text: 'Mọi thứ xoay quanh những người bạn quan tâm: dịp sắp tới, nhật ký và lời nhắn.' },
+    { route: 'home', sel: '.home-quick', title: 'Bốn nút tắt nhanh',
+      text: 'Thêm người, thêm lịch, viết nhật ký hoặc tạo link để người khác viết cho bạn.' },
+    { route: 'home', sel: '.home-section', title: '7 ngày tới',
+      text: 'Dải ngày trong tuần — ngày nào có sự kiện sẽ được tô đậm. Bấm một ngày để xem lịch ngày đó.' },
+    { route: 'calendar', sel: '.cal-board', title: 'Lịch sự kiện',
+      text: 'Toàn bộ sinh nhật, kỷ niệm, cuộc hẹn nằm trên một lịch. Bấm ô bất kỳ để thêm sự kiện.' },
+    { route: 'diary', sel: '.diary-book', title: 'Nhật ký',
+      text: 'Chọn bìa sổ, mẫu giấy và kiểu chữ bên phải, rồi chạm vào trang để viết.' },
+    { route: 'people', sel: '.orbit-stage', title: 'Mọi người',
+      text: 'Mỗi người nằm trên một vòng quỹ đạo theo mức độ thân thiết. Càng gần tâm càng gần bạn.' },
+    { route: 'me', sel: '.pd-cover', title: 'Trang cá nhân',
+      text: 'Đổi ảnh bìa, ảnh đại diện và tên ở đây — tên này cũng hiện khi bạn viết nhật ký.' },
+    { route: 'settings', sel: '.settings-list', title: 'Cài đặt',
+      text: 'Chủ đề nam/nữ, nhắc nhở, mẫu tin nhắn, sao lưu dữ liệu… tất cả ở đây. Mở lại hướng dẫn này bất cứ lúc nào.' }
+  ];
+  var tourIdx = -1;
+
+  function tourEl() { return document.getElementById('orbitTour'); }
+
+  function mountTour() {
+    var el = tourEl();
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'orbitTour';
+      el.className = 'tour';
+      el.innerHTML = '<div class="tour-hole"></div>' +
+        '<div class="tour-card" role="dialog" aria-live="polite">' +
+        '<div class="tour-count"></div><h3 class="tour-title"></h3><p class="tour-text"></p>' +
+        '<div class="tour-actions">' +
+        '<button class="tour-skip" data-tour="skip">Bỏ qua</button>' +
+        '<div class="tour-nav"><button class="tour-prev" data-tour="prev" aria-label="Bước trước">‹</button>' +
+        '<button class="tour-next" data-tour="next">Tiếp →</button></div>' +
+        '</div></div>';
+      document.body.appendChild(el);
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-tour]') : null;
+        if (!b) return;
+        var a = b.getAttribute('data-tour');
+        if (a === 'next') return tourGo(1);
+        if (a === 'prev') return tourGo(-1);
+        endTour();
+      });
+    }
+    return el;
+  }
+
+  function startTour() {
+    tourIdx = 0;
+    showTourStep();
+  }
+  function endTour() {
+    tourIdx = -1;
+    var el = tourEl();
+    if (el) el.remove();
+    state.settings.tourDone = true;
+    save();
+  }
+  function tourGo(dir) {
+    tourIdx += dir;
+    if (tourIdx < 0) tourIdx = 0;
+    if (tourIdx >= TOUR_STEPS.length) { endTour(); return; }
+    showTourStep();
+  }
+
+  function showTourStep() {
+    var step = TOUR_STEPS[tourIdx];
+    if (!step) { endTour(); return; }
+    var el = mountTour();
+    el.querySelector('.tour-count').textContent = 'Bước ' + (tourIdx + 1) + '/' + TOUR_STEPS.length;
+    el.querySelector('.tour-title').textContent = step.title;
+    el.querySelector('.tour-text').textContent = step.text;
+    el.querySelector('.tour-prev').style.visibility = tourIdx === 0 ? 'hidden' : 'visible';
+    el.querySelector('.tour-next').textContent = tourIdx === TOUR_STEPS.length - 1 ? 'Xong' : 'Tiếp →';
+
+    if ((location.hash || '').indexOf('#/' + step.route) !== 0) {
+      navigate(step.route);
+    }
+    /* Đợi layout xong (2 frame) rồi mới đo — nếu đo sớm sẽ ra toạ độ 0 */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { positionTour(); });
+    });
+  }
+
+  function positionTour() {
+    var step = TOUR_STEPS[tourIdx];
+    var el = tourEl();
+    if (!step || !el) return;
+    var target = document.querySelector(step.sel);
+    var hole = el.querySelector('.tour-hole');
+    var card = el.querySelector('.tour-card');
+    var vw = window.innerWidth, vh = window.innerHeight;
+
+    var r = target ? target.getBoundingClientRect() : null;
+    if (!r || (r.width === 0 && r.height === 0)) {
+      /* Không tìm thấy vùng cần chỉ: cho lỗ sáng giữa màn hình để không chặn bước */
+      r = { left: vw / 2 - 80, top: vh / 2 - 60, width: 160, height: 120, bottom: vh / 2 + 60 };
+    }
+    var pad = 8;
+    var top = Math.max(6, r.top - pad);
+    var left = Math.max(6, r.left - pad);
+    var w = Math.min(vw - 12, r.width + pad * 2);
+    var h = Math.min(vh - 12, r.height + pad * 2);
+    hole.style.cssText = 'position:absolute;border-radius:16px;left:' + left + 'px;top:' + top +
+      'px;width:' + w + 'px;height:' + h + 'px;';
+
+    var cardW = Math.min(340, vw - 32);
+    card.style.width = cardW + 'px';
+    var below = top + h + 16;
+    var cardH = card.offsetHeight || 170;
+    if (below + cardH > vh - 12 && top - cardH - 16 > 8) {
+      card.style.top = (top - cardH - 16) + 'px';
+    } else {
+      card.style.top = Math.min(vh - cardH - 12, below) + 'px';
+    }
+    var cx = Math.min(Math.max(12, left + w / 2 - cardW / 2), vw - cardW - 12);
+    card.style.left = cx + 'px';
+  }
+
+  window.addEventListener('resize', function () { if (tourIdx >= 0) positionTour(); });
+  window.addEventListener('scroll', function () { if (tourIdx >= 0) positionTour(); }, true);
+
   /* ---------------------------- theme ---------------------------- */
   function applyTheme() {
     var mode = state.settings.theme;
@@ -2791,7 +2918,10 @@
           'Mức ưu tiên xếp vòng theo mối quan hệ') +
         settingsRow('groups', ic('people', 24), 'tone-mint', 'Nhóm', 'Tự tạo nhóm để lọc và sắp xếp')) +
       settingsGroup('Dữ liệu',
-        settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
+                '<button class="settings-row card settings-btn" data-action="start-tour">' +
+        '<div class="ic-wrap tone-blue">' + ic('sun', 22) + '</div>' +
+        '<div class="t"><b>Hướng dẫn sử dụng</b><span>Xem lại các bước cơ bản ngay trên app</span></div>' +
+        '<div class="chev">›</div></button>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
           'Sao lưu và quản lý dữ liệu'));
   }
   function backBtn() { return '<button class="subpage-back" data-action="nav" data-to="settings">‹ Cài đặt</button>'; }
@@ -3565,7 +3695,14 @@
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
-  function finishOnboarding() { state.onboardingDone = true; save(); navigate('home'); syncInbox(true); }
+  function finishOnboarding() {
+    state.onboardingDone = true;
+    var firstRun = !state.settings.tourDone;
+    save();
+    navigate('home');
+    syncInbox(true);
+    if (firstRun) setTimeout(startTour, 500);
+  }
   function tryContactsImport() {
     if ('contacts' in navigator && 'ContactsManager' in window) {
       navigator.contacts.select(['name', 'tel'], { multiple: true }).then(function (contacts) {
@@ -4076,6 +4213,7 @@
       case 'wipe-data': wipeData(); break;
       case 'wipe-people': wipePeople(); break;
       case 'contacts-import': tryContactsImport(); break;
+      case 'start-tour': startTour(); break;
       case 'auth-open': trialExpired = false; openAuth(); break;
       case 'trial-dismiss': trialExpired = false; render(); break;
       case 'auth-forgot': authForgot = true; authOpen = true; render(); break;
