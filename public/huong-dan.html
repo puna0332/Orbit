@@ -5,51 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hướng dẫn sử dụng Orbit</title>
 <style>
-  :root { --ink:#2C2A33; --muted:#6F655C; --line:#E7DCD1; --cream:#FBF6F0; --accent:#E23744; --navy:#1D3A63; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--cream); color:var(--ink);
-    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; line-height:1.6; }
-  .wrap { max-width:1080px; margin:0 auto; padding:40px 20px 72px; }
-  header { text-align:center; margin-bottom:26px; }
-  .logo { width:64px; height:64px; border-radius:18px; background:#fff; display:inline-flex;
-    align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(150,116,90,.18); margin-bottom:12px; }
-  .logo img { width:40px; height:40px; }
-  h1 { font-size:30px; margin:6px 0 8px; color:var(--navy); letter-spacing:-.3px; }
-  header p { margin:0; color:var(--muted); font-size:15px; }
-  .toolbar { display:flex; gap:10px; justify-content:center; margin:18px 0 4px; }
+  :root { --ink:#2C2A33; --muted:#6E645B; --line:#E7DCD1; --cream:#FBF6F0; --red:#E23744; --navy:#1D3A63; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink); line-height:1.65;
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:44px 22px 80px; }
+  header { text-align:center; margin-bottom:6px; }
+  .logo { width:62px; height:62px; border-radius:18px; background:#fff; display:inline-flex;
+    align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(150,116,90,.18); margin-bottom:10px; }
+  .logo img { width:38px; height:38px; }
+  h1 { font-size:30px; margin:4px 0 6px; color:var(--navy); letter-spacing:-.3px; }
+  header .lead { margin:0 auto; max-width:640px; color:var(--muted); font-size:15px; }
+  .toolbar { display:flex; gap:10px; justify-content:center; margin:16px 0 4px; }
   .btn { border:0; border-radius:12px; padding:10px 18px; font:inherit; font-weight:700; font-size:14px;
-    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+    cursor:pointer; text-decoration:none; display:inline-flex; gap:8px; }
   .btn-primary { background:var(--navy); color:#fff; }
   .btn-ghost { background:#fff; color:var(--navy); box-shadow:inset 0 0 0 1px var(--line); }
-  .toc { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:18px 0 6px; }
-  .toc a { background:#fff; border-radius:999px; padding:6px 13px; font-size:12.5px; font-weight:700;
-    color:var(--navy); text-decoration:none; box-shadow:inset 0 0 0 1px var(--line); }
-  .page-block { background:#fff; border-radius:22px; padding:24px; margin:26px 0;
-    box-shadow:0 12px 34px rgba(150,116,90,.12); }
-  .page-head { display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
-  .pnum { flex:none; width:38px; height:38px; border-radius:12px; background:var(--navy); color:#fff;
-    font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; }
-  .page-head h2 { margin:0 0 3px; font-size:21px; color:var(--navy); }
-  .page-head p { margin:0; font-size:14px; color:#4A4038; }
-  figure { margin:0; }
-  .overview { border-radius:16px; overflow:hidden; border:1px solid var(--line); }
-  .overview img { display:block; width:100%; height:auto; }
-  .overview figcaption { font-size:12px; color:var(--muted); padding:7px 12px; background:#FDFAF6; border-top:1px solid var(--line); }
-  .spots { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
-  .spot { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#FDFAF6; }
-  .spot img { display:block; width:100%; height:auto; }
-  .spot figcaption { padding:10px 12px 12px; display:flex; flex-direction:column; gap:2px; }
-  .spot b { font-size:13.5px; color:var(--navy); }
-  .spot span { font-size:12.5px; color:var(--muted); }
-  footer { text-align:center; margin-top:32px; font-size:13px; color:var(--muted); }
+  .hero-img { margin:22px 0 8px; border-radius:18px; overflow:hidden; border:1px solid var(--line); background:#fff; }
+  .hero-img img { display:block; width:100%; }
+  .hero-cap { text-align:center; font-size:13px; color:var(--muted); margin:0 0 8px; }
+  .sec { margin:38px 0 0; }
+  .sec-head { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+  .num { flex:none; width:40px; height:40px; border-radius:13px; background:var(--navy); color:#fff;
+    font-weight:800; font-size:17px; display:flex; align-items:center; justify-content:center; }
+  .sec-head h2 { margin:0 0 2px; font-size:22px; color:var(--navy); }
+  .sec-head p { margin:0; font-size:14px; color:#4A4038; }
+  .shot { margin:0 0 18px; background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .shot img { display:block; width:100%; }
+  .shot figcaption { padding:10px 14px 12px; font-size:13.5px; color:#443B33; }
+  .badge { display:inline-block; background:#FFF1F2; color:#B3242F; font-weight:800; font-size:11px;
+    letter-spacing:.4px; text-transform:uppercase; padding:2px 8px; border-radius:999px; margin-right:7px; }
+  footer { text-align:center; margin-top:36px; font-size:13px; color:var(--muted); }
   footer a { color:var(--navy); font-weight:700; }
-  @media (max-width:820px) { .spots { grid-template-columns:1fr; } }
   @media print {
     body { background:#fff; }
-    .wrap { max-width:none; padding:0; }
-    .toolbar, .toc { display:none; }
-    .page-block { box-shadow:none; border:1px solid #E3DAD1; page-break-inside:avoid; break-inside:avoid; margin:12px 0; }
-    .spot { page-break-inside:avoid; break-inside:avoid; }
+    .wrap { max-width:none; padding:0 6mm; }
+    .toolbar { display:none; }
+    .sec { page-break-before: always; page-break-inside: avoid; }
+    .shot, .hero-img { page-break-inside: avoid; break-inside: avoid; }
+    .shot img, .hero-img img { max-height: 150mm; width: auto; max-width: 100%; margin: 0 auto; }
   }
 </style>
 </head>
@@ -57,55 +51,99 @@
 <div class="wrap">
   <header>
     <div class="logo"><img src="assets/logo-orbit.png" alt="Orbit"></div>
-    <h1>Hướng dẫn sử dụng Orbit</h1>
-    <p>Chia theo sáu trang trên thanh điều hướng — mỗi trang có ảnh toàn cảnh và các vùng được khoanh đỏ.</p>
+    <h1>Đây là Orbit của bạn</h1>
+    <p class="lead">Orbit giữ lại những người bạn quan tâm, những dịp không muốn quên và những trang nhật ký của riêng bạn. Hướng dẫn dưới đây đi theo đúng thứ tự sáu mục trên thanh điều hướng.</p>
     <div class="toolbar">
       <button class="btn btn-primary" onclick="window.print()">In / Lưu PDF</button>
       <a class="btn btn-ghost" href="./">← Mở ứng dụng</a>
     </div>
-    <nav class="toc"><a href="#p-home">Trang chủ</a><a href="#p-me">Trang cá nhân</a><a href="#p-people">Mọi người</a><a href="#p-diary">Nhật ký</a><a href="#p-calendar">Sự kiện</a><a href="#p-settings">Cài đặt</a></nav>
   </header>
+
+  <figure class="hero-img"><img src="assets/guide/v2/intro.jpg" alt="Toàn cảnh ứng dụng Orbit"></figure>
+  <p class="hero-cap">Toàn cảnh ứng dụng — vùng khoanh đỏ trong các ảnh sau là chỗ cần bấm hoặc nhìn.</p>
+
   
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">1</span><div><h2>Trang chủ</h2><p>Nơi mở app mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới trong 60 ngày.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-home.jpg" alt="Tổng quan Trang chủ" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Trang chủ</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/home-1.jpg" alt="Khối chào và tranh nền" decoding="async" width="900" height="343"><figcaption><b>Khối chào và tranh nền</b><span>Ảnh và câu chào đổi theo chủ đề Nữ / Nam. Đây cũng là chỗ hiện ngày hôm nay.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-2.jpg" alt="Bốn nút tắt nhanh" decoding="async" width="900" height="294"><figcaption><b>Bốn nút tắt nhanh</b><span>Thêm người, thêm lịch, viết nhật ký (mở sẵn trang giấy) và tạo link “Viết cho tôi”.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-3.jpg" alt="Dải 7 ngày tới" decoding="async" width="900" height="360"><figcaption><b>Dải 7 ngày tới</b><span>Ngày có sự kiện được tô đậm. Bấm một ngày để xem việc của ngày đó ngay bên dưới.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-4.jpg" alt="60 ngày tới và sự kiện sắp tới" decoding="async" width="900" height="308"><figcaption><b>60 ngày tới và sự kiện sắp tới</b><span>Năm đám mây gần nhất, cuộn ngang để xem tiếp; bên dưới là danh sách 5 sự kiện kèm giờ.</span></figcaption></figure></div>
-  </section>
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">2</span><div><h2>Trang cá nhân</h2><p>Hồ sơ của bạn: ảnh bìa, ảnh đại diện, tên hiển thị và các thẻ nội dung.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-me.jpg" alt="Tổng quan Trang cá nhân" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Trang cá nhân</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/me-1.jpg" alt="Ảnh bìa, ảnh đại diện và tên" decoding="async" width="900" height="510"><figcaption><b>Ảnh bìa, ảnh đại diện và tên</b><span>Bấm ảnh đại diện để đổi avatar, bấm “Đổi tên” để sửa tên. Tên này hiện ở “Viết cho …” trong nhật ký.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-2.jpg" alt="Bốn thẻ nội dung" decoding="async" width="900" height="344"><figcaption><b>Bốn thẻ nội dung</b><span>Tổng quan · Nhật ký · Lời nhắn · Nhóm — mỗi thẻ là một cách nhìn khác nhau về bạn.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-3.jpg" alt="Khối thông tin" decoding="async" width="720" height="564"><figcaption><b>Khối thông tin</b><span>Số liên kết, số nhóm, lời nhắn đã nhận và số dịp trong 30 ngày tới.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-4.jpg" alt="Dải Mọi người" decoding="async" width="720" height="738"><figcaption><b>Dải Mọi người</b><span>Danh bạ thu gọn bên trái để nhảy nhanh sang hồ sơ người khác; bấm mũi tên để thu lại.</span></figcaption></figure></div>
-  </section>
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">3</span><div><h2>Mọi người</h2><p>Toàn bộ mối quan hệ xếp trên quỹ đạo: càng gần tâm càng thân thiết.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-people.jpg" alt="Tổng quan Mọi người" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Mọi người</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/people-1.jpg" alt="Bạn ở tâm quỹ đạo" decoding="async" width="720" height="451"><figcaption><b>Bạn ở tâm quỹ đạo</b><span>Vòng trong là gia đình, vòng ngoài là người quen — thứ tự do mức ưu tiên trong Cài đặt quyết định.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-2.jpg" alt="Thu nhỏ và phóng to" decoding="async" width="720" height="467"><figcaption><b>Thu nhỏ và phóng to</b><span>Dùng hai nút này khi quỹ đạo đông người, hoặc kéo trực tiếp để xoay.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-3.jpg" alt="Tìm kiếm và bộ lọc" decoding="async" width="900" height="199"><figcaption><b>Tìm kiếm và bộ lọc</b><span>Gõ tên hoặc lọc theo mối quan hệ / nhóm để thu hẹp danh sách.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-4.jpg" alt="Danh sách liên kết" decoding="async" width="822" height="724"><figcaption><b>Danh sách liên kết</b><span>Bấm một người để mở hồ sơ: kỷ niệm, lời nhắn và nút nhắc nhở nhanh.</span></figcaption></figure></div>
-  </section>
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">4</span><div><h2>Nhật ký</h2><p>Cuốn sổ có bìa minh hoạ; trang giấy nằm lọt trong lòng sổ và lưu theo từng bài.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-diary.jpg" alt="Tổng quan Nhật ký" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Nhật ký</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/diary-1.jpg" alt="Cuốn sổ và trang giấy" decoding="async" width="900" height="603"><figcaption><b>Cuốn sổ và trang giấy</b><span>Chạm vào trang để viết. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-2.jpg" alt="Chọn bìa sổ" decoding="async" width="720" height="410"><figcaption><b>Chọn bìa sổ</b><span>Năm bìa minh hoạ; đổi bìa chỉ thay phần trình bày, nội dung bài viết giữ nguyên.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-3.jpg" alt="Cột tuỳ chọn" decoding="async" width="720" height="680"><figcaption><b>Cột tuỳ chọn</b><span>Mẫu giấy (kẻ dòng / chấm / trắng / ảnh tự tải), kiểu chữ và căn dòng.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-4.jpg" alt="Huỷ hoặc lưu" decoding="async" width="720" height="406"><figcaption><b>Huỷ hoặc lưu</b><span>Lưu vào sổ để bài xuất hiện trong hồ sơ người nhận và trong thẻ Nhật ký.</span></figcaption></figure></div>
-  </section>
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">5</span><div><h2>Sự kiện</h2><p>Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi sự kiện có màu theo loại.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-calendar.jpg" alt="Tổng quan Sự kiện" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Sự kiện</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/calendar-1.jpg" alt="Tháng đang xem" decoding="async" width="900" height="199"><figcaption><b>Tháng đang xem</b><span>Hai nút ‹ › để chuyển tháng, ở giữa là tháng hiện tại.</span></figcaption></figure><figure class="spot"><img src="assets/guide/calendar-2.jpg" alt="Hôm nay và thêm nhanh" decoding="async" width="720" height="300"><figcaption><b>Hôm nay và thêm nhanh</b><span>“Hôm nay” quay về tháng hiện tại; nút + mở form thêm sự kiện cho đúng ngày đang chọn.</span></figcaption></figure><figure class="spot"><img src="assets/guide/calendar-3.jpg" alt="Lưới ngày" decoding="async" width="900" height="480"><figcaption><b>Lưới ngày</b><span>Bấm vào ô bất kỳ để thêm sự kiện cho ngày đó. Ô hôm nay có nền navy.</span></figcaption></figure></div>
-  </section>
-  <section class="page-block" id="p-REPLACE">
-    <div class="page-head"><span class="pnum">6</span><div><h2>Cài đặt</h2><p>Mọi thứ được gom theo nhóm, bắt đầu từ Tài khoản.</p></div></div>
-    <figure class="overview"><img src="assets/guide/ov-settings.jpg" alt="Tổng quan Cài đặt" decoding="async" width="1400" height="630">
-      <figcaption>Toàn cảnh trang Cài đặt</figcaption></figure>
-    <div class="spots"><figure class="spot"><img src="assets/guide/settings-1.jpg" alt="Tài khoản" decoding="async" width="900" height="234"><figcaption><b>Tài khoản</b><span>Tên, ảnh đại diện, ảnh bìa, chủ đề nam/nữ và trạng thái đồng bộ máy chủ.</span></figcaption></figure><figure class="spot"><img src="assets/guide/settings-2.jpg" alt="Chủ đề và trang chủ" decoding="async" width="900" height="367"><figcaption><b>Chủ đề và trang chủ</b><span>Chế độ sáng/tối và bật tắt từng khối trên trang chủ.</span></figcaption></figure><figure class="spot"><img src="assets/guide/settings-3.jpg" alt="Trợ lý và nhắc nhở" decoding="async" width="900" height="367"><figcaption><b>Trợ lý và nhắc nhở</b><span>Bật nhắc hàng loạt, theo người, mẫu tin nhắn và kênh nhận thông báo.</span></figcaption></figure></div>
-  </section>
-  <footer>
-    Vùng khoanh đỏ là chỗ cần bấm hoặc nhìn. Có thể mở lại hướng dẫn ngay trong app tại
-    <b>Cài đặt → Hướng dẫn sử dụng</b>.<br><a href="./">orbit-app.meomeothehero.workers.dev</a>
-  </footer>
+<section class="sec">
+  <div class="sec-head"><span class="num">1</span><div><h2>Home</h2><p>Trang mở đầu mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/home-full.jpg" alt="Khung đỏ đánh dấu mục Home trên thanh điều hướng và toàn bộ trang chủ.">
+  <figcaption>Khung đỏ đánh dấu mục Home trên thanh điều hướng và toàn bộ trang chủ.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/home-quick.jpg" alt="Bốn nút tắt: Thêm người · Thêm lịch · Viết nhật ký · Viết cho tôi.">
+  <figcaption>Bốn nút tắt: Thêm người · Thêm lịch · Viết nhật ký · Viết cho tôi.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/home-week.jpg" alt="Dải 7 ngày tới (ngày có sự kiện được tô đậm) và danh sách sự kiện sắp tới bên dưới.">
+  <figcaption>Dải 7 ngày tới (ngày có sự kiện được tô đậm) và danh sách sự kiện sắp tới bên dưới.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/home-60.jpg" alt="60 ngày tới: năm đám mây gần nhất, kéo ngang để xem tiếp.">
+  <figcaption>60 ngày tới: năm đám mây gần nhất, kéo ngang để xem tiếp.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/home-suggest.jpg" alt="Dải gợi ý nhỏ cuối trang — bấm ✕ để ẩn, bật lại trong Cài đặt › Trang chủ.">
+  <figcaption>Dải gợi ý nhỏ cuối trang — bấm ✕ để ẩn, bật lại trong Cài đặt › Trang chủ.</figcaption>
+</figure>
+</section>
+<section class="sec">
+  <div class="sec-head"><span class="num">2</span><div><h2>Trang cá nhân</h2><p>Hồ sơ của bạn: ảnh bìa, ảnh đại diện, tên và các thẻ nội dung.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/me-full.jpg" alt="Khung đỏ đánh dấu Trang cá nhân trên thanh điều hướng và toàn bộ trang.">
+  <figcaption>Khung đỏ đánh dấu Trang cá nhân trên thanh điều hướng và toàn bộ trang.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/me-side.jpg" alt="Cột Mọi người bên trái: bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.">
+  <figcaption>Cột Mọi người bên trái: bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.</figcaption>
+</figure>
+</section>
+<section class="sec">
+  <div class="sec-head"><span class="num">3</span><div><h2>Mọi người / Quỹ đạo</h2><p>Mỗi người nằm trên một vòng tròn quanh bạn — càng gần tâm càng thân.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/people-full.jpg" alt="Khung đỏ đánh dấu Mọi người trên thanh điều hướng và toàn bộ trang quỹ đạo.">
+  <figcaption>Khung đỏ đánh dấu Mọi người trên thanh điều hướng và toàn bộ trang quỹ đạo.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/people-orbit.jpg" alt="Quỹ đạo ở giữa và thanh điều chỉnh 5 nút bên trái (phóng to, thu nhỏ, căn lại, xem dạng danh sách, làm mới).">
+  <figcaption>Quỹ đạo ở giữa và thanh điều chỉnh 5 nút bên trái (phóng to, thu nhỏ, căn lại, xem dạng danh sách, làm mới).</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/people-add.jpg" alt="Thêm người mới: bấm “＋ Thêm người”, điền tên, chọn ảnh đại diện, mối quan hệ, nhóm và ngày sinh rồi Lưu.">
+  <figcaption>Thêm người mới: bấm “＋ Thêm người”, điền tên, chọn ảnh đại diện, mối quan hệ, nhóm và ngày sinh rồi Lưu.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/people-list.jpg" alt="Danh bạ & bộ lọc: gõ tên để tìm, hoặc lọc theo mối quan hệ và nhóm.">
+  <figcaption>Danh bạ & bộ lọc: gõ tên để tìm, hoặc lọc theo mối quan hệ và nhóm.</figcaption>
+</figure>
+</section>
+<section class="sec">
+  <div class="sec-head"><span class="num">4</span><div><h2>Nhật ký</h2><p>Cuốn sổ có bìa minh hoạ; trang giấy nằm trong lòng sổ, mỗi bài lưu theo từng trang.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/diary-full.jpg" alt="Khung đỏ đánh dấu Nhật ký trên thanh điều hướng và toàn bộ trang.">
+  <figcaption>Khung đỏ đánh dấu Nhật ký trên thanh điều hướng và toàn bộ trang.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/diary-write.jpg" alt="Bấm vào trang giấy (“Chạm để viết”) để bắt đầu viết. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.">
+  <figcaption>Bấm vào trang giấy (“Chạm để viết”) để bắt đầu viết. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/diary-panel.jpg" alt="Cột tuỳ chọn bên phải: bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng — chọn xong bấm Lưu vào sổ.">
+  <figcaption>Cột tuỳ chọn bên phải: bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng — chọn xong bấm Lưu vào sổ.</figcaption>
+</figure>
+</section>
+<section class="sec">
+  <div class="sec-head"><span class="num">5</span><div><h2>Sự kiện</h2><p>Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi loại có một màu.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/cal-full.jpg" alt="Khung đỏ đánh dấu Sự kiện trên thanh điều hướng và toàn bộ trang lịch.">
+  <figcaption>Khung đỏ đánh dấu Sự kiện trên thanh điều hướng và toàn bộ trang lịch.</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/cal-add1.jpg" alt="Bước 1 — bấm nút ＋ ở góc phải trên (hoặc bấm vào ô ngày bất kỳ).">
+  <figcaption><span class="badge">Bước 1</span>Bước 1 — bấm nút ＋ ở góc phải trên (hoặc bấm vào ô ngày bất kỳ).</figcaption>
+</figure><figure class="shot">
+  <img src="assets/guide/v2/cal-add2.jpg" alt="Bước 2 — điền tên sự kiện, ngày, giờ, loại và chọn có nhắc nhở hay không, rồi bấm Lưu.">
+  <figcaption><span class="badge">Bước 2</span>Bước 2 — điền tên sự kiện, ngày, giờ, loại và chọn có nhắc nhở hay không, rồi bấm Lưu.</figcaption>
+</figure>
+</section>
+<section class="sec">
+  <div class="sec-head"><span class="num">6</span><div><h2>Cài đặt</h2><p>Mọi thứ được gom theo nhóm, bắt đầu từ Tài khoản.</p></div></div>
+  <figure class="shot">
+  <img src="assets/guide/v2/settings-full.jpg" alt="Toàn bộ trang Cài đặt: Tài khoản (tên, ảnh, chủ đề nam/nữ, đồng bộ) · Chủ đề & hiển thị · Trợ lý & nhắc nhở · Quỹ đạo & nhóm · Dữ liệu (xuất, hướng dẫn, xoá).">
+  <figcaption>Toàn bộ trang Cài đặt: Tài khoản (tên, ảnh, chủ đề nam/nữ, đồng bộ) · Chủ đề & hiển thị · Trợ lý & nhắc nhở · Quỹ đạo & nhóm · Dữ liệu (xuất, hướng dẫn, xoá).</figcaption>
+</figure>
+</section>
+
+  <footer>Mở lại hướng dẫn ngay trong app tại <b>Cài đặt › Hướng dẫn sử dụng</b>.<br>
+  <a href="./">orbit-app.meomeothehero.workers.dev</a></footer>
 </div>
 </body>
 </html>
