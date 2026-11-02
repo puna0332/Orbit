@@ -2976,7 +2976,7 @@
         '<div class="chev">›</div></button>' +
         '<a class="settings-row card settings-btn" href="huong-dan" target="_blank" rel="noopener">' +
         '<div class="ic-wrap tone-peach">' + ic('envelope', 22) + '</div>' +
-        '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF: 6 trang, 22 ảnh khoanh vùng</span></div>' +
+        '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF: 6 mục, 18 ảnh khoanh vùng</span></div>' +
         '<div class="chev">›</div></a>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
           'Sao lưu và quản lý dữ liệu'));
   }
