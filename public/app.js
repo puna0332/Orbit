@@ -1434,9 +1434,8 @@
   /* Avatar: ưu tiên ảnh người dùng tải lên (p.photo = dataURL), sau đó tới avatar
      chọn từ bộ sẵn có (p.avatar = 'av-07' hoặc dataURL), cuối cùng mới fallback chữ cái. */
   var AVATAR_COUNT = 26;
-  var AVATAR_PRESETS = ['av-01', 'av-02', 'av-03', 'av-04', 'av-05', 'av-06', 'av-07', 'av-08',
-    'av-09', 'av-10', 'av-11', 'av-12', 'av-13', 'av-14', 'av-15', 'av-16', 'av-17', 'av-18',
-    'av-19', 'av-20'];
+  /* Bộ 74 ảnh đại diện có sẵn: av-01..20 (ban đầu) + av-27..50 (người đa dạng + thú cưng) + av-51..74 (các độ tuổi từ bé tới già) */
+  var AVATAR_PRESETS = ['av-01', 'av-02', 'av-03', 'av-04', 'av-05', 'av-06', 'av-07', 'av-08', 'av-09', 'av-10', 'av-11', 'av-12', 'av-13', 'av-14', 'av-15', 'av-16', 'av-17', 'av-18', 'av-19', 'av-20', 'av-21', 'av-22', 'av-23', 'av-24', 'av-25', 'av-26', 'av-27', 'av-28', 'av-29', 'av-30', 'av-31', 'av-32', 'av-33', 'av-34', 'av-35', 'av-36', 'av-37', 'av-38', 'av-39', 'av-40', 'av-41', 'av-42', 'av-43', 'av-44', 'av-45', 'av-46', 'av-47', 'av-48', 'av-49', 'av-50', 'av-51', 'av-52', 'av-53', 'av-54', 'av-55', 'av-56', 'av-57', 'av-58', 'av-59', 'av-60', 'av-61', 'av-62', 'av-63', 'av-64', 'av-65', 'av-66', 'av-67', 'av-68', 'av-69', 'av-70', 'av-71', 'av-72', 'av-73', 'av-74'];
   /* Giá trị avatar ('av-07' | dataURL | đường dẫn) → src dùng được cho <img> */
   function avatarSrc(v) {
     if (!v) return '';
@@ -3906,8 +3905,8 @@
       '<form id="form-add-person">' +
       '<div class="field"><label>Tên</label><input type="text" name="name" required placeholder="Vd: Hoa"></div>' +
       '<div class="field"><label>Ảnh đại diện <em class="field-hint">chọn từ bộ có sẵn hoặc tải ảnh lên</em></label>' +
-      '<div class="av-grid av-grid-sm">' +
-      AVATAR_PRESETS.slice(0, 12).map(function (a) {
+      '<div class="av-grid av-grid-sm av-grid-scroll">' +
+      AVATAR_PRESETS.map(function (a) {
         return '<button type="button" class="av-pick' + (openAddPersonAvatar === a ? ' on' : '') + '" ' +
           'data-action="add-person-avatar" data-av="' + a + '" aria-label="Chọn ảnh ' + a + '">' +
           '<img src="assets/avatars/' + a + '.png" alt=""></button>';
