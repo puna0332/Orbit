@@ -552,7 +552,7 @@
       text: 'Chọn bìa sổ, mẫu giấy và kiểu chữ bên phải, rồi chạm vào trang để viết.' },
     { route: 'people', sel: '.orbit-center', title: 'Mọi người',
       text: 'Mỗi người nằm trên một vòng quỹ đạo theo mức độ thân thiết. Càng gần tâm càng gần bạn.' },
-    { route: 'me', sel: '.pd-cover', title: 'Trang cá nhân',
+    { route: 'me', sel: '.pd-head', title: 'Trang cá nhân',
       text: 'Đổi ảnh bìa, ảnh đại diện và tên ở đây — tên này cũng hiện khi bạn viết nhật ký.' },
     { route: 'settings', sel: '.settings-group', title: 'Cài đặt',
       text: 'Chủ đề nam/nữ, nhắc nhở, mẫu tin nhắn, sao lưu dữ liệu… tất cả ở đây. Mở lại hướng dẫn này bất cứ lúc nào.' }
@@ -576,6 +576,8 @@
         '<button class="tour-next" data-tour="next">Tiếp →</button></div>' +
         '</div></div>';
       document.body.appendChild(el);
+      /* Khoá cuộn khi đang hướng dẫn: cuộn sẽ làm lỗ sáng lệch khỏi vùng cần chỉ */
+      document.body.classList.add('tour-open');
       el.addEventListener('click', function (e) {
         var b = e.target.closest ? e.target.closest('[data-tour]') : null;
         if (!b) return;
@@ -596,6 +598,7 @@
     tourIdx = -1;
     var el = tourEl();
     if (el) el.remove();
+    document.body.classList.remove('tour-open');
     state.settings.tourDone = true;
     save();
   }

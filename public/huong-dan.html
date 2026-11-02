@@ -8,39 +8,48 @@
   :root { --ink:#2C2A33; --muted:#6F655C; --line:#E7DCD1; --cream:#FBF6F0; --accent:#E23744; --navy:#1D3A63; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--cream); color:var(--ink);
-    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; line-height:1.6; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 20px 72px; }
-  header { text-align:center; margin-bottom: 30px; }
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; line-height:1.6; }
+  .wrap { max-width:1080px; margin:0 auto; padding:40px 20px 72px; }
+  header { text-align:center; margin-bottom:26px; }
   .logo { width:64px; height:64px; border-radius:18px; background:#fff; display:inline-flex;
     align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(150,116,90,.18); margin-bottom:12px; }
   .logo img { width:40px; height:40px; }
-  h1 { font-size: 30px; margin: 6px 0 8px; color: var(--navy); letter-spacing:-.3px; }
-  header p { margin:0; color: var(--muted); font-size: 15px; }
-  .toolbar { display:flex; gap:10px; justify-content:center; margin: 18px 0 8px; }
+  h1 { font-size:30px; margin:6px 0 8px; color:var(--navy); letter-spacing:-.3px; }
+  header p { margin:0; color:var(--muted); font-size:15px; }
+  .toolbar { display:flex; gap:10px; justify-content:center; margin:18px 0 4px; }
   .btn { border:0; border-radius:12px; padding:10px 18px; font:inherit; font-weight:700; font-size:14px;
     cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
-  .btn-primary { background: var(--navy); color:#fff; }
-  .btn-ghost { background:#fff; color:var(--navy); box-shadow: inset 0 0 0 1px var(--line); }
-  .step { background:#fff; border-radius:20px; padding:22px; margin: 22px 0;
-    box-shadow: 0 10px 30px rgba(150,116,90,.12); }
-  .step-head { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
-  .num { flex:none; width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
-    font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; }
-  .step h2 { margin:0 0 4px; font-size:18px; color:var(--navy); }
-  .lead { margin:0; font-size:14px; color:#4A4038; }
-  figure { margin:0; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff; }
-  figure img { display:block; width:100%; height:auto; }
-  .tip { margin:12px 0 0; font-size:13px; color:var(--muted); }
-  .tip span { display:inline-block; background:#FFF1F2; color:#B3242F; font-weight:700; font-size:11px;
-    letter-spacing:.4px; text-transform:uppercase; padding:2px 8px; border-radius:999px; margin-right:6px; }
-  footer { text-align:center; margin-top:34px; font-size:13px; color:var(--muted); }
-  footer a { color: var(--navy); font-weight:700; }
+  .btn-primary { background:var(--navy); color:#fff; }
+  .btn-ghost { background:#fff; color:var(--navy); box-shadow:inset 0 0 0 1px var(--line); }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:18px 0 6px; }
+  .toc a { background:#fff; border-radius:999px; padding:6px 13px; font-size:12.5px; font-weight:700;
+    color:var(--navy); text-decoration:none; box-shadow:inset 0 0 0 1px var(--line); }
+  .page-block { background:#fff; border-radius:22px; padding:24px; margin:26px 0;
+    box-shadow:0 12px 34px rgba(150,116,90,.12); }
+  .page-head { display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+  .pnum { flex:none; width:38px; height:38px; border-radius:12px; background:var(--navy); color:#fff;
+    font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; }
+  .page-head h2 { margin:0 0 3px; font-size:21px; color:var(--navy); }
+  .page-head p { margin:0; font-size:14px; color:#4A4038; }
+  figure { margin:0; }
+  .overview { border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+  .overview img { display:block; width:100%; height:auto; }
+  .overview figcaption { font-size:12px; color:var(--muted); padding:7px 12px; background:#FDFAF6; border-top:1px solid var(--line); }
+  .spots { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+  .spot { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#FDFAF6; }
+  .spot img { display:block; width:100%; height:auto; }
+  .spot figcaption { padding:10px 12px 12px; display:flex; flex-direction:column; gap:2px; }
+  .spot b { font-size:13.5px; color:var(--navy); }
+  .spot span { font-size:12.5px; color:var(--muted); }
+  footer { text-align:center; margin-top:32px; font-size:13px; color:var(--muted); }
+  footer a { color:var(--navy); font-weight:700; }
+  @media (max-width:820px) { .spots { grid-template-columns:1fr; } }
   @media print {
     body { background:#fff; }
     .wrap { max-width:none; padding:0; }
-    .toolbar { display:none; }
-    .step { box-shadow:none; border:1px solid #E3DAD1; page-break-inside: avoid; break-inside: avoid; margin:14px 0; }
-    header { margin-bottom:14px; }
+    .toolbar, .toc { display:none; }
+    .page-block { box-shadow:none; border:1px solid #E3DAD1; page-break-inside:avoid; break-inside:avoid; margin:12px 0; }
+    .spot { page-break-inside:avoid; break-inside:avoid; }
   }
 </style>
 </head>
@@ -49,79 +58,52 @@
   <header>
     <div class="logo"><img src="assets/logo-orbit.png" alt="Orbit"></div>
     <h1>Hướng dẫn sử dụng Orbit</h1>
-    <p>Tám bước để làm quen: từ trang chủ, lịch, nhật ký đến quỹ đạo những người bạn quan tâm.</p>
+    <p>Chia theo sáu trang trên thanh điều hướng — mỗi trang có ảnh toàn cảnh và các vùng được khoanh đỏ.</p>
     <div class="toolbar">
       <button class="btn btn-primary" onclick="window.print()">In / Lưu PDF</button>
       <a class="btn btn-ghost" href="./">← Mở ứng dụng</a>
     </div>
+    <nav class="toc"><a href="#p-home">Trang chủ</a><a href="#p-me">Trang cá nhân</a><a href="#p-people">Mọi người</a><a href="#p-diary">Nhật ký</a><a href="#p-calendar">Sự kiện</a><a href="#p-settings">Cài đặt</a></nav>
   </header>
   
-    <section class="step">
-      <div class="step-head">
-        <span class="num">1</span>
-        <div><h2>Trang chủ — nơi mọi thứ bắt đầu</h2><p class="lead">Khối chào cho biết hôm nay là ngày nào và tên của bạn. Bên dưới là toàn bộ lối tắt: thêm người, thêm lịch, viết nhật ký và tạo link “Viết cho tôi”.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-1.jpg" alt="Bước 1: Trang chủ — nơi mọi thứ bắt đầu" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Ảnh nền và câu chào đổi theo chủ đề Nữ / Nam trong Cài đặt.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">2</span>
-        <div><h2>Bốn nút tắt nhanh</h2><p class="lead">Thêm người (mối quan hệ mới), Thêm lịch (sự kiện), Viết nhật ký (mở sẵn một trang giấy mới) và Viết cho tôi (tạo link + mã QR để người khác gửi điều họ muốn nói).</p></div>
-      </div>
-      <figure><img src="assets/guide/step-2.jpg" alt="Bước 2: Bốn nút tắt nhanh" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> “Viết nhật ký” mở thẳng trang giấy, không phải qua bước trung gian nào.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">3</span>
-        <div><h2>7 ngày tới</h2><p class="lead">Dải ngày của tuần hiện tại. Ngày có sự kiện được tô đậm kèm dấu chấm, ngày đang chọn có nền navy. Bấm một ngày để xem danh sách việc của ngày đó.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-3.jpg" alt="Bước 3: 7 ngày tới" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Ngày hiển thị dạng ngày/tháng, ví dụ 11/11.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">4</span>
-        <div><h2>Lịch sự kiện</h2><p class="lead">Tất cả sinh nhật, kỷ niệm và cuộc hẹn nằm trên một lịch tháng. Bấm vào ô bất kỳ để thêm sự kiện cho đúng ngày đó.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-4.jpg" alt="Bước 4: Lịch sự kiện" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Nút “Hôm nay” đưa bạn về tháng hiện tại; dấu + góc phải thêm nhanh sự kiện.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">5</span>
-        <div><h2>Nhật ký</h2><p class="lead">Cuốn sổ lật từng trang: chọn bìa, mẫu giấy (kẻ dòng / chấm / trắng / ảnh tự tải) và kiểu chữ ở cột bên phải, rồi chạm vào trang để viết.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-5.jpg" alt="Bước 5: Nhật ký" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Nội dung lưu dạng chữ, nên cùng một bài hiển thị đúng trên cả máy tính và điện thoại.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">6</span>
-        <div><h2>Mọi người — quỹ đạo của bạn</h2><p class="lead">Mỗi người nằm trên một vòng tròn quanh bạn: càng gần tâm càng thân thiết. Bấm vào một người để xem hồ sơ, kỷ niệm và lời nhắn.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-6.jpg" alt="Bước 6: Mọi người — quỹ đạo của bạn" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Kéo để xoay quỹ đạo, dùng nút thu nhỏ/phóng to ở góc để nhìn rộng hơn.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">7</span>
-        <div><h2>Trang cá nhân</h2><p class="lead">Đổi ảnh bìa, ảnh đại diện và tên ngay tại đây. Tên này cũng chính là “Viết cho …” trong mỗi trang nhật ký.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-7.jpg" alt="Bước 7: Trang cá nhân" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Mỗi người khác cũng có trang riêng cùng bố cục, kèm nút nhắc nhở nhanh.</p>
-    </section>
-    <section class="step">
-      <div class="step-head">
-        <span class="num">8</span>
-        <div><h2>Cài đặt</h2><p class="lead">Tài khoản, chủ đề nam/nữ, các khối trang chủ, nhắc nhở, mẫu tin nhắn, xuất dữ liệu — mọi thứ gom theo nhóm ở đây.</p></div>
-      </div>
-      <figure><img src="assets/guide/step-8.jpg" alt="Bước 8: Cài đặt" loading="lazy"></figure>
-      <p class="tip"><span>Mẹo</span> Mở lại hướng dẫn này bất cứ lúc nào ở mục “Hướng dẫn sử dụng”.</p>
-    </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">1</span><div><h2>Trang chủ</h2><p>Nơi mở app mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới trong 60 ngày.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-home.jpg" alt="Tổng quan Trang chủ" loading="lazy">
+      <figcaption>Toàn cảnh trang Trang chủ</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/home-1.jpg" alt="Khối chào và tranh nền" loading="lazy"><figcaption><b>Khối chào và tranh nền</b><span>Ảnh và câu chào đổi theo chủ đề Nữ / Nam. Đây cũng là chỗ hiện ngày hôm nay.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-2.jpg" alt="Bốn nút tắt nhanh" loading="lazy"><figcaption><b>Bốn nút tắt nhanh</b><span>Thêm người, thêm lịch, viết nhật ký (mở sẵn trang giấy) và tạo link “Viết cho tôi”.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-3.jpg" alt="Dải 7 ngày tới" loading="lazy"><figcaption><b>Dải 7 ngày tới</b><span>Ngày có sự kiện được tô đậm. Bấm một ngày để xem việc của ngày đó ngay bên dưới.</span></figcaption></figure><figure class="spot"><img src="assets/guide/home-4.jpg" alt="60 ngày tới và sự kiện sắp tới" loading="lazy"><figcaption><b>60 ngày tới và sự kiện sắp tới</b><span>Năm đám mây gần nhất, cuộn ngang để xem tiếp; bên dưới là danh sách 5 sự kiện kèm giờ.</span></figcaption></figure></div>
+  </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">2</span><div><h2>Trang cá nhân</h2><p>Hồ sơ của bạn: ảnh bìa, ảnh đại diện, tên hiển thị và các thẻ nội dung.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-me.jpg" alt="Tổng quan Trang cá nhân" loading="lazy">
+      <figcaption>Toàn cảnh trang Trang cá nhân</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/me-1.jpg" alt="Ảnh bìa, ảnh đại diện và tên" loading="lazy"><figcaption><b>Ảnh bìa, ảnh đại diện và tên</b><span>Bấm ảnh đại diện để đổi avatar, bấm “Đổi tên” để sửa tên. Tên này hiện ở “Viết cho …” trong nhật ký.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-2.jpg" alt="Bốn thẻ nội dung" loading="lazy"><figcaption><b>Bốn thẻ nội dung</b><span>Tổng quan · Nhật ký · Lời nhắn · Nhóm — mỗi thẻ là một cách nhìn khác nhau về bạn.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-3.jpg" alt="Khối thông tin" loading="lazy"><figcaption><b>Khối thông tin</b><span>Số liên kết, số nhóm, lời nhắn đã nhận và số dịp trong 30 ngày tới.</span></figcaption></figure><figure class="spot"><img src="assets/guide/me-4.jpg" alt="Dải Mọi người" loading="lazy"><figcaption><b>Dải Mọi người</b><span>Danh bạ thu gọn bên trái để nhảy nhanh sang hồ sơ người khác; bấm mũi tên để thu lại.</span></figcaption></figure></div>
+  </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">3</span><div><h2>Mọi người</h2><p>Toàn bộ mối quan hệ xếp trên quỹ đạo: càng gần tâm càng thân thiết.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-people.jpg" alt="Tổng quan Mọi người" loading="lazy">
+      <figcaption>Toàn cảnh trang Mọi người</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/people-1.jpg" alt="Bạn ở tâm quỹ đạo" loading="lazy"><figcaption><b>Bạn ở tâm quỹ đạo</b><span>Vòng trong là gia đình, vòng ngoài là người quen — thứ tự do mức ưu tiên trong Cài đặt quyết định.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-2.jpg" alt="Thu nhỏ và phóng to" loading="lazy"><figcaption><b>Thu nhỏ và phóng to</b><span>Dùng hai nút này khi quỹ đạo đông người, hoặc kéo trực tiếp để xoay.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-3.jpg" alt="Tìm kiếm và bộ lọc" loading="lazy"><figcaption><b>Tìm kiếm và bộ lọc</b><span>Gõ tên hoặc lọc theo mối quan hệ / nhóm để thu hẹp danh sách.</span></figcaption></figure><figure class="spot"><img src="assets/guide/people-4.jpg" alt="Danh sách liên kết" loading="lazy"><figcaption><b>Danh sách liên kết</b><span>Bấm một người để mở hồ sơ: kỷ niệm, lời nhắn và nút nhắc nhở nhanh.</span></figcaption></figure></div>
+  </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">4</span><div><h2>Nhật ký</h2><p>Cuốn sổ có bìa minh hoạ; trang giấy nằm lọt trong lòng sổ và lưu theo từng bài.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-diary.jpg" alt="Tổng quan Nhật ký" loading="lazy">
+      <figcaption>Toàn cảnh trang Nhật ký</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/diary-1.jpg" alt="Cuốn sổ và trang giấy" loading="lazy"><figcaption><b>Cuốn sổ và trang giấy</b><span>Chạm vào trang để viết. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-2.jpg" alt="Chọn bìa sổ" loading="lazy"><figcaption><b>Chọn bìa sổ</b><span>Năm bìa minh hoạ; đổi bìa chỉ thay phần trình bày, nội dung bài viết giữ nguyên.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-3.jpg" alt="Cột tuỳ chọn" loading="lazy"><figcaption><b>Cột tuỳ chọn</b><span>Mẫu giấy (kẻ dòng / chấm / trắng / ảnh tự tải), kiểu chữ và căn dòng.</span></figcaption></figure><figure class="spot"><img src="assets/guide/diary-4.jpg" alt="Huỷ hoặc lưu" loading="lazy"><figcaption><b>Huỷ hoặc lưu</b><span>Lưu vào sổ để bài xuất hiện trong hồ sơ người nhận và trong thẻ Nhật ký.</span></figcaption></figure></div>
+  </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">5</span><div><h2>Sự kiện</h2><p>Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi sự kiện có màu theo loại.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-calendar.jpg" alt="Tổng quan Sự kiện" loading="lazy">
+      <figcaption>Toàn cảnh trang Sự kiện</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/calendar-1.jpg" alt="Tháng đang xem" loading="lazy"><figcaption><b>Tháng đang xem</b><span>Hai nút ‹ › để chuyển tháng, ở giữa là tháng hiện tại.</span></figcaption></figure><figure class="spot"><img src="assets/guide/calendar-2.jpg" alt="Hôm nay và thêm nhanh" loading="lazy"><figcaption><b>Hôm nay và thêm nhanh</b><span>“Hôm nay” quay về tháng hiện tại; nút + mở form thêm sự kiện cho đúng ngày đang chọn.</span></figcaption></figure><figure class="spot"><img src="assets/guide/calendar-3.jpg" alt="Lưới ngày" loading="lazy"><figcaption><b>Lưới ngày</b><span>Bấm vào ô bất kỳ để thêm sự kiện cho ngày đó. Ô hôm nay có nền navy.</span></figcaption></figure></div>
+  </section>
+  <section class="page-block" id="p-REPLACE">
+    <div class="page-head"><span class="pnum">6</span><div><h2>Cài đặt</h2><p>Mọi thứ được gom theo nhóm, bắt đầu từ Tài khoản.</p></div></div>
+    <figure class="overview"><img src="assets/guide/ov-settings.jpg" alt="Tổng quan Cài đặt" loading="lazy">
+      <figcaption>Toàn cảnh trang Cài đặt</figcaption></figure>
+    <div class="spots"><figure class="spot"><img src="assets/guide/settings-1.jpg" alt="Tài khoản" loading="lazy"><figcaption><b>Tài khoản</b><span>Tên, ảnh đại diện, ảnh bìa, chủ đề nam/nữ và trạng thái đồng bộ máy chủ.</span></figcaption></figure><figure class="spot"><img src="assets/guide/settings-2.jpg" alt="Chủ đề và trang chủ" loading="lazy"><figcaption><b>Chủ đề và trang chủ</b><span>Chế độ sáng/tối và bật tắt từng khối trên trang chủ.</span></figcaption></figure><figure class="spot"><img src="assets/guide/settings-3.jpg" alt="Trợ lý và nhắc nhở" loading="lazy"><figcaption><b>Trợ lý và nhắc nhở</b><span>Bật nhắc hàng loạt, theo người, mẫu tin nhắn và kênh nhận thông báo.</span></figcaption></figure></div>
+  </section>
   <footer>
-    Vùng khoanh đỏ là chỗ cần bấm hoặc nhìn. Có thể mở lại hướng dẫn trực tiếp trong app tại
+    Vùng khoanh đỏ là chỗ cần bấm hoặc nhìn. Có thể mở lại hướng dẫn ngay trong app tại
     <b>Cài đặt → Hướng dẫn sử dụng</b>.<br><a href="./">orbit-app.meomeothehero.workers.dev</a>
   </footer>
 </div>
