@@ -539,24 +539,43 @@
   /* ========================= Hướng dẫn từng bước =========================
      Overlay tối + "lỗ sáng" khoét đúng vùng cần chỉ, kèm thẻ mô tả. Chạy được
      trên mọi trang vì mỗi bước tự điều hướng rồi mới đo lại toạ độ. */
+  /* Thứ tự bám đúng thanh điều hướng: Home → Trang cá nhân → Mọi người →
+     Nhật ký → Sự kiện → Cài đặt, mỗi trang chỉ vài điểm đáng chú ý. */
   var TOUR_STEPS = [
-    { route: 'home', sel: '.home-hero', title: 'Đây là Orbit của bạn',
-      text: 'Mọi thứ xoay quanh những người bạn quan tâm: dịp sắp tới, nhật ký và lời nhắn.' },
+    { route: 'home', sel: '.sidebar, .nav-list', title: 'Thanh điều hướng',
+      text: 'Sáu mục: Home · Trang cá nhân · Mọi người · Nhật ký · Sự kiện · Cài đặt. Hướng dẫn này đi lần lượt từng mục.' },
+    { route: 'home', sel: '.home-hero', title: '1. Home',
+      text: 'Trang mở đầu mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới.' },
     { route: 'home', sel: '.home-quick', title: 'Bốn nút tắt nhanh',
-      text: 'Thêm người, thêm lịch, viết nhật ký hoặc tạo link để người khác viết cho bạn.' },
-    { route: 'home', sel: '.home-section', title: '7 ngày tới',
-      text: 'Dải ngày trong tuần — ngày nào có sự kiện sẽ được tô đậm. Bấm một ngày để xem lịch ngày đó.' },
-    { route: 'calendar', sel: '.cal-board', title: 'Lịch sự kiện',
-      text: 'Toàn bộ sinh nhật, kỷ niệm, cuộc hẹn nằm trên một lịch. Bấm ô bất kỳ để thêm sự kiện.' },
-    { route: 'diary', sel: '.diary-book', title: 'Nhật ký',
-      text: 'Chọn bìa sổ, mẫu giấy và kiểu chữ bên phải, rồi chạm vào trang để viết.' },
-    { route: 'people', sel: '.orbit-center', title: 'Mọi người',
-      text: 'Mỗi người nằm trên một vòng quỹ đạo theo mức độ thân thiết. Càng gần tâm càng gần bạn.' },
-    { route: 'me', sel: '.pd-head', title: 'Trang cá nhân',
-      text: 'Đổi ảnh bìa, ảnh đại diện và tên ở đây — tên này cũng hiện khi bạn viết nhật ký.' },
-    { route: 'settings', sel: '.settings-group', title: 'Cài đặt',
-      text: 'Chủ đề nam/nữ, nhắc nhở, mẫu tin nhắn, sao lưu dữ liệu… tất cả ở đây. Mở lại hướng dẫn này bất cứ lúc nào.' }
+      text: 'Thêm người, thêm lịch, viết nhật ký (mở sẵn trang giấy) và tạo link “Viết cho tôi”.' },
+    { route: 'home', sel: '.home-section', nth: 0, title: '7 ngày tới',
+      text: 'Ngày có sự kiện được tô đậm; bấm một ngày để xem việc của ngày đó ngay bên dưới.' },
+    { route: 'home', sel: '.home-section', nth: 1, title: '60 ngày tới',
+      text: 'Năm đám mây gần nhất, kéo ngang để xem tiếp. Bên dưới là danh sách sự kiện sắp tới.' },
+    { route: 'me', sel: '.pd-head', title: '2. Trang cá nhân',
+      text: 'Đổi ảnh bìa, ảnh đại diện và tên tại đây. Tên này cũng hiện ở “Viết cho …” trong nhật ký.' },
+    { route: 'me', sel: '.pd-side', title: 'Cột Mọi người',
+      text: 'Danh bạ thu gọn bên trái — bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.' },
+    { route: 'people', sel: '.orbit-stage', title: '3. Mọi người',
+      text: 'Mỗi người nằm trên một vòng quỹ đạo: càng gần tâm càng thân thiết. Kéo để xoay.' },
+    { route: 'people', sel: '.orbit-zoom', title: 'Thanh điều chỉnh',
+      text: 'Năm nút bên trái quỹ đạo: phóng to, thu nhỏ, căn lại, xem dạng danh sách và làm mới.' },
+    { route: 'people', sel: '.people-head', title: 'Danh bạ & bộ lọc',
+      text: 'Gõ tên để tìm, hoặc lọc theo mối quan hệ và nhóm để thu hẹp danh sách.' },
+    { route: 'diary', sel: '.diary-book', title: '4. Nhật ký',
+      text: 'Cuốn sổ có bìa minh hoạ; trang giấy nằm trong lòng sổ và lưu theo từng bài.' },
+    { route: 'diary', sel: '.diary-sheet', title: 'Chạm để viết',
+      text: 'Bấm vào trang giấy để bắt đầu. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.' },
+    { route: 'diary', sel: '.diary-side', title: 'Tuỳ chọn bên phải',
+      text: 'Bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng. Chọn xong bấm Lưu vào sổ.' },
+    { route: 'calendar', sel: '.cal-board', title: '5. Sự kiện',
+      text: 'Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi loại có một màu riêng.' },
+    { route: 'calendar', sel: '.cal-actions', title: 'Thêm sự kiện',
+      text: 'Bấm nút ＋ (hoặc bấm vào ô ngày bất kỳ), điền thông tin rồi Lưu — chỉ hai bước.' },
+    { route: 'settings', sel: '.settings-group', nth: 0, title: '6. Cài đặt',
+      text: 'Tài khoản, chủ đề, nhắc nhở, quỹ đạo, dữ liệu — gom theo nhóm. Mở lại hướng dẫn này tại đây.' }
   ];
+
   var tourIdx = -1;
 
   function tourEl() { return document.getElementById('orbitTour'); }
@@ -631,19 +650,26 @@
     var tries = 0;
     (function attempt() {
       tries++;
-      var target = document.querySelector(step.sel);
-      var ready = target && target.getBoundingClientRect().width > 0;
+      var target = tourTarget(step);
+      var b = target ? target.getBoundingClientRect() : null;
+      var ready = !!(b && b.width > 0 && b.height > 0);
       positionTour();
-      if (!ready && tries < 12) setTimeout(attempt, 120);
-      else if (tries < 4) setTimeout(positionTour, 200);
+      if (!ready && tries < 14) setTimeout(attempt, 120);
+      else { setTimeout(positionTour, 500); setTimeout(positionTour, 1100); }
     })();
+  }
+
+  function tourTarget(step) {
+    var list = document.querySelectorAll(step.sel);
+    if (!list.length) return null;
+    return list[step.nth || 0] || null;
   }
 
   function positionTour() {
     var step = TOUR_STEPS[tourIdx];
     var el = tourEl();
     if (!step || !el) return;
-    var target = document.querySelector(step.sel);
+    var target = tourTarget(step);
     var hole = el.querySelector('.tour-hole');
     var card = el.querySelector('.tour-card');
     var vw = window.innerWidth, vh = window.innerHeight;
@@ -658,6 +684,7 @@
     var left = Math.max(6, r.left - pad);
     var w = Math.max(60, Math.min(vw - 12, r.width + pad * 2));
     var h = Math.max(28, Math.min(vh - 12, r.height + pad * 2));
+    if (top + h > vh - 6) h = vh - 6 - top;
     hole.style.cssText = 'position:absolute;border-radius:16px;left:' + left + 'px;top:' + top +
       'px;width:' + w + 'px;height:' + h + 'px;';
 
