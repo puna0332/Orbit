@@ -2428,3 +2428,12 @@ html[data-gender="male"] .fam-add { border-color: #C3D8E8; background: #F7FBFF; 
 .people-empty p { margin: 0 0 16px; font-size: 13.5px; color: #6F655C; line-height: 1.55; }
 html[data-gender="male"] .people-empty .pe-art { background: #EAF2FB; color: #3D6398; }
 html[data-gender="male"] .people-empty h2 { color: #1B3358; }
+
+/* Chọn chủ đề trong hộp thông tin cá nhân */
+.setup-theme { margin-top: 14px; }
+.setup-seg { margin-top: 6px; }
+.setup-seg .sk-seg-btn { font-size: 12.5px; padding: 8px 6px; }
+
+/* Bước chào mừng: không khoét lỗ, thẻ nằm giữa màn hình */
+.tour-full .tour-hole { display: none; }
+.tour-full .tour-card { box-shadow: 0 30px 80px rgba(10,20,35,.45); }

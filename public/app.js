@@ -542,6 +542,8 @@
   /* Thứ tự bám đúng thanh điều hướng: Home → Trang cá nhân → Mọi người →
      Nhật ký → Sự kiện → Cài đặt, mỗi trang chỉ vài điểm đáng chú ý. */
   var TOUR_STEPS = [
+    { route: 'home', full: true, title: 'Chào mừng tới Orbit',
+      text: 'Nơi bạn lưu giữ những người mình trân trọng: ngày quan trọng của họ, nhật ký của bạn và những lời nhắn gửi nhau.' },
     { route: 'home', sel: '.sidebar, .nav-list', title: 'Thanh điều hướng',
       text: 'Sáu mục: Home · Trang cá nhân · Mọi người · Nhật ký · Sự kiện · Cài đặt. Hướng dẫn này đi lần lượt từng mục.' },
     { route: 'home', sel: '.home-hero', title: '1. Home',
@@ -650,9 +652,9 @@
     var tries = 0;
     (function attempt() {
       tries++;
-      var target = tourTarget(step);
+      var target = step.full ? null : tourTarget(step);
       var b = target ? target.getBoundingClientRect() : null;
-      var ready = !!(b && b.width > 0 && b.height > 0);
+      var ready = step.full ? true : !!(b && b.width > 0 && b.height > 0);
       positionTour();
       if (!ready && tries < 14) setTimeout(attempt, 120);
       else { setTimeout(positionTour, 500); setTimeout(positionTour, 1100); }
@@ -674,6 +676,15 @@
     var card = el.querySelector('.tour-card');
     var vw = window.innerWidth, vh = window.innerHeight;
 
+    if (step.full) {
+      el.classList.add('tour-full');
+      hole.style.cssText = 'display:none';
+      card.style.width = Math.min(420, vw - 32) + 'px';
+      card.style.left = Math.round((vw - Math.min(420, vw - 32)) / 2) + 'px';
+      card.style.top = Math.round(vh / 2 - (card.offsetHeight || 180) / 2) + 'px';
+      return;
+    }
+    el.classList.remove('tour-full');
     var r = target ? target.getBoundingClientRect() : null;
     if (!r || (r.width === 0 && r.height === 0)) {
       /* Không tìm thấy vùng cần chỉ: cho lỗ sáng giữa màn hình để không chặn bước */
@@ -3504,8 +3515,9 @@
 
   function profileSetupHtml() {
     if (!setupOpen) return '';
-    var name = state.settings.profileName && state.settings.profileName !== 'Bạn' ? state.settings.profileName : '';
-    var bd = state.settings.profileBirthday || '';
+    var name = state.settings.__setupName != null ? state.settings.__setupName
+      : (state.settings.profileName && state.settings.profileName !== 'Bạn' ? state.settings.profileName : '');
+    var bd = state.settings.__setupBd != null ? state.settings.__setupBd : (state.settings.profileBirthday || '');
     var grid = AVATAR_PRESETS.map(function (a) {
       return '<button type="button" class="setup-av' + (setupAvatar === a ? ' on' : '') + '" ' +
         'data-action="setup-avatar" data-av="' + a + '" aria-pressed="' + (setupAvatar === a) + '" ' +
@@ -3527,11 +3539,25 @@
       '<input type="text" name="name" maxlength="32" placeholder="Vd: Trân" value="' + esc(name) + '" autocomplete="given-name"></label>' +
       '<label class="auth-field"><span>Ngày sinh</span>' +
       '<input type="date" name="birthday" value="' + esc(bd) + '"></label>' +
+      '<div class="auth-field setup-theme"><span>Chủ đề</span>' +
+      '<div class="sk-seg setup-seg">' +
+      '<button type="button" class="sk-seg-btn' + ((state.settings.gender || 'female') !== 'male' ? ' on' : '') +
+      '" data-action="setup-gender" data-g="female">Nữ · kem hồng</button>' +
+      '<button type="button" class="sk-seg-btn' + (state.settings.gender === 'male' ? ' on' : '') +
+      '" data-action="setup-gender" data-g="male">Nam · xanh biển</button>' +
+      '</div></div>' +
       '<div class="auth-err" role="alert" hidden></div>' +
       '<button class="btn btn-primary btn-block" type="submit">Bắt đầu dùng Orbit →</button>' +
       '<button class="auth-skip" type="button" data-action="setup-skip">Để sau</button>' +
       '</form></div></div>';
   }
+  function readSetupInputs() {
+    var n = document.querySelector('#form-orbit-profile [name=name]');
+    var b = document.querySelector('#form-orbit-profile [name=birthday]');
+    if (n) state.settings.__setupName = n.value;
+    if (b) state.settings.__setupBd = b.value;
+  }
+
   function saveProfileSetup(form) {
     var fd = new FormData(form);
     var name = String(fd.get('name') || '').trim();
@@ -3541,6 +3567,8 @@
     state.settings.profileName = name;
     state.settings.profileAvatar = setupAvatar || '';
     state.settings.profileBirthday = bd;
+    delete state.settings.__setupName;
+    delete state.settings.__setupBd;
     if (ACCT.token) {
       api('/api/profile', { method: 'PUT', body: { name: name, birthday: bd, avatar: setupAvatar || '' } })
         .catch(function () { });
@@ -4342,6 +4370,13 @@
         history.replaceState(null, '', location.pathname + (state.onboardingDone ? '#/home' : '#/onboarding'));
         render(); break;
       case 'setup-avatar': setupAvatar = t.dataset.av; render(); break;
+      case 'setup-gender':
+        readSetupInputs();
+        state.settings.gender = t.dataset.g === 'male' ? 'male' : 'female';
+        document.documentElement.setAttribute('data-gender', state.settings.gender);
+        applyTheme();
+        render();
+        break;
       case 'family-add':
         readFamilyInputs();
         familyRows.push({ name: '', bd: '', rel: 'family', ph: 'Vd: Ông, chị gái…' });
