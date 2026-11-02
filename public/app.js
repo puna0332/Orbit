@@ -3539,13 +3539,16 @@
       '<input type="text" name="name" maxlength="32" placeholder="Vd: Trân" value="' + esc(name) + '" autocomplete="given-name"></label>' +
       '<label class="auth-field"><span>Ngày sinh</span>' +
       '<input type="date" name="birthday" value="' + esc(bd) + '"></label>' +
-      '<div class="auth-field setup-theme"><span>Chủ đề</span>' +
-      '<div class="sk-seg setup-seg">' +
-      '<button type="button" class="sk-seg-btn' + ((state.settings.gender || 'female') !== 'male' ? ' on' : '') +
-      '" data-action="setup-gender" data-g="female">Nữ · kem hồng</button>' +
+      '<div class="auth-field setup-theme"><span>Giới tính</span>' +
+      '<div class="sk-seg setup-seg setup-seg-3">' +
+      '<button type="button" class="sk-seg-btn' + ((state.settings.gender || 'female') === 'female' ? ' on' : '') +
+      '" data-action="setup-gender" data-g="female">Nữ</button>' +
       '<button type="button" class="sk-seg-btn' + (state.settings.gender === 'male' ? ' on' : '') +
-      '" data-action="setup-gender" data-g="male">Nam · xanh biển</button>' +
-      '</div></div>' +
+      '" data-action="setup-gender" data-g="male">Nam</button>' +
+      '<button type="button" class="sk-seg-btn' + (state.settings.gender === 'other' ? ' on' : '') +
+      '" data-action="setup-gender" data-g="other">Khác</button>' +
+      '</div>' +
+      '<em class="setup-hint">Giao diện tự chọn theo giới tính — đổi lại được trong Cài đặt.</em></div>' +
       '<div class="auth-err" role="alert" hidden></div>' +
       '<button class="btn btn-primary btn-block" type="submit">Bắt đầu dùng Orbit →</button>' +
       '<button class="auth-skip" type="button" data-action="setup-skip">Để sau</button>' +
@@ -4372,9 +4375,10 @@
       case 'setup-avatar': setupAvatar = t.dataset.av; render(); break;
       case 'setup-gender':
         readSetupInputs();
-        state.settings.gender = t.dataset.g === 'male' ? 'male' : 'female';
-        document.documentElement.setAttribute('data-gender', state.settings.gender);
-        applyTheme();
+        var g = t.dataset.g;
+        state.settings.gender = (g === 'male' || g === 'other') ? g : 'female';
+        applyTheme();   /* nữ và khác → kem hồng, nam → xanh biển */
+        save();
         render();
         break;
       case 'family-add':
