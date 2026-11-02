@@ -2388,3 +2388,43 @@ html[data-gender="male"] .tour-prev { background: #E9F1FB; color: #24405F; }
 
 /* Khi đang chạy hướng dẫn: không cho trang cuộn để lỗ sáng không lệch */
 html.tour-open, body.tour-open { overflow: hidden !important; }
+
+/* ===== Hộp thêm người thân (sau khi tạo tài khoản) ===== */
+.fam-card { width: min(460px, 100%); }
+.fam-head { display: grid; grid-template-columns: 1fr 132px 28px; gap: 8px; margin: 4px 0 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #8A7A6C; }
+.fam-row { display: grid; grid-template-columns: 1fr 132px 28px; gap: 8px; margin-bottom: 8px; align-items: center; }
+.fam-name, .fam-bd {
+  width: 100%; padding: 9px 11px; font: inherit; font-size: 13.5px; color: #2C2A33;
+  border: 1px solid #E7DFD5; border-radius: 11px; background: #FDFBF7;
+}
+.fam-name:focus, .fam-bd:focus { outline: 2px solid #C9A98E; outline-offset: 1px; background: #fff; }
+.fam-del {
+  width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: pointer;
+  background: #F3EEE8; color: #8A7A6C; font-size: 11px;
+}
+.fam-del:hover { background: #EADFD3; }
+.fam-add {
+  width: 100%; margin: 2px 0 4px; padding: 9px; border-radius: 11px; cursor: pointer;
+  border: 1px dashed #D9C8B8; background: #FFF9F4; color: #7A5B45; font: inherit;
+  font-size: 13px; font-weight: 700;
+}
+@media (max-width: 420px) {
+  .fam-head, .fam-row { grid-template-columns: 1fr 112px 26px; }
+}
+html[data-gender="male"] .fam-name, html[data-gender="male"] .fam-bd { border-color: #DCE7F5; background: #F8FBFF; }
+html[data-gender="male"] .fam-del { background: #EEF4FC; color: #5B7590; }
+html[data-gender="male"] .fam-add { border-color: #C3D8E8; background: #F7FBFF; color: #3D6398; }
+.hidden-input { display: none; }
+
+/* Quỹ đạo trống khi chưa có ai */
+.people-empty { max-width: 460px; margin: 40px auto; padding: 30px 26px; text-align: center; border-radius: 20px; }
+.people-empty .pe-art {
+  width: 62px; height: 62px; margin: 0 auto 14px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: #FDF0E6; color: #A9784F;
+}
+.people-empty h2 { margin: 0 0 6px; font-size: 19px; color: #1D3A63; }
+.people-empty p { margin: 0 0 16px; font-size: 13.5px; color: #6F655C; line-height: 1.55; }
+html[data-gender="male"] .people-empty .pe-art { background: #EAF2FB; color: #3D6398; }
+html[data-gender="male"] .people-empty h2 { color: #1B3358; }

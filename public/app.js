@@ -1811,6 +1811,17 @@
   }
   function renderPeople() {
     ensureContactAvatars();
+    /* Người dùng mới bắt đầu với quỹ đạo trống — hiện lời mời thay vì một vòng tròn rỗng */
+    if (!state.people.length) {
+      return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người' +
+        '<span class="page-count">0</span></h1></div>' +
+        '<div class="people-empty card">' +
+        '<div class="pe-art">' + ic('people', 34) + '</div>' +
+        '<h2>Quỹ đạo đang trống</h2>' +
+        '<p>Thêm người đầu tiên — bố, mẹ, người thân hoặc bạn bè — rồi Orbit sẽ nhắc bạn những dịp quan trọng của họ.</p>' +
+        '<button class="btn btn-primary" data-action="open-add-person">＋ Thêm người đầu tiên</button>' +
+        '</div>';
+    }
     var filtered = state.people.filter(personMatchesFilters);
     var listed = searchPeople(filtered);
     return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người' +
@@ -3429,6 +3440,68 @@
     render();
   }
   function closeProfileSetup() { setupOpen = false; render(); }
+  /* ----- Thêm người thân ngay sau khi tạo tài khoản ----- */
+  var familyOpen = false;
+  var familyRows = [];
+  function resetFamilyRows() {
+    familyRows = [
+      { name: '', bd: '', rel: 'family', ph: 'Vd: Bố' },
+      { name: '', bd: '', rel: 'family', ph: 'Vd: Mẹ' }
+    ];
+  }
+  function openFamily() { familyOpen = true; if (!familyRows.length) resetFamilyRows(); render(); }
+  function familyModalHtml() {
+    if (!familyOpen) return '';
+    var rows = familyRows.map(function (r, i) {
+      return '<div class="fam-row">' +
+        '<input type="text" class="fam-name" data-i="' + i + '" value="' + esc(r.name) + '" placeholder="' + esc(r.ph) + '" maxlength="32">' +
+        '<input type="date" class="fam-bd" data-i="' + i + '" value="' + esc(r.bd) + '">' +
+        '<button type="button" class="fam-del" data-action="family-remove" data-i="' + i + '" aria-label="Bỏ dòng này">✕</button>' +
+        '</div>';
+    }).join('');
+    return '<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="fam-title">' +
+      '<div class="auth-scrim"></div>' +
+      '<div class="auth-card fam-card">' +
+      '<div class="auth-head"><h2 id="fam-title">Thêm người thân</h2>' +
+      '<p>Bắt đầu từ những người gần nhất — bố mẹ, ông bà, anh chị em. Có thể bỏ trống rồi thêm sau.</p></div>' +
+      '<form id="form-family" novalidate>' +
+      '<div class="fam-head"><span>Tên</span><span>Ngày sinh</span><span></span></div>' +
+      rows +
+      '<button type="button" class="fam-add" data-action="family-add">＋ Thêm người khác</button>' +
+      '<div class="auth-err" role="alert" hidden></div>' +
+      '<button class="btn btn-primary btn-block" type="submit">Lưu và tiếp tục →</button>' +
+      '<button class="auth-skip" type="button" data-action="family-skip">Để sau</button>' +
+      '</form></div></div>';
+  }
+  function readFamilyInputs() {
+    var names = document.querySelectorAll('.fam-name');
+    var bds = document.querySelectorAll('.fam-bd');
+    for (var i = 0; i < names.length; i++) {
+      if (familyRows[i]) {
+        familyRows[i].name = names[i].value;
+        familyRows[i].bd = bds[i] ? bds[i].value : '';
+      }
+    }
+  }
+  function saveFamily() {
+    readFamilyInputs();
+    var added = 0;
+    familyRows.forEach(function (r) {
+      var name = String(r.name || '').trim();
+      if (!name) return;
+      var bd = r.bd ? toMMDD(new Date(r.bd + 'T00:00:00')) : '';
+      var p = mkPerson(name, r.rel || 'family', 1, false, bd, null, '', '');
+      p.avatar = p.avatar || AVATAR_PRESETS[(state.people.length + added) % AVATAR_PRESETS.length];
+      state.people.push(p);
+      added++;
+    });
+    familyOpen = false;
+    familyRows = [];
+    if (!state.onboardingDone) state.onboardingSlide = 1;
+    save(); render();
+    showToast(added ? 'Đã thêm ' + added + ' người thân' : 'Có thể thêm người thân sau');
+  }
+
   function profileSetupHtml() {
     if (!setupOpen) return '';
     var name = state.settings.profileName && state.settings.profileName !== 'Bạn' ? state.settings.profileName : '';
@@ -3473,9 +3546,10 @@
         .catch(function () { });
     }
     setupOpen = false;
-    if (!state.onboardingDone) { state.onboardingSlide = 1; }
     save(); render();
     showToast('Đã lưu thông tin của ' + name);
+    /* Bước kế tiếp: mời thêm bố mẹ / người thân để quỹ đạo không trống */
+    openFamily();
   }
 
   function authModalHtml() {
@@ -3736,7 +3810,7 @@
       '</div></div>' +
       /* Ảnh demo màn hình rộng: absolute so với .onboard-wrap nên không đẩy bố cục */
       (s.shot ? '<img class="onboard-shot" src="' + s.shot + '" alt="' + s.shotAlt + '" loading="lazy">' : '') +
-      authModalHtml() + profileSetupHtml() + resetCardHtml() + trialCardHtml() + '</div>'
+      authModalHtml() + profileSetupHtml() + familyModalHtml() + resetCardHtml() + trialCardHtml() + '</div>'
     );
   }
   function onboardNext() { state.onboardingSlide = Math.min((state.onboardingSlide || 0) + 1, ONBOARD_SLIDES.length - 1); save(); render(); }
@@ -4268,6 +4342,19 @@
         history.replaceState(null, '', location.pathname + (state.onboardingDone ? '#/home' : '#/onboarding'));
         render(); break;
       case 'setup-avatar': setupAvatar = t.dataset.av; render(); break;
+      case 'family-add':
+        readFamilyInputs();
+        familyRows.push({ name: '', bd: '', rel: 'family', ph: 'Vd: Ông, chị gái…' });
+        render(); break;
+      case 'family-remove':
+        readFamilyInputs();
+        familyRows.splice(Number(t.dataset.i), 1);
+        if (!familyRows.length) familyRows.push({ name: '', bd: '', rel: 'family', ph: 'Vd: Bố' });
+        render(); break;
+      case 'family-skip':
+        familyOpen = false; familyRows = [];
+        if (!state.onboardingDone) state.onboardingSlide = 1;
+        save(); render(); break;
       case 'setup-skip':
         setupOpen = false;
         if (!state.onboardingDone) state.onboardingSlide = 1;
@@ -4298,6 +4385,7 @@
     var form = e.target;
     if (form.id === 'form-orbit-auth') { e.preventDefault(); submitAuth(form); return; }
     if (form.id === 'form-orbit-profile') { e.preventDefault(); saveProfileSetup(form); return; }
+    if (form.id === 'form-family') { e.preventDefault(); saveFamily(); return; }
     if (form.id === 'form-orbit-forgot') { e.preventDefault(); submitForgot(form); return; }
     if (form.id === 'form-orbit-reset') { e.preventDefault(); submitReset(form); return; }
     if (form.id === 'form-add-group') {
