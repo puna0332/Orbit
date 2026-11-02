@@ -550,11 +550,11 @@
       text: 'Toàn bộ sinh nhật, kỷ niệm, cuộc hẹn nằm trên một lịch. Bấm ô bất kỳ để thêm sự kiện.' },
     { route: 'diary', sel: '.diary-book', title: 'Nhật ký',
       text: 'Chọn bìa sổ, mẫu giấy và kiểu chữ bên phải, rồi chạm vào trang để viết.' },
-    { route: 'people', sel: '.orbit-stage', title: 'Mọi người',
+    { route: 'people', sel: '.orbit-center', title: 'Mọi người',
       text: 'Mỗi người nằm trên một vòng quỹ đạo theo mức độ thân thiết. Càng gần tâm càng gần bạn.' },
     { route: 'me', sel: '.pd-cover', title: 'Trang cá nhân',
       text: 'Đổi ảnh bìa, ảnh đại diện và tên ở đây — tên này cũng hiện khi bạn viết nhật ký.' },
-    { route: 'settings', sel: '.settings-list', title: 'Cài đặt',
+    { route: 'settings', sel: '.settings-group', title: 'Cài đặt',
       text: 'Chủ đề nam/nữ, nhắc nhở, mẫu tin nhắn, sao lưu dữ liệu… tất cả ở đây. Mở lại hướng dẫn này bất cứ lúc nào.' }
   ];
   var tourIdx = -1;
