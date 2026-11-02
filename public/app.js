@@ -2922,7 +2922,7 @@
         '<div class="ic-wrap tone-blue">' + ic('sun', 22) + '</div>' +
         '<div class="t"><b>Hướng dẫn sử dụng</b><span>Xem lại các bước cơ bản ngay trên app</span></div>' +
         '<div class="chev">›</div></button>' +
-        '<a class="settings-row card settings-btn" href="huong-dan.html" target="_blank" rel="noopener">' +
+        '<a class="settings-row card settings-btn" href="huong-dan" target="_blank" rel="noopener">' +
         '<div class="ic-wrap tone-peach">' + ic('envelope', 22) + '</div>' +
         '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF, 8 ảnh khoanh vùng</span></div>' +
         '<div class="chev">›</div></a>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
