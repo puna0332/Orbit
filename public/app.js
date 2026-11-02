@@ -578,6 +578,7 @@
       document.body.appendChild(el);
       /* Khoá cuộn khi đang hướng dẫn: cuộn sẽ làm lỗ sáng lệch khỏi vùng cần chỉ */
       document.body.classList.add('tour-open');
+      document.documentElement.classList.add('tour-open');
       el.addEventListener('click', function (e) {
         var b = e.target.closest ? e.target.closest('[data-tour]') : null;
         if (!b) return;
@@ -599,6 +600,7 @@
     var el = tourEl();
     if (el) el.remove();
     document.body.classList.remove('tour-open');
+    document.documentElement.classList.remove('tour-open');
     state.settings.tourDone = true;
     save();
   }
@@ -2927,7 +2929,7 @@
         '<div class="chev">›</div></button>' +
         '<a class="settings-row card settings-btn" href="huong-dan" target="_blank" rel="noopener">' +
         '<div class="ic-wrap tone-peach">' + ic('envelope', 22) + '</div>' +
-        '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF, 8 ảnh khoanh vùng</span></div>' +
+        '<div class="t"><b>Bản hướng dẫn có ảnh</b><span>Mở bản in được ra PDF: 6 trang, 22 ảnh khoanh vùng</span></div>' +
         '<div class="chev">›</div></a>' +settingsRow('data', ic('envelope', 24), 'tone-green', 'Xuất / Xoá dữ liệu',
           'Sao lưu và quản lý dữ liệu'));
   }
