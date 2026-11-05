@@ -775,6 +775,8 @@
       if (sd === 'above' && spaceA >= cardH) { side = 'above'; break; }
     }
     if (!side) side = spaceB >= spaceA ? 'below' : 'above';
+    /* Chọn dưới nhưng không đủ chỗ: thử lật lên trên trước khi chịu cắt vùng sáng */
+    if (side === 'below' && spaceB < cardH && spaceA >= cardH) side = 'above';
 
     /* Đặt trên/dưới mà thiếu chỗ thì thu bớt chiều cao vùng sáng, thà khoanh
        hụt phần dưới còn hơn để thẻ đè lên nội dung. */
