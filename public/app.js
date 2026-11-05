@@ -540,41 +540,44 @@
      Overlay tối + "lỗ sáng" khoét đúng vùng cần chỉ, kèm thẻ mô tả. Chạy được
      trên mọi trang vì mỗi bước tự điều hướng rồi mới đo lại toạ độ. */
   /* Thứ tự bám đúng thanh điều hướng: Home → Trang cá nhân → Mọi người →
-     Nhật ký → Sự kiện → Cài đặt, mỗi trang chỉ vài điểm đáng chú ý. */
+     Nhật ký → Sự kiện → Cài đặt. Mỗi bước chọn phía đặt thẻ (side) để không
+     che mất vùng đang được chỉ. */
   var TOUR_STEPS = [
     { route: 'home', full: true, title: 'Chào mừng tới Orbit',
       text: 'Nơi bạn lưu giữ những người mình trân trọng: ngày quan trọng của họ, nhật ký của bạn và những lời nhắn gửi nhau.' },
-    { route: 'home', sel: '.sidebar, .nav-list', title: 'Thanh điều hướng',
+    { route: 'home', sel: '.sidebar, .nav-list', side: 'right', title: 'Thanh điều hướng',
       text: 'Sáu mục: Home · Trang cá nhân · Mọi người · Nhật ký · Sự kiện · Cài đặt. Hướng dẫn này đi lần lượt từng mục.' },
-    { route: 'home', sel: '.home-hero', title: '1. Home',
+    { route: 'home', sel: '.home-hero', side: 'right', title: '1. Home',
       text: 'Trang mở đầu mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới.' },
-    { route: 'home', sel: '.home-quick', title: 'Bốn nút tắt nhanh',
+    { route: 'home', sel: '.home-quick', side: 'below', title: 'Bốn nút tắt nhanh',
       text: 'Thêm người, thêm lịch, viết nhật ký (mở sẵn trang giấy) và tạo link “Viết cho tôi”.' },
-    { route: 'home', sel: '.home-section', nth: 0, title: '7 ngày tới',
+    { route: 'home', sel: '.home-section', nth: 0, side: 'below', scroll: true, title: '7 ngày tới',
       text: 'Ngày có sự kiện được tô đậm; bấm một ngày để xem việc của ngày đó ngay bên dưới.' },
-    { route: 'home', sel: '.home-section', nth: 1, title: '60 ngày tới',
+    { route: 'home', sel: '.home-section', nth: 1, side: 'below', scroll: true, title: '60 ngày tới',
       text: 'Năm đám mây gần nhất, kéo ngang để xem tiếp. Bên dưới là danh sách sự kiện sắp tới.' },
-    { route: 'me', sel: '.pd-head', title: '2. Trang cá nhân',
-      text: 'Đổi ảnh bìa, ảnh đại diện và tên tại đây. Tên này cũng hiện ở “Viết cho …” trong nhật ký.' },
-    { route: 'me', sel: '.pd-side', title: 'Cột Mọi người',
+    { route: 'me', sel: '.pd-head, .pd-panel', side: 'left', scroll: true, title: '2. Trang cá nhân',
+      text: 'Đổi ảnh bìa, ảnh đại diện và tên tại đây; các thẻ bên dưới là nhật ký, quỹ đạo và lời nhắn của bạn.' },
+    { route: 'me', sel: '.pd-side', side: 'right', title: 'Cột Mọi người',
       text: 'Danh bạ thu gọn bên trái — bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.' },
-    { route: 'people', sel: '.orbit-stage', title: '3. Mọi người',
-      text: 'Mỗi người nằm trên một vòng quỹ đạo: càng gần tâm càng thân thiết. Kéo để xoay.' },
-    { route: 'people', sel: '.orbit-zoom', title: 'Thanh điều chỉnh',
-      text: 'Năm nút bên trái quỹ đạo: phóng to, thu nhỏ, căn lại, xem dạng danh sách và làm mới.' },
-    { route: 'people', sel: '.people-head', title: 'Danh bạ & bộ lọc',
-      text: 'Gõ tên để tìm, hoặc lọc theo mối quan hệ và nhóm để thu hẹp danh sách.' },
-    { route: 'diary', sel: '.diary-book', title: '4. Nhật ký',
+    { route: 'people', sel: '.orbit-wrap', side: 'left', title: '3. Mọi người',
+      text: 'Bạn ở tâm; mỗi người nằm trên một vòng quỹ đạo, càng gần tâm càng thân thiết. Kéo để xoay, cuộn để phóng to.' },
+    { route: 'people', sel: '.people-head .btn-add-round', side: 'left', title: 'Thêm người mới',
+      text: 'Bấm nút ＋ này (hoặc nút trong quỹ đạo) để thêm người. Thử bấm ngay bây giờ — xong thì bấm Tiếp →.' },
+    { route: 'people', sel: '.people-list-col', side: 'left', before: function () { if (orbitCollapsed) { orbitCollapsed = false; render(); } }, title: 'Danh bạ & bộ lọc',
+      text: 'Toàn bộ danh bạ ở đây: gõ tên để tìm, lọc theo mối quan hệ, nhóm hoặc người yêu thích.' },
+    { route: 'diary', sel: '.diary-book', side: 'right', title: '4. Nhật ký',
       text: 'Cuốn sổ có bìa minh hoạ; trang giấy nằm trong lòng sổ và lưu theo từng bài.' },
-    { route: 'diary', sel: '.diary-sheet', title: 'Chạm để viết',
-      text: 'Bấm vào trang giấy để bắt đầu. Đầu trang luôn có “Viết cho …” và ngày kiểu thư.' },
-    { route: 'diary', sel: '.diary-side', title: 'Tuỳ chọn bên phải',
-      text: 'Bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng. Chọn xong bấm Lưu vào sổ.' },
-    { route: 'calendar', sel: '.cal-board', title: '5. Sự kiện',
+    { route: 'diary', sel: '.diary-sheet-idle, .diary-sheet', side: 'right', title: 'Chạm để viết',
+      text: 'Chạm vào đúng khung này để mở sổ và viết — thử ngay, trang giấy sẽ trượt vào lòng sổ.' },
+    { route: 'diary', sel: '.diary-side', side: 'left', title: 'Tuỳ chọn bên phải',
+      text: 'Bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng — chọn xong bấm Lưu vào sổ.' },
+    { route: 'calendar', sel: '.cal-board', side: 'left', scroll: true, title: '5. Sự kiện',
       text: 'Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi loại có một màu riêng.' },
-    { route: 'calendar', sel: '.cal-actions', title: 'Thêm sự kiện',
-      text: 'Bấm nút ＋ (hoặc bấm vào ô ngày bất kỳ), điền thông tin rồi Lưu — chỉ hai bước.' },
-    { route: 'settings', sel: '.settings-group', nth: 0, title: '6. Cài đặt',
+    { route: 'calendar', sel: '.cal-actions', side: 'left', title: 'Thêm sự kiện',
+      text: 'Bấm nút ＋ để tạo sự kiện mới, hoặc bấm thẳng vào một ô ngày trong lịch.' },
+    { route: 'calendar', sel: '.modal-sheet', side: 'left', modal: true, enter: 'open-add-event', title: 'Điền thông tin sự kiện',
+      text: 'Đặt tên, chọn ngày, người liên quan và loại dịp — đủ rồi bấm Lưu là xong.' },
+    { route: 'settings', sel: '.settings-group', nth: 0, side: 'left', title: '6. Cài đặt',
       text: 'Tài khoản, chủ đề, nhắc nhở, quỹ đạo, dữ liệu — gom theo nhóm. Mở lại hướng dẫn này tại đây.' }
   ];
 
@@ -627,15 +630,31 @@
   }
   function tourGo(dir) {
     tourIdx += dir;
+    /* Bỏ qua bước không có gì để chỉ (vd. quỹ đạo còn trống, chưa có thanh điều chỉnh) */
+    while (tourIdx >= 0 && tourIdx < TOUR_STEPS.length && TOUR_STEPS[tourIdx].skip && TOUR_STEPS[tourIdx].skip()) {
+      tourIdx += dir || 1;
+    }
     if (tourIdx < 0) tourIdx = 0;
     if (tourIdx >= TOUR_STEPS.length) { endTour(); return; }
     showTourStep();
   }
 
+  var tourLastStep = null;
   function showTourStep() {
     var step = TOUR_STEPS[tourIdx];
     if (!step) { endTour(); return; }
+    /* Rời bước có hộp thoại thì đóng hộp lại để bước sau không bị che */
+    if (tourLastStep && tourLastStep.modal) { try { closeModal(); } catch (e) { } }
+    if (typeof step.before === 'function') { try { step.before(); } catch (e) { } }
+    if (step.enter) {
+      try {
+        var trigger = document.querySelector('[data-action="' + step.enter + '"]');
+        if (trigger) trigger.click();
+      } catch (e) { }
+    }
+    tourLastStep = step;
     var el = mountTour();
+    el.__tourStep = step;
     el.querySelector('.tour-count').textContent = 'Bước ' + (tourIdx + 1) + '/' + TOUR_STEPS.length;
     el.querySelector('.tour-title').textContent = step.title;
     el.querySelector('.tour-text').textContent = step.text;
@@ -650,27 +669,64 @@
     /* Trang đích có thể render chậm (quỹ đạo, lịch). Thử đo nhiều lần cho tới khi
        phần tử cần chỉ xuất hiện và có kích thước thật. */
     var tries = 0;
+    var lastRectStr = '';
+    var settled = false;
     (function attempt() {
       tries++;
       var target = step.full ? null : tourTarget(step);
+      if (target && step.scroll !== false) scrollTargetIntoView(target);
       var b = target ? target.getBoundingClientRect() : null;
       var ready = step.full ? true : !!(b && b.width > 0 && b.height > 0);
-      positionTour();
-      if (!ready && tries < 14) setTimeout(attempt, 120);
-      else { setTimeout(positionTour, 500); setTimeout(positionTour, 1100); }
+      /* Phần tử có thể nằm giữa CSS transition hoặc bị đẩy xuống khi ảnh/khung
+         khác vừa tải xong; chỉ chốt khi 2 lần đo liên tiếp khớp nhau. */
+      var rectStr = b ? [b.left, b.top, b.width, b.height].map(function (v) { return v.toFixed(0); }).join(',') : '';
+      var stable = ready && rectStr === lastRectStr;
+      lastRectStr = rectStr;
+      positionTour(step);
+      if (!ready || !stable) {
+        if (tries < 26) setTimeout(attempt, 110);
+        return;
+      }
+      /* Bố cục có thể còn nhích thêm (ảnh bìa, quỹ đạo, mở sổ): đo lại vài nhịp */
+      if (!settled) {
+        settled = true;
+        [220, 520, 900, 1400, 2000].forEach(function (ms) { setTimeout(function () { positionTour(step); }, ms); });
+      }
     })();
   }
 
   function tourTarget(step) {
-    var list = document.querySelectorAll(step.sel);
-    if (!list.length) return null;
-    return list[step.nth || 0] || null;
+    if (!step.sel) return null;
+    var sels = step.sel.split(',');
+    for (var i = 0; i < sels.length; i++) {
+      var list = document.querySelectorAll(sels[i].trim());
+      if (list.length) return list[step.nth || 0] || list[0];
+    }
+    return null;
   }
 
-  function positionTour() {
-    var step = TOUR_STEPS[tourIdx];
+  /* Cuộn trang (hoặc khung cuộn gần nhất) để vùng cần chỉ nằm trong tầm mắt */
+  function scrollTargetIntoView(target) {
+    if (!target) return;
+    var n = target.parentElement, box = null;
+    while (n && n !== document.body && n !== document.documentElement) {
+      var st = getComputedStyle(n);
+      if (/(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4) { box = n; break; }
+      n = n.parentElement;
+    }
+    var sc = box || document.scrollingElement || document.documentElement;
+    var r = target.getBoundingClientRect();
+    var vh = window.innerHeight;
+    if (r.top >= 96 && r.bottom <= vh - 80) return;
+    var want = sc.scrollTop + r.top - Math.max(96, (vh - r.height) / 2);
+    sc.scrollTop = Math.max(0, want);
+  }
+
+  function positionTour(stepArg) {
     var el = tourEl();
-    if (!step || !el) return;
+    if (!el) return;
+    var step = stepArg || el.__tourStep || TOUR_STEPS[tourIdx];
+    if (!step) return;
     var target = tourTarget(step);
     var hole = el.querySelector('.tour-hole');
     var card = el.querySelector('.tour-card');
@@ -688,28 +744,59 @@
     var r = target ? target.getBoundingClientRect() : null;
     if (!r || (r.width === 0 && r.height === 0)) {
       /* Không tìm thấy vùng cần chỉ: cho lỗ sáng giữa màn hình để không chặn bước */
-      r = { left: vw / 2 - 80, top: vh / 2 - 60, width: 160, height: 120, bottom: vh / 2 + 60 };
+      r = { left: vw / 2 - 90, top: vh / 2 - 70, width: 180, height: 140 };
     }
     var pad = 8;
-    var top = Math.max(6, r.top - pad);
-    var left = Math.max(6, r.left - pad);
-    var w = Math.max(60, Math.min(vw - 12, r.width + pad * 2));
-    var h = Math.max(28, Math.min(vh - 12, r.height + pad * 2));
-    if (top + h > vh - 6) h = vh - 6 - top;
+    var left = Math.max(6, Math.min(vw - 70, r.left - pad));
+    var top = Math.max(6, Math.min(vh - 44, r.top - pad));
+    var w = Math.max(60, Math.min(vw - 12 - left, r.width + pad * 2));
+    var h = Math.max(28, Math.min(vh - 12 - top, r.height + pad * 2));
+
+    /* Đo thẻ trước (đổi độ rộng làm chữ xuống dòng -> đổi chiều cao) */
+    var cardW = Math.min(320, vw - 32);
+    card.style.width = cardW + 'px';
+    var cardH = card.offsetHeight || 170;
+    var gap = 14, edge = 10;
+
+    /* Chọn phía đặt thẻ: ưu tiên phía không che nội dung, đủ chỗ mới dùng */
+    var spaceR = vw - (left + w) - gap - edge;
+    var spaceL = left - gap - edge;
+    var spaceB = vh - (top + h) - gap - edge;
+    var spaceA = top - gap - edge;
+    var order = step.side === 'left' ? ['left', 'right', 'below', 'above']
+      : step.side === 'right' ? ['right', 'left', 'below', 'above']
+        : ['right', 'left', 'below', 'above'];
+    var side = null;
+    for (var i = 0; i < order.length; i++) {
+      var sd = order[i];
+      if (sd === 'right' && spaceR >= cardW) { side = 'right'; break; }
+      if (sd === 'left' && spaceL >= cardW) { side = 'left'; break; }
+      if (sd === 'below' && spaceB >= cardH) { side = 'below'; break; }
+      if (sd === 'above' && spaceA >= cardH) { side = 'above'; break; }
+    }
+    if (!side) side = spaceB >= spaceA ? 'below' : 'above';
+
+    /* Đặt trên/dưới mà thiếu chỗ thì thu bớt chiều cao vùng sáng, thà khoanh
+       hụt phần dưới còn hơn để thẻ đè lên nội dung. */
+    if (side === 'below' && spaceB < cardH) h = Math.max(28, vh - top - gap - edge - cardH);
+    if (side === 'above' && spaceA < cardH) {
+      var cut = (cardH + gap) - (top - edge);
+      if (cut > 0) { top = Math.min(top + cut, vh - 60); h = Math.max(28, h - cut); }
+    }
+
     hole.style.cssText = 'position:absolute;border-radius:16px;left:' + left + 'px;top:' + top +
       'px;width:' + w + 'px;height:' + h + 'px;';
 
-    var cardW = Math.min(340, vw - 32);
-    card.style.width = cardW + 'px';
-    var below = top + h + 16;
-    var cardH = card.offsetHeight || 170;
-    if (below + cardH > vh - 12 && top - cardH - 16 > 8) {
-      card.style.top = (top - cardH - 16) + 'px';
-    } else {
-      card.style.top = Math.min(vh - cardH - 12, below) + 'px';
-    }
-    var cx = Math.min(Math.max(12, left + w / 2 - cardW / 2), vw - cardW - 12);
-    card.style.left = cx + 'px';
+    var cx, cy;
+    if (side === 'right') { cx = left + w + gap; cy = top + h / 2 - cardH / 2; }
+    else if (side === 'left') { cx = left - gap - cardW; cy = top + h / 2 - cardH / 2; }
+    else if (side === 'below') { cx = left + w / 2 - cardW / 2; cy = top + h + gap; }
+    else { cx = left + w / 2 - cardW / 2; cy = top - gap - cardH; }
+
+    cx = Math.max(edge, Math.min(cx, vw - cardW - edge));
+    cy = Math.max(edge, Math.min(cy, vh - cardH - edge));
+    card.style.left = Math.round(cx) + 'px';
+    card.style.top = Math.round(cy) + 'px';
   }
 
   window.addEventListener('resize', function () { if (tourIdx >= 0) positionTour(); });
@@ -1821,24 +1908,22 @@
   }
   function renderPeople() {
     ensureContactAvatars();
-    /* Người dùng mới bắt đầu với quỹ đạo trống — hiện lời mời thay vì một vòng tròn rỗng */
-    if (!state.people.length) {
-      return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người' +
-        '<span class="page-count">0</span></h1></div>' +
-        '<div class="people-empty card">' +
-        '<div class="pe-art">' + ic('people', 34) + '</div>' +
-        '<h2>Quỹ đạo đang trống</h2>' +
-        '<p>Thêm người đầu tiên — bố, mẹ, người thân hoặc bạn bè — rồi Orbit sẽ nhắc bạn những dịp quan trọng của họ.</p>' +
-        '<button class="btn btn-primary" data-action="open-add-person">＋ Thêm người đầu tiên</button>' +
-        '</div>';
-    }
-    var filtered = state.people.filter(personMatchesFilters);
-    var listed = searchPeople(filtered);
+    /* Quỹ đạo luôn hiển thị — chưa có ai thì vẫn thấy chính bạn ở tâm và các vòng
+       chờ sẵn, kèm lời mời thêm người đầu tiên (trực quan hơn một trang trống). */
+    var nobody = !state.people.length;
+    var filtered = nobody ? [] : state.people.filter(personMatchesFilters);
+    var listed = nobody ? [] : searchPeople(filtered);
     return '<div class="people-head"><h1 class="page-title" style="margin:0">Mọi người' +
       '<span class="page-count" title="Tổng số người trong Orbit">' + state.people.length + '</span></h1>' +
       '<button class="btn-add-round" data-action="open-add-person" aria-label="Thêm người">+</button></div>' +
       '<div class="people-split' + (orbitCollapsed ? ' contacts-collapsed' : '') + '">' +
-      '<section class="people-orbit-col">' + renderOrbit(filtered, hasActiveFilter()) + '</section>' +
+      '<section class="people-orbit-col">' + renderOrbit(filtered, hasActiveFilter()) +
+      (nobody ? '<div class="orbit-empty-hint">' +
+        '<b>Quỹ đạo đang chờ người đầu tiên</b>' +
+        '<span>Bạn đang ở tâm. Thêm bố, mẹ hoặc một người bạn để bắt đầu.</span>' +
+        '<button class="btn btn-primary btn-sm" data-action="open-add-person">＋ Thêm người đầu tiên</button>' +
+        '</div>' : '') +
+      '</section>' +
       '<button class="contacts-tab" data-action="toggle-orbit" aria-controls="contactsPanel" aria-expanded="' + !orbitCollapsed + '">' +
       '<span>' + (orbitCollapsed ? 'Danh bạ' : 'Thu gọn') + '</span><i aria-hidden="true">' + (orbitCollapsed ? '‹' : '›') + '</i></button>' +
       '<section class="people-list-col" id="contactsPanel" aria-label="Danh sách liên lạc">' +

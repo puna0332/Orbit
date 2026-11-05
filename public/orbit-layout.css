@@ -1164,6 +1164,10 @@ html { scrollbar-gutter: stable; }
 /* ===== Cuốn sổ đang mở: trang giấy LỌT BÊN TRONG lòng sổ ===== */
 .diary-book { position: relative; width: 100%; }
 .diary-book .cover-img { width: 100%; height: auto; display: block; }
+/* Giữ sẵn tỉ lệ khung ảnh để sổ không co về cao 0px trước khi ảnh bìa tải xong
+   (tránh layout nhảy cho người dùng thật, và cho hướng dẫn đo đúng ngay từ đầu) */
+.diary-book .cover-desktop { aspect-ratio: 1200 / 793; }
+.diary-book .cover-mobile { aspect-ratio: 900 / 1208; }
 /* chỉ hiện MỘT bản ảnh theo khung nhìn — nếu không cả hai ảnh chồng dọc làm sổ cao gấp đôi */
 .diary-book .cover-mobile { display: none; }
 @media (max-width:640px) {
@@ -2445,3 +2449,31 @@ html[data-gender="male"] .setup-hint { color: #6B849C; }
 
 /* Thêm người mới: cuộn khi bộ ảnh có 74 lựa chọn */
 .av-grid-scroll { max-height: 190px; overflow-y: auto; padding-right: 2px; }
+
+/* ===== Quỹ đạo trống: vẫn hiện vòng quỹ đạo + lời mời thêm người ===== */
+.people-orbit-col { position: relative; }
+.orbit-empty-hint {
+  position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+  width: min(340px, calc(100% - 32px)); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+  border: 1px solid #EFE4D8; border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(120,92,68,.16);
+}
+.orbit-empty-hint b { font-size: 14px; color: #1D3A63; }
+.orbit-empty-hint span { font-size: 12.5px; line-height: 1.5; color: #6F655C; }
+.orbit-empty-hint .btn { margin-top: 6px; }
+.orbit-empty-hint .btn-sm { padding: 8px 14px; font-size: 12.5px; border-radius: 11px; }
+html[data-gender="male"] .orbit-empty-hint { background: rgba(255,255,255,.94); border-color: #DCE7F5; }
+html[data-gender="male"] .orbit-empty-hint b { color: #1B3358; }
+html[data-gender="male"] .orbit-empty-hint span { color: #5B7590; }
+@media (max-width: 900px) {
+  .orbit-empty-hint { bottom: 14px; padding: 12px 14px; }
+}
+
+/* Thẻ hướng dẫn đặt hai bên: nền đặc để chữ rõ trên mọi minh hoạ */
+.tour-card { max-width: calc(100vw - 20px); }
+
+/* Quỹ đạo luôn có chỗ đứng kể cả khi chưa có ai (trước đây cao 0px) */
+.people-orbit-col { min-height: clamp(320px, 60vh, 620px); }
+.people-orbit-col .orbit-wrap { min-height: 300px; }
