@@ -544,41 +544,41 @@
      che mất vùng đang được chỉ. */
   var TOUR_STEPS = [
     { route: 'home', full: true, title: 'Chào mừng tới Orbit',
-      text: 'Nơi bạn lưu giữ những người mình trân trọng: ngày quan trọng của họ, nhật ký của bạn và những lời nhắn gửi nhau.' },
-    { route: 'home', sel: '.sidebar, .nav-list', side: 'right', title: 'Thanh điều hướng',
-      text: 'Sáu mục: Home · Trang cá nhân · Mọi người · Nhật ký · Sự kiện · Cài đặt. Hướng dẫn này đi lần lượt từng mục.' },
-    { route: 'home', sel: '.home-hero', side: 'right', title: '1. Home',
-      text: 'Trang mở đầu mỗi ngày: lời chào, bốn lối tắt và toàn bộ việc sắp tới.' },
-    { route: 'home', sel: '.home-quick', side: 'below', title: 'Bốn nút tắt nhanh',
-      text: 'Thêm người, thêm lịch, viết nhật ký (mở sẵn trang giấy) và tạo link “Viết cho tôi”.' },
+      text: 'Một góc nhỏ để bạn giữ lại những kỷ niệm và nhớ những ngày quan trọng của người mình thương. Cùng đi một vòng để làm quen nhé.' },
+    { route: 'home', sel: '.sidebar, .nav-list', side: 'right', title: 'Đi đâu cũng từ đây',
+      text: 'Thanh điều hướng giúp bạn chuyển giữa các trang của Orbit. Muốn xem lịch, viết nhật ký hay tìm một người, bạn chỉ cần chọn mục tương ứng.' },
+    { route: 'home', sel: '.home-hero', side: 'right', title: '1. Home — hôm nay có gì?',
+      text: 'Mỗi lần ghé Orbit, bạn có thể bắt đầu ở đây để xem lịch sắp tới và những dịp đáng nhớ. Các nút bên dưới giúp bạn thêm mới nhanh hơn.' },
+    { route: 'home', sel: '.home-quick', side: 'below', title: 'Bốn việc thường dùng',
+      text: 'Thêm người, lên lịch hoặc viết nhật ký ngay tại đây. “Viết cho tôi” mở trang viết lời nhắn; tính năng này hiện chỉ lưu lời nhắn trên máy gửi.' },
     { route: 'home', sel: '.home-section', nth: 0, side: 'below', scroll: true, title: '7 ngày tới',
-      text: 'Ngày có sự kiện được tô đậm; bấm một ngày để xem việc của ngày đó ngay bên dưới.' },
-    { route: 'home', sel: '.home-section', nth: 1, side: 'below', scroll: true, title: '60 ngày tới',
-      text: 'Năm đám mây gần nhất, kéo ngang để xem tiếp. Bên dưới là danh sách sự kiện sắp tới.' },
-    { route: 'me', sel: '.pd-head, .pd-panel', side: 'left', scroll: true, title: '2. Trang cá nhân',
-      text: 'Đổi ảnh bìa, ảnh đại diện và tên tại đây; các thẻ bên dưới là nhật ký, quỹ đạo và lời nhắn của bạn.' },
-    { route: 'me', sel: '.pd-side', side: 'right', title: 'Cột Mọi người',
-      text: 'Danh bạ thu gọn bên trái — bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.' },
-    { route: 'people', sel: '.people-orbit-col', side: 'left', overlap: true, title: '3. Mọi người',
-      text: 'Bạn ở tâm; mỗi người nằm trên một vòng quỹ đạo, càng gần tâm càng thân thiết. Kéo để xoay, cuộn để phóng to.' },
-    { route: 'people', sel: '.people-head .btn-add-round', side: 'left', title: 'Thêm người mới',
-      text: 'Bấm nút ＋ này (hoặc nút trong quỹ đạo) để thêm người. Thử bấm ngay bây giờ — xong thì bấm Tiếp →.' },
-    { route: 'people', sel: '.people-list-col', side: 'left', before: function () { if (orbitCollapsed) { orbitCollapsed = false; render(); } }, title: 'Danh bạ & bộ lọc',
-      text: 'Toàn bộ danh bạ ở đây: gõ tên để tìm, lọc theo mối quan hệ, nhóm hoặc người yêu thích.' },
-    { route: 'diary', sel: '.diary-book', side: 'right', title: '4. Nhật ký',
-      text: 'Cuốn sổ có bìa minh hoạ; trang giấy nằm trong lòng sổ và lưu theo từng bài.' },
-    { route: 'diary', sel: '.diary-sheet-idle, .diary-sheet', side: 'right', title: 'Chạm để viết',
-      text: 'Chạm vào đúng khung này để mở sổ và viết — thử ngay, trang giấy sẽ trượt vào lòng sổ.' },
-    { route: 'diary', sel: '.diary-side', side: 'left', enter: 'diary-new', title: 'Tuỳ chọn bên phải',
-      text: 'Bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng — chọn xong bấm Lưu vào sổ.' },
-    { route: 'calendar', sel: '.cal-board', side: 'left', scroll: true, title: '5. Sự kiện',
-      text: 'Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi loại có một màu riêng.' },
-    { route: 'calendar', sel: '.cal-actions', side: 'left', title: 'Thêm sự kiện',
-      text: 'Bấm nút ＋ để tạo sự kiện mới, hoặc bấm thẳng vào một ô ngày trong lịch.' },
-    { route: 'calendar', sel: '.modal-sheet', side: 'left', modal: true, enter: 'open-add-event', title: 'Điền thông tin sự kiện',
-      text: 'Đặt tên, chọn ngày, người liên quan và loại dịp — đủ rồi bấm Lưu là xong.' },
-    { route: 'settings', sel: '.settings-group', nth: 0, side: 'left', holeFull: true, overlap: true, title: '6. Cài đặt',
-      text: 'Tài khoản, chủ đề, nhắc nhở, quỹ đạo, dữ liệu — gom theo nhóm. Mở lại hướng dẫn này tại đây.' }
+      text: 'Chọn một ngày để xem các sự kiện bên dưới. Những ngày có lịch được đánh dấu để bạn dễ nhận ra, không cần mở cả tháng.' },
+    { route: 'home', sel: '.home-section', nth: 1, side: 'below', scroll: true, title: 'Chuẩn bị cho những dịp sắp tới',
+      text: 'Sinh nhật, kỷ niệm và các dịp sắp tới hiện ở đây để bạn có thời gian chuẩn bị. Khi có nhiều thẻ, kéo ngang để xem thêm hoặc chọn “Xem tất cả”.' },
+    { route: 'me', sel: '.pd-head, .pd-panel', side: 'left', scroll: true, title: '2. Trang của bạn',
+      text: 'Đổi tên, ảnh đại diện và ảnh bìa để góc này mang dấu ấn của bạn. Phía dưới là nơi xem lại nhật ký, lời nhắn và các kết nối của mình.' },
+    { route: 'me', sel: '.pd-side', side: 'right', title: 'Ghé thăm một người',
+      text: 'Chọn tên trong cột này để mở trang cá nhân của người đó. Muốn quay về trang của mình, chọn tên bạn ở đầu danh sách.' },
+    { route: 'people', sel: '.view-root.page-people', scroll: false, side: 'left', overlap: true, title: '3. Những người trong quỹ đạo của bạn',
+      text: 'Bạn ở giữa, những người bạn thêm nằm trên các vòng xung quanh. Orbit sắp xếp theo mối quan hệ và dấu yêu thích; bạn có thể đổi vòng cho từng người. Kéo để di chuyển, dùng ＋/− để phóng to, thu nhỏ.' },
+    { route: 'people', sel: '.people-head .btn-add-round', side: 'left', title: 'Thêm một người bạn trân trọng',
+      text: 'Thử bấm ＋ để thêm bố, mẹ, một người bạn hoặc bất kỳ ai bạn muốn nhớ đến. Bạn có thể lưu tên, ngày sinh và mối quan hệ, rồi quay lại bổ sung sau.' },
+    { route: 'people', sel: '.people-list-col', side: 'left', before: function () { if (orbitCollapsed) { orbitCollapsed = false; render(); } }, title: 'Tìm người trong danh bạ',
+      text: 'Danh bạ gom những người bạn đã thêm vào một chỗ. Gõ tên để tìm nhanh, hoặc dùng bộ lọc để xem riêng gia đình, bạn bè và các nhóm của bạn.' },
+    { route: 'diary', sel: '.diary-book', side: 'right', title: '4. Cuốn sổ của bạn',
+      text: 'Một chuyện vui, một ngày bình thường hay điều chưa kịp nói với ai — bạn đều có thể viết lại ở đây. Mỗi bài sẽ được lưu để bạn đọc lại sau.' },
+    { route: 'diary', sel: '.diary-sheet-idle, .diary-sheet', side: 'right', title: 'Thử viết vài dòng nhé',
+      text: 'Chạm vào vùng “Chạm để viết” để mở trang giấy. Bạn có thể viết cho chính mình hoặc chọn một người ở đầu trang để ghi lại kỷ niệm về họ.' },
+    { route: 'diary', sel: '.diary-side', side: 'left', enter: 'diary-new', title: 'Chọn một kiểu sổ bạn thích',
+      text: 'Đổi bìa, mẫu giấy, kiểu chữ và cách canh dòng trong bảng tùy chỉnh. Cứ thử đến khi thấy vừa mắt; khi viết xong, nhớ bấm “Lưu vào sổ” nhé.' },
+    { route: 'calendar', sel: '.cal-board', side: 'left', scroll: true, title: '5. Những ngày cần nhớ',
+      text: 'Sinh nhật, kỷ niệm và những cuộc hẹn cùng nằm trên lịch này. Bạn có thể chuyển tháng để xem trước và chọn một ngày để xem lịch của ngày đó.' },
+    { route: 'calendar', sel: '.cal-actions', side: 'left', title: 'Hẹn một ngày mới',
+      text: 'Bấm ＋ để thêm một cuộc hẹn hay dịp đáng nhớ, rồi chọn ngày trong biểu mẫu. Bấm Tiếp để xem cách điền thông tin.' },
+    { route: 'calendar', sel: '.modal-sheet', side: 'left', modal: true, enter: 'open-add-event', title: 'Ghi lại thông tin sự kiện',
+      text: 'Điền tên, chọn loại sự kiện và ngày diễn ra. Bạn có thể thêm giờ, địa điểm và bật hoặc tắt nhắc nhở trước khi lưu.' },
+    { route: 'settings', sel: '.settings-group', nth: 0, side: 'left', holeFull: true, overlap: true, title: '6. Chỉnh Orbit theo ý bạn',
+      text: 'Bạn có thể đổi chủ đề, điều chỉnh nhắc nhở và quản lý dữ liệu ở đây. Khi cần xem lại, mở “Hướng dẫn sử dụng”. Giờ thì Orbit đã sẵn sàng để bạn bắt đầu rồi.' }
   ];
 
   var tourIdx = -1;
@@ -788,7 +788,7 @@
        hụt phần dưới còn hơn để thẻ đè lên nội dung. */
     /* Bước cho thẻ nằm trong vùng sáng thì không cần thu nhỏ vùng sáng */
     if (!step.overlap && side === 'below' && spaceB < cardH) h = Math.max(28, vh - top - gap - edge - cardH);
-    if (side === 'above' && spaceA < cardH) {
+    if (!step.overlap && side === 'above' && spaceA < cardH) {
       var cut = (cardH + gap) - (top - edge);
       if (cut > 0) { top = Math.min(top + cut, vh - 60); h = Math.max(28, h - cut); }
     }
