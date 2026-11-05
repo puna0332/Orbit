@@ -559,7 +559,7 @@
       text: 'Đổi ảnh bìa, ảnh đại diện và tên tại đây; các thẻ bên dưới là nhật ký, quỹ đạo và lời nhắn của bạn.' },
     { route: 'me', sel: '.pd-side', side: 'right', title: 'Cột Mọi người',
       text: 'Danh bạ thu gọn bên trái — bấm một người để mở hồ sơ của họ, bấm mũi tên để thu lại.' },
-    { route: 'people', sel: '.orbit-wrap', side: 'left', title: '3. Mọi người',
+    { route: 'people', sel: '.people-orbit-col', side: 'left', overlap: true, title: '3. Mọi người',
       text: 'Bạn ở tâm; mỗi người nằm trên một vòng quỹ đạo, càng gần tâm càng thân thiết. Kéo để xoay, cuộn để phóng to.' },
     { route: 'people', sel: '.people-head .btn-add-round', side: 'left', title: 'Thêm người mới',
       text: 'Bấm nút ＋ này (hoặc nút trong quỹ đạo) để thêm người. Thử bấm ngay bây giờ — xong thì bấm Tiếp →.' },
@@ -569,7 +569,7 @@
       text: 'Cuốn sổ có bìa minh hoạ; trang giấy nằm trong lòng sổ và lưu theo từng bài.' },
     { route: 'diary', sel: '.diary-sheet-idle, .diary-sheet', side: 'right', title: 'Chạm để viết',
       text: 'Chạm vào đúng khung này để mở sổ và viết — thử ngay, trang giấy sẽ trượt vào lòng sổ.' },
-    { route: 'diary', sel: '.diary-side', side: 'left', title: 'Tuỳ chọn bên phải',
+    { route: 'diary', sel: '.diary-side', side: 'left', enter: 'diary-new', title: 'Tuỳ chọn bên phải',
       text: 'Bìa sổ, mẫu giấy (kẻ dòng / chấm / trắng / ảnh), kiểu và cỡ chữ, căn dòng — chọn xong bấm Lưu vào sổ.' },
     { route: 'calendar', sel: '.cal-board', side: 'left', scroll: true, title: '5. Sự kiện',
       text: 'Lịch tháng gom sinh nhật, kỷ niệm và cuộc hẹn; mỗi loại có một màu riêng.' },
@@ -577,7 +577,7 @@
       text: 'Bấm nút ＋ để tạo sự kiện mới, hoặc bấm thẳng vào một ô ngày trong lịch.' },
     { route: 'calendar', sel: '.modal-sheet', side: 'left', modal: true, enter: 'open-add-event', title: 'Điền thông tin sự kiện',
       text: 'Đặt tên, chọn ngày, người liên quan và loại dịp — đủ rồi bấm Lưu là xong.' },
-    { route: 'settings', sel: '.settings-group', nth: 0, side: 'left', title: '6. Cài đặt',
+    { route: 'settings', sel: '.settings-group', nth: 0, side: 'left', holeFull: true, overlap: true, title: '6. Cài đặt',
       text: 'Tài khoản, chủ đề, nhắc nhở, quỹ đạo, dữ liệu — gom theo nhóm. Mở lại hướng dẫn này tại đây.' }
   ];
 
@@ -720,9 +720,9 @@
     var sc = box || document.scrollingElement || document.documentElement;
     var r = target.getBoundingClientRect();
     var vh = window.innerHeight;
-    if (r.top >= 96 && r.bottom <= vh - 80) return;
-    var want = sc.scrollTop + r.top - Math.max(96, (vh - r.height) / 2);
-    sc.scrollTop = Math.max(0, want);
+    /* Đưa vùng cần chỉ lên khoảng 1/3 màn hình: vừa thấy trọn, vừa chừa chỗ cho thẻ */
+    var want = sc.scrollTop + r.top - Math.max(90, Math.min(vh * 0.34, vh - r.height - 220));
+    if (Math.abs(want - sc.scrollTop) > 6) sc.scrollTop = Math.max(0, want);
   }
 
   function positionTour(stepArg, token) {
@@ -754,6 +754,7 @@
     var pad = 8;
     var left = Math.max(6, Math.min(vw - 70, r.left - pad));
     var top = Math.max(6, Math.min(vh - 44, r.top - pad));
+    if (step.holeFull) { left = 0; top = 0; r = { width: vw, height: vh }; pad = 0; }
     var w = Math.max(60, Math.min(vw - 12 - left, r.width + pad * 2));
     var h = Math.max(28, Math.min(vh - 12 - top, r.height + pad * 2));
 
@@ -785,7 +786,8 @@
 
     /* Đặt trên/dưới mà thiếu chỗ thì thu bớt chiều cao vùng sáng, thà khoanh
        hụt phần dưới còn hơn để thẻ đè lên nội dung. */
-    if (side === 'below' && spaceB < cardH) h = Math.max(28, vh - top - gap - edge - cardH);
+    /* Bước cho thẻ nằm trong vùng sáng thì không cần thu nhỏ vùng sáng */
+    if (!step.overlap && side === 'below' && spaceB < cardH) h = Math.max(28, vh - top - gap - edge - cardH);
     if (side === 'above' && spaceA < cardH) {
       var cut = (cardH + gap) - (top - edge);
       if (cut > 0) { top = Math.min(top + cut, vh - 60); h = Math.max(28, h - cut); }
@@ -800,6 +802,11 @@
     else if (side === 'below') { cx = left + w / 2 - cardW / 2; cy = top + h + gap; }
     else { cx = left + w / 2 - cardW / 2; cy = top - gap - cardH; }
 
+    if (step.overlap) {
+      /* Bước này cố ý để thẻ nằm trong vùng sáng, nép bên trái cho khỏi che tâm */
+      cx = left + 18;
+      cy = top + Math.max(18, Math.min(h / 2 - cardH / 2, h - cardH - 18));
+    }
     cx = Math.max(edge, Math.min(cx, vw - cardW - edge));
     cy = Math.max(edge, Math.min(cy, vh - cardH - edge));
     card.style.left = Math.round(cx) + 'px';

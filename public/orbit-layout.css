@@ -2391,7 +2391,8 @@ html[data-gender="male"] .tour-next { background: #1D3A63; }
 html[data-gender="male"] .tour-prev { background: #E9F1FB; color: #24405F; }
 
 /* Khi đang chạy hướng dẫn: không cho trang cuộn để lỗ sáng không lệch */
-html.tour-open, body.tour-open { overflow: hidden !important; }
+/* Không khoá cuộn: hướng dẫn cần cuộn tới vùng cần chỉ (bước 6 nằm dưới màn hình).
+   Vị trí lỗ sáng được cập nhật lại mỗi khi cuộn. */
 
 /* ===== Hộp thêm người thân (sau khi tạo tài khoản) ===== */
 .fam-card { width: min(460px, 100%); }
@@ -2478,3 +2479,7 @@ html[data-gender="male"] .orbit-empty-hint span { color: #5B7590; }
   .people-orbit-col { min-height: clamp(320px, 60vh, 620px); position: relative; }
 }
 .people-orbit-col .orbit-wrap { min-height: 300px; }
+
+/* Cho phép bấm xuyên qua lớp hướng dẫn: chỉ thẻ chú thích nhận chuột */
+.tour { pointer-events: none; }
+.tour-card { pointer-events: auto; }
