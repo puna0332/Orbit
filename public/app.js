@@ -640,8 +640,10 @@
   }
 
   var tourLastStep = null;
+  var tourToken = 0;
   function showTourStep() {
     var step = TOUR_STEPS[tourIdx];
+    tourToken++;
     if (!step) { endTour(); return; }
     /* Rời bước có hộp thoại thì đóng hộp lại để bước sau không bị che */
     if (tourLastStep && tourLastStep.modal) { try { closeModal(); } catch (e) { } }
@@ -668,6 +670,7 @@
        (hoặc trình duyệt headless) rAF bị hoãn vô hạn nên lỗ sáng không được đặt. */
     /* Trang đích có thể render chậm (quỹ đạo, lịch). Thử đo nhiều lần cho tới khi
        phần tử cần chỉ xuất hiện và có kích thước thật. */
+    var myToken = tourToken;
     var tries = 0;
     var lastRectStr = '';
     var settled = false;
@@ -682,7 +685,7 @@
       var rectStr = b ? [b.left, b.top, b.width, b.height].map(function (v) { return v.toFixed(0); }).join(',') : '';
       var stable = ready && rectStr === lastRectStr;
       lastRectStr = rectStr;
-      positionTour(step);
+      positionTour(step, myToken);
       if (!ready || !stable) {
         if (tries < 26) setTimeout(attempt, 110);
         return;
@@ -690,7 +693,7 @@
       /* Bố cục có thể còn nhích thêm (ảnh bìa, quỹ đạo, mở sổ): đo lại vài nhịp */
       if (!settled) {
         settled = true;
-        [220, 520, 900, 1400, 2000].forEach(function (ms) { setTimeout(function () { positionTour(step); }, ms); });
+        [220, 520, 900, 1400, 2000].forEach(function (ms) { setTimeout(function () { positionTour(step, myToken); }, ms); });
       }
     })();
   }
@@ -722,9 +725,11 @@
     sc.scrollTop = Math.max(0, want);
   }
 
-  function positionTour(stepArg) {
+  function positionTour(stepArg, token) {
     var el = tourEl();
     if (!el) return;
+    /* Bỏ qua lời gọi từ bước đã qua (timer đo lại của bước cũ) */
+    if (token !== undefined && token !== tourToken) return;
     var step = stepArg || el.__tourStep || TOUR_STEPS[tourIdx];
     if (!step) return;
     var target = tourTarget(step);
@@ -801,8 +806,8 @@
     card.style.top = Math.round(cy) + 'px';
   }
 
-  window.addEventListener('resize', function () { if (tourIdx >= 0) positionTour(); });
-  window.addEventListener('scroll', function () { if (tourIdx >= 0) positionTour(); }, true);
+  window.addEventListener('resize', function () { if (tourIdx >= 0) positionTour(undefined, tourToken); });
+  window.addEventListener('scroll', function () { if (tourIdx >= 0) positionTour(undefined, tourToken); }, true);
 
   /* ---------------------------- theme ---------------------------- */
   function applyTheme() {

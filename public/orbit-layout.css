@@ -2451,7 +2451,6 @@ html[data-gender="male"] .setup-hint { color: #6B849C; }
 .av-grid-scroll { max-height: 190px; overflow-y: auto; padding-right: 2px; }
 
 /* ===== Quỹ đạo trống: vẫn hiện vòng quỹ đạo + lời mời thêm người ===== */
-.people-orbit-col { position: relative; }
 .orbit-empty-hint {
   position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
   width: min(340px, calc(100% - 32px)); padding: 14px 16px;
@@ -2475,5 +2474,7 @@ html[data-gender="male"] .orbit-empty-hint span { color: #5B7590; }
 .tour-card { max-width: calc(100vw - 20px); }
 
 /* Quỹ đạo luôn có chỗ đứng kể cả khi chưa có ai (trước đây cao 0px) */
-.people-orbit-col { min-height: clamp(320px, 60vh, 620px); }
+@media (max-width: 899px) {
+  .people-orbit-col { min-height: clamp(320px, 60vh, 620px); position: relative; }
+}
 .people-orbit-col .orbit-wrap { min-height: 300px; }
