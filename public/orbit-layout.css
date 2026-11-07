@@ -1161,6 +1161,13 @@
 /* Giữ chỗ thanh cuộn để trang không bị xô ngang khi mở/đóng phần viết */
 html { scrollbar-gutter: stable; }
 
+/* Màn giới thiệu / đăng nhập: ảnh nền phải trải hết bề ngang.
+   `scrollbar-gutter: stable` dành sẵn ~15px cho thanh cuộn, nên mép phải của trang
+   hở ra một dải màu nền (đọc thành "sọc trắng" trên ảnh hoàng hôn). Trang này không
+   cần giữ chỗ vì không có panel nào mở/đóng làm đổi chiều cao. */
+html:has(.onboard-wrap) { scrollbar-gutter: auto; scrollbar-width: none; }
+html:has(.onboard-wrap)::-webkit-scrollbar { width: 0; height: 0; }
+
 /* ===== Cuốn sổ đang mở: trang giấy LỌT BÊN TRONG lòng sổ ===== */
 .diary-book { position: relative; width: 100%; }
 .diary-book .cover-img { width: 100%; height: auto; display: block; }
